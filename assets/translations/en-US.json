@@ -1,0 +1,16 @@
+{
+    "keywords": {
+        "next": "Next",
+        "skip": "Skip",
+        "cancel": "Cancel",
+        "signOut": "Sign out",
+        "close": "Close",
+        "yes": "Yes",
+        "ok": "Ok"
+    },
+    "error": {
+        "phoneNumber": "Looks like the number you entered is not valid.\nPlease check the number and try again.",
+        "invalidSmsCode": "Looks like something went wrong, please check the verification code and try again.",
+        "emailExists": "Email already exist"
+    }
+}
