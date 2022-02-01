@@ -30,6 +30,10 @@ dependencies:
   # Global configuration, FormData, Request Cancellation, File downloading, Timeout etc.
   dio: ^4.0.4
 
+  # NoSQL persistent embedded file system document-based database
+  # for Dart VM and Flutter with encryption support.
+  sembast: ^3.1.2
+
   # This plugin allows Flutter apps to discover network
   # connectivity and configure themselves accordingly.
   # It can distinguish between cellular vs WiFi connection.
