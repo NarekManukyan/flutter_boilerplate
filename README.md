@@ -117,7 +117,7 @@ lib/
 |- mixins/
 |- models/
 |- providers/
-|- screens/
+|- pages/
 |- store/
 |- themes/
 |- utils/
@@ -141,7 +141,7 @@ Now, lets dive into the lib folder which has the main code for the application.
 5- mixins - Contains the mixins.
 6- models - Contains the models.
 7- providers - Contains the providers.
-8- screens - Contains the UI parts of screens.
+8- pages - Contains the UI parts of pages.
 9- store - Contains store(s) for state-management of your application, to connect the reactive data of your application with the UI. 
 10- themes - Contains the themes, colors, and styles. 
 11- utils — Contains the utilities/common functions of your application.
@@ -157,9 +157,9 @@ This file contains all the routes for your application.
 ```dart
 import 'package:auto_route/auto_route.dart';
 
-import 'screens/dashboard/dashboard_page.dart';
-import 'screens/login_page/login_page.dart';
-import 'screens/splash_screen/splash_screen.dart';
+import 'pages/dashboard/dashboard_page.dart';
+import 'pages/login_page/login_page.dart';
+import 'pages/splash_screen/splash_screen.dart';
 
 export 'router.gr.dart';
 
