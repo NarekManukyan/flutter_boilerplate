@@ -101,6 +101,7 @@ Here is the core folder structure which flutter provides.
 ```
 flutter-app/
 |- android
+|- assets
 |- build
 |- ios
 |- lib
