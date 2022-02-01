@@ -136,15 +136,15 @@ Now, lets dive into the lib folder which has the main code for the application.
 
 ```
 1- constants - All the application level constants are defined in this directory with-in their respective files. This directory contains the constants for `theme`, `dimentions`, `api endpoints`, `preferences` and `strings`.
-2- environments - Contains the data layer of your project, includes directories for local, network and shared pref/cache.
-3- extensions - Contains the data layer of your project, includes directories for local, network and shared pref/cache.
-4- http - Contains the data layer of your project, includes directories for local, network and shared pref/cache.
-5- mixins - Contains the data layer of your project, includes directories for local, network and shared pref/cache.
-6- models - Contains the data layer of your project, includes directories for local, network and shared pref/cache.
-7- providers - Contains the data layer of your project, includes directories for local, network and shared pref/cache.
-8- screens - Contains the data layer of your project, includes directories for local, network and shared pref/cache.
+2- environments - Contains the configurations for environments.
+3- extensions - Contains the extensions on context, Widgets.
+4- http - Contains the Dio repositories and interceptors.
+5- mixins - Contains the mixins.
+6- models - Contains the models.
+7- providers - Contains the providers.
+8- screens - Contains the UI parts of screens.
 9- store - Contains store(s) for state-management of your application, to connect the reactive data of your application with the UI. 
-10- themes - Contains store(s) for state-management of your application, to connect the reactive data of your application with the UI. 
+10- themes - Contains the themes, colors, and styles. 
 11- utils — Contains the utilities/common functions of your application.
 12- widgets — Contains the common widgets for your applications. For example, Button, TextField etc.
 13- router.dart — This file contains all the routes for your application.
