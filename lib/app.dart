@@ -1,5 +1,4 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flavorbanner/widgets/flavor_banner.dart';
 import 'package:flutter/material.dart' hide Router;
 import 'package:get_it/get_it.dart';
 
@@ -28,9 +27,6 @@ class MyApp extends StatelessWidget {
           navigatorObservers: () => [
             // analyticsService.observer,
           ],
-        ),
-        builder: (context, child) => FlavorBanner(
-          child: child ?? const Scaffold(),
         ),
         routeInformationParser: router.defaultRouteParser(),
       ),

@@ -1,5 +1,4 @@
-import 'package:flavorbanner/flavor_config.dart';
-
+import '../constants/flavor_type.dart';
 import '../environments/development/development.dart';
 import '../environments/production/production.dart';
 import '../environments/staging/staging.dart';

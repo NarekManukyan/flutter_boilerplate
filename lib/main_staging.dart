@@ -1,5 +1,4 @@
-import 'package:flavorbanner/flavor_config.dart';
-
+import 'constants/flavor_type.dart';
 import 'main.dart' as app;
 
 Future<void> main() async {
