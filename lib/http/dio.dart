@@ -3,8 +3,8 @@ import 'package:dio/dio.dart';
 import 'dio_flutter_transformer.dart';
 
 final options = BaseOptions(
-  connectTimeout: 240000,
-  receiveTimeout: 240000,
+  connectTimeout: const Duration(seconds: 32),
+  receiveTimeout: const Duration(seconds: 32),
 );
 
 final dio = Dio(options)..transformer = FlutterTransformer();

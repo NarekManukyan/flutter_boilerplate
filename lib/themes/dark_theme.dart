@@ -16,7 +16,7 @@ final darkTheme = base.copyWith(
     onPrimary: AppColors.white,
   ),
   tabBarTheme: TabBarTheme(
-    unselectedLabelStyle: base.primaryTextTheme.button!.copyWith(
+    unselectedLabelStyle: base.primaryTextTheme.labelSmall!.copyWith(
       color: AppColors.white,
     ),
     labelStyle: const TextStyle(
@@ -57,7 +57,7 @@ final darkTheme = base.copyWith(
     iconTheme: const IconThemeData(
       color: AppColors.white,
     ),
-    titleTextStyle: base.primaryTextTheme.headline6!.copyWith(
+    titleTextStyle: base.primaryTextTheme.titleSmall!.copyWith(
       fontFamily: FontFamily.CeraPro,
       color: AppColors.white,
       fontWeight: FontWeight.bold,
@@ -68,28 +68,28 @@ final darkTheme = base.copyWith(
     systemOverlayStyle: SystemUiOverlayStyle.dark,
     toolbarTextStyle: base.textTheme
         .copyWith(
-          bodyText1: base.textTheme.bodyText1!.copyWith(
+          labelSmall: base.textTheme.labelSmall!.copyWith(
             fontFamily: FontFamily.CeraPro,
             color: AppColors.white,
             fontWeight: FontWeight.bold,
           ),
-          headline6: base.textTheme.headline6!.copyWith(
+          titleSmall: base.textTheme.titleSmall!.copyWith(
             fontFamily: FontFamily.CeraPro,
             color: AppColors.chalkboardBlack,
             fontWeight: FontWeight.bold,
           ),
-          headline3: base.textTheme.headline3!.copyWith(
+          headlineSmall: base.textTheme.headlineSmall!.copyWith(
             fontFamily: FontFamily.CeraPro,
             color: AppColors.white,
             fontWeight: FontWeight.bold,
           ),
-          headline4: base.textTheme.headline4!.copyWith(
+          titleLarge: base.textTheme.titleLarge!.copyWith(
             fontFamily: FontFamily.CeraPro,
             color: AppColors.white,
             fontWeight: FontWeight.w500,
           ),
         )
-        .bodyText2,
+        .bodyMedium,
   ),
   bottomNavigationBarTheme: base.bottomNavigationBarTheme.copyWith(
     backgroundColor: AppColors.charcoal,
@@ -134,7 +134,7 @@ final darkTheme = base.copyWith(
       color: AppColors.red,
       fontFamily: FontFamily.CeraPro,
     ),
-    hintStyle: base.primaryTextTheme.bodyText1!.copyWith(
+    hintStyle: base.primaryTextTheme.bodyLarge!.copyWith(
       color: AppColors.grayMedium,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.normal,
@@ -275,15 +275,15 @@ final darkTheme = base.copyWith(
     ),
   ),
   outlinedButtonTheme: OutlinedButtonThemeData(style: outlineButtonStyle),
-  toggleableActiveColor: AppColors.red,
+
   textTheme: base.primaryTextTheme.copyWith(
-    headline1: base.primaryTextTheme.headline1!.copyWith(
+    headlineLarge: base.primaryTextTheme.headlineLarge!.copyWith(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.bold,
       fontSize: 26,
     ),
-    headline2: base.primaryTextTheme.headline2!.copyWith(
+    headlineMedium: base.primaryTextTheme.headlineMedium!.copyWith(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.bold,
@@ -291,7 +291,7 @@ final darkTheme = base.copyWith(
       letterSpacing: -.76,
       height: 1,
     ),
-    headline3: base.primaryTextTheme.headline3!.copyWith(
+    headlineSmall: base.primaryTextTheme.headlineSmall!.copyWith(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.bold,
@@ -299,7 +299,7 @@ final darkTheme = base.copyWith(
       letterSpacing: -.56,
       height: 1,
     ),
-    headline4: base.primaryTextTheme.headline4!.copyWith(
+    titleLarge: base.primaryTextTheme.titleLarge!.copyWith(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.normal,
@@ -307,7 +307,7 @@ final darkTheme = base.copyWith(
       letterSpacing: -.52,
       height: 1,
     ),
-    headline5: base.primaryTextTheme.headline5!.copyWith(
+    titleMedium: base.primaryTextTheme.titleMedium!.copyWith(
       fontFamily: FontFamily.CeraPro,
       color: AppColors.white,
       fontWeight: FontWeight.bold,
@@ -315,7 +315,7 @@ final darkTheme = base.copyWith(
       letterSpacing: -.48,
       height: 1.2,
     ),
-    headline6: base.primaryTextTheme.headline6!.copyWith(
+    titleSmall: base.primaryTextTheme.titleSmall!.copyWith(
       fontFamily: FontFamily.CeraPro,
       color: AppColors.white,
       fontWeight: FontWeight.bold,
@@ -323,7 +323,7 @@ final darkTheme = base.copyWith(
       letterSpacing: -.4,
       height: 1.1,
     ),
-    subtitle1: base.primaryTextTheme.subtitle1!.copyWith(
+    labelLarge: base.primaryTextTheme.labelMedium!.copyWith(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.bold,
@@ -331,7 +331,7 @@ final darkTheme = base.copyWith(
       height: 1.25,
       letterSpacing: -.32,
     ),
-    subtitle2: base.primaryTextTheme.subtitle2!.copyWith(
+    labelMedium: base.primaryTextTheme.labelSmall!.copyWith(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.w500,
@@ -339,7 +339,14 @@ final darkTheme = base.copyWith(
       height: 1.25,
       letterSpacing: -.32,
     ),
-    bodyText1: base.primaryTextTheme.bodyText1!.copyWith(
+    labelSmall: const TextStyle(
+      color: AppColors.white,
+      fontFamily: FontFamily.CeraPro,
+      fontWeight: FontWeight.w500,
+      fontSize: 12,
+      height: 1.1,
+    ),
+    bodyLarge: base.primaryTextTheme.bodyLarge!.copyWith(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.normal,
@@ -347,7 +354,7 @@ final darkTheme = base.copyWith(
       letterSpacing: -.32,
       height: 1.25,
     ),
-    bodyText2: base.primaryTextTheme.bodyText2!.copyWith(
+    bodyMedium: base.primaryTextTheme.bodyMedium!.copyWith(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.normal,
@@ -355,23 +362,7 @@ final darkTheme = base.copyWith(
       letterSpacing: -.16,
       height: 1.25,
     ),
-    caption: const TextStyle(
-      color: AppColors.white,
-      fontFamily: FontFamily.CeraPro,
-      fontWeight: FontWeight.normal,
-      fontSize: 12,
-      height: 1.1,
-      letterSpacing: -.16,
-    ),
-    overline: const TextStyle(
-      color: AppColors.white,
-      fontFamily: FontFamily.CeraPro,
-      fontWeight: FontWeight.normal,
-      fontSize: 10,
-      height: 1.1,
-      letterSpacing: -.1,
-    ),
-    button: const TextStyle(
+    bodySmall: const TextStyle(
       color: AppColors.white,
       fontFamily: FontFamily.CeraPro,
       fontWeight: FontWeight.bold,

@@ -29,7 +29,7 @@ final ButtonStyle flatButtonStyle = TextButton.styleFrom(
 );
 
 final ButtonStyle raisedButtonStyle = ElevatedButton.styleFrom(
-  primary: AppColors.red,
+  backgroundColor: AppColors.red,
   minimumSize: const Size(88, 36),
   padding: const EdgeInsets.all(16),
   shape: const RoundedRectangleBorder(
