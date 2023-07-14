@@ -13,7 +13,7 @@ _$_Config _$$_ConfigFromJson(Map json) => _$_Config(
     );
 
 Map<String, dynamic> _$$_ConfigToJson(_$_Config instance) => <String, dynamic>{
-      'env': _$FlavorEnumMap[instance.env],
+      'env': _$FlavorEnumMap[instance.env]!,
       'production': instance.production,
       'apiUrl': instance.apiUrl,
     };

@@ -3,15 +3,15 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-/// Dio has already implemented a [DefaultTransformer], and as the default
+/// Dio has already implemented a [SyncTransformer], and as the default
 /// [Transformer]. If you want to custom the transformation of
 /// request/response data, you can provide a [Transformer] by your self, and
-/// replace the [DefaultTransformer] by setting the [dio.Transformer].
+/// replace the [SyncTransformer] by setting the [dio.Transformer].
 ///
 /// [FlutterTransformer] is especially for flutter, by which the json decoding
 /// will be in background with [compute] function.
 /// FlutterTransformer
-class FlutterTransformer extends DefaultTransformer {
+class FlutterTransformer extends SyncTransformer {
   FlutterTransformer() : super(jsonDecodeCallback: _parseJson);
 }
 

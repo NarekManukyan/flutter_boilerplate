@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -13,13 +12,14 @@ class RetryInterceptor extends Interceptor {
 
   @override
   Future onError(
-    DioError err,
+    DioException err,
     ErrorInterceptorHandler handler,
   ) async {
     if (_shouldRetry(err)) {
       try {
-        final res =
-            await requestRetrier.scheduleRequestRetry(err.requestOptions);
+        final res = await requestRetrier.scheduleRequestRetry(
+          err.requestOptions,
+        );
         return handler.resolve(res);
       } catch (e) {
         // Let any new error from the retrier pass through
@@ -30,11 +30,12 @@ class RetryInterceptor extends Interceptor {
     return super.onError(err, handler);
   }
 
-  bool _shouldRetry(DioError err) {
-    return err.type == DioErrorType.other &&
-        err.error != null &&
-        err.error is SocketException &&
-        !CancelToken.isCancel(err);
+  bool _shouldRetry(DioException err) {
+    return err.type == DioExceptionType.connectionError ||
+        err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.sendTimeout ||
+        err.type == DioExceptionType.unknown;
   }
 }
 

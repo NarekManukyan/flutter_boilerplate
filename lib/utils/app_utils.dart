@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
 import '../constants/device_type.dart';
@@ -14,10 +13,6 @@ Future<Route> getCurrentRoute() {
   });
 
   return completer.future;
-}
-
-RouteConfig getRouteConfigs(String name) {
-  return router.routes.firstWhere((element) => element.name == name);
 }
 
 Future<bool> isCurrentRoute(String routeName) async {

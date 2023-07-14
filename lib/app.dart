@@ -23,12 +23,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: GetIt.I<FlavorService>().isDevelopment,
         theme: lightTheme,
         darkTheme: darkTheme,
-        routerDelegate: router.delegate(
-          navigatorObservers: () => [
-            // analyticsService.observer,
-          ],
-        ),
-        routeInformationParser: router.defaultRouteParser(),
+        routerConfig: router.config(),
       ),
     );
   }

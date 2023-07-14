@@ -1,8 +1,10 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
 import '../../store/loading_state/loading_state.dart';
 import '../../store/login_state/login_state.dart';
 
+@RoutePage()
 class LoginPage extends StatefulWidget {
   const LoginPage({
     Key? key,
@@ -20,11 +22,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override

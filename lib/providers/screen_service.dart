@@ -1,10 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 
-import '../router.gr.dart';
+import '../routes/app_router.dart';
 
-final router = Router();
+final router = AppRouter();
 
-extension NavigationHelper on Router {
+extension ScreenService on AppRouter {
   Future<void> pushAndPopAll(PageRouteInfo page) async {
     await replaceAll([page]);
   }
