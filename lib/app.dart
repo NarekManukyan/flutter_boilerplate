@@ -18,6 +18,7 @@ class MyApp extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+
     final _onConnectivityChange = useCallback<void Function(bool)>(
       (hasConnection) {
         showSimpleNotification(
