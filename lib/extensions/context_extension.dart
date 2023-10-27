@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../themes/app_colors.dart';
+import '../gen/colors.gen.dart';
 import '../utils/color_utils.dart';
 
 extension BuildContextExtensions on BuildContext {

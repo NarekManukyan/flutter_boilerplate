@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<recources>
+    <color name="yellow">#FEAE1C</color>
+    <color name="charcoal">#212121</color>
+    <color name="chalkboardBlack">#262C2E</color>
+    <color name="blackHeadlines">#262C2E</color>
+    <color name="graySubtitles">#65616A</color>
+    <color name="zambezi">#585858</color>
+    <color name="burgundy">#60003C</color>
+    <color name="extraLightGray">#F9F7F4</color>
+    <color name="gray">#939393</color>
+    <color name="darkGray">#65616A</color>
+    <color name="grayMedium">#A9A7A3</color>
+    <color name="grayRegular">#C4C4C4</color>
+    <color name="white">#FFFDFA</color>
+    <color name="green">#3EAA42</color>
+    <color name="red">#E40000</color>
+    <color name="blue">#00AADF</color>
+    <color name="darkGreen">#3AC984</color>
+    <color name="darkModeBlack">#383838</color>
+    <color name="success">#505560</color>
+    <color name="lightGray">#E3E0E3</color>
+    <color name="darkTextFillColor">#363640</color>
+    <color name="dark">#000000</color>
+    <color name="grayTabBackground">#A6A3A9</color>
+    <color name="grayTileTrailing">#BEC4CB</color>
+    <color name="divider">#E3E0E3</color>
+    <color name="appBarSelectedBlack">#25282A</color>
+    <color name="shadowColor">#A4A9AD</color>
+    <color name="shadowColor2">#323B62</color>
+    <color name="yellowButtonDisabledColor">#FFDEA1</color>
+    <color name="burgundyButtonDisabledColor">#BF98AE</color>
+    <color name="textButtonDisabledColor">#FDFBF8</color>
+
+    <color name="error">#E40000</color>
+    <color name="listTitleBlack">#65616A</color>
+    <color name="listSubTitleBlack">#65616A</color>
+    <color name="myLocationActive">#FFDEA1</color>
+    <color name="myLocationInactive">#FFDEA1</color>
+</recources>
+
+

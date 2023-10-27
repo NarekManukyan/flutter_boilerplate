@@ -4,7 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import '../../store/loading_state/loading_state.dart';
 
 /// Creates [LoadingState] that will be disposed automatically.
-LoadingState useLoadingState({
+LoadingState useLoadingHook({
   bool initialValue = false,
 }) {
   return use(

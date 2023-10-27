@@ -83,7 +83,6 @@ In Visual Studio Code, navigate to `Preferences` -> `Settings` and search for `F
 ### Libraries & Tools Used
 
 * [Dio](https://github.com/flutterchina/dio)
-* [Database](https://github.com/tekartik/sembast.dart)
 * [Routing](https://github.com/Milad-Akarie/auto_route_library)
 * [MobX](https://github.com/mobxjs/mobx.dart) (State Management)
 * [SVG support](https://github.com/dnfield/flutter_svg) 

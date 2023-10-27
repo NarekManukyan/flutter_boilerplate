@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'constants/flavor_type.dart';
+import 'constants/supported_locals.dart';
 import 'providers/get_it.dart';
 
 Future<void> run({Flavor env = Flavor.DEV}) async {
@@ -22,11 +23,14 @@ Future<void> run({Flavor env = Flavor.DEV}) async {
 
   runApp(
     EasyLocalization(
-      supportedLocales: const [
-        Locale('en', 'US'),
-      ],
-      startLocale: const Locale('en', 'US'),
-      fallbackLocale: const Locale('en', 'US'),
+      supportedLocales: SupportedLocals.values
+          .map(
+            (e) => e.getLocal,
+      )
+          .toList(),
+      startLocale: SupportedLocals.EN.getLocal,
+      fallbackLocale: SupportedLocals.EN.getLocal,
+
       path: 'assets/translations',
       child: const MyApp(),
     ),

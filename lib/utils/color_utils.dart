@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../extensions/context_extension.dart';
+import '../gen/colors.gen.dart';
 import '../providers/screen_service.dart';
-import '../themes/app_colors.dart';
 
 enum ContrastPreference {
   none,
