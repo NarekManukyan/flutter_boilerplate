@@ -2,14 +2,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'app_colors.dart';
-import 'app_fonts.dart';
-import 'app_styles.dart';
+import '../gen/colors.gen.dart';
+import '../gen/fonts.gen.dart';
+import 'theme_tailor/theme_colors.dart';
 
 final base = ThemeData.light();
 
 final lightTheme = base.copyWith(
   shadowColor: AppColors.yellow,
+  extensions: [
+    ThemeColors.light,
+  ],
   colorScheme: base.colorScheme.copyWith(
     primary: AppColors.white,
     onPrimary: AppColors.charcoal,
@@ -20,7 +23,7 @@ final lightTheme = base.copyWith(
     ),
     labelStyle: const TextStyle(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.normal,
       fontSize: 16,
       height: 1,
@@ -57,7 +60,7 @@ final lightTheme = base.copyWith(
       color: AppColors.charcoal,
     ),
     titleTextStyle: base.primaryTextTheme.titleSmall!.copyWith(
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       color: AppColors.charcoal,
       fontWeight: FontWeight.bold,
       fontSize: 20,
@@ -68,22 +71,22 @@ final lightTheme = base.copyWith(
     toolbarTextStyle: base.textTheme
         .copyWith(
           labelSmall: base.textTheme.labelSmall!.copyWith(
-            fontFamily: FontFamily.CeraPro,
+            fontFamily: FontFamily.mulish,
             color: AppColors.charcoal,
             fontWeight: FontWeight.bold,
           ),
           titleSmall: base.textTheme.titleSmall!.copyWith(
-            fontFamily: FontFamily.CeraPro,
+            fontFamily: FontFamily.mulish,
             color: AppColors.chalkboardBlack,
             fontWeight: FontWeight.bold,
           ),
           headlineSmall: base.textTheme.headlineSmall!.copyWith(
-            fontFamily: FontFamily.CeraPro,
+            fontFamily: FontFamily.mulish,
             color: AppColors.charcoal,
             fontWeight: FontWeight.bold,
           ),
           titleLarge: base.textTheme.titleLarge!.copyWith(
-            fontFamily: FontFamily.CeraPro,
+            fontFamily: FontFamily.mulish,
             color: AppColors.charcoal,
             fontWeight: FontWeight.w500,
           ),
@@ -100,13 +103,13 @@ final lightTheme = base.copyWith(
     labelStyle: const TextStyle(
       color: AppColors.charcoal,
       fontWeight: FontWeight.w500,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
     ),
     selectedColor: AppColors.charcoal,
     secondaryLabelStyle: const TextStyle(
       color: AppColors.charcoal,
       fontWeight: FontWeight.w500,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
     ),
     secondarySelectedColor: Colors.transparent,
   ),
@@ -129,11 +132,11 @@ final lightTheme = base.copyWith(
   inputDecorationTheme: base.inputDecorationTheme.copyWith(
     errorStyle: const TextStyle(
       color: AppColors.red,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
     ),
     hintStyle: base.primaryTextTheme.bodyLarge!.copyWith(
       color: AppColors.darkGray,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.normal,
       fontSize: 16,
       letterSpacing: -.32,
@@ -165,7 +168,7 @@ final lightTheme = base.copyWith(
     filled: true,
     labelStyle: const TextStyle(
       color: AppColors.darkGray,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.normal,
       fontSize: 16,
       letterSpacing: -.32,
@@ -189,14 +192,14 @@ final lightTheme = base.copyWith(
           return states.contains(MaterialState.disabled)
               ? TextStyle(
                   color: AppColors.burgundy.withOpacity(0.5),
-                  fontFamily: FontFamily.CeraPro,
+                  fontFamily: FontFamily.mulish,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                   height: 1.1,
                 )
               : const TextStyle(
                   color: AppColors.burgundy,
-                  fontFamily: FontFamily.CeraPro,
+                  fontFamily: FontFamily.mulish,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                   height: 1.1,
@@ -248,7 +251,7 @@ final lightTheme = base.copyWith(
         (states) {
           return const TextStyle(
             color: AppColors.white,
-            fontFamily: FontFamily.CeraPro,
+            fontFamily: FontFamily.mulish,
             fontWeight: FontWeight.bold,
             fontSize: 20,
             height: 1.1,
@@ -270,17 +273,16 @@ final lightTheme = base.copyWith(
       ),
     ),
   ),
-  outlinedButtonTheme: OutlinedButtonThemeData(style: outlineButtonStyle),
   textTheme: base.primaryTextTheme.copyWith(
     headlineLarge: base.primaryTextTheme.headlineLarge!.copyWith(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.bold,
       fontSize: 26,
     ),
     headlineMedium: base.primaryTextTheme.headlineMedium!.copyWith(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.bold,
       fontSize: 38,
       letterSpacing: -.76,
@@ -288,7 +290,7 @@ final lightTheme = base.copyWith(
     ),
     headlineSmall: base.primaryTextTheme.headlineSmall!.copyWith(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.bold,
       fontSize: 28,
       letterSpacing: -.56,
@@ -296,14 +298,14 @@ final lightTheme = base.copyWith(
     ),
     titleLarge: base.primaryTextTheme.titleLarge!.copyWith(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.normal,
       fontSize: 26,
       letterSpacing: -.52,
       height: 1,
     ),
     titleMedium: base.primaryTextTheme.titleMedium!.copyWith(
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       color: AppColors.charcoal,
       fontWeight: FontWeight.bold,
       fontSize: 24,
@@ -311,7 +313,7 @@ final lightTheme = base.copyWith(
       height: 1.2,
     ),
     titleSmall: base.primaryTextTheme.titleSmall!.copyWith(
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       color: AppColors.charcoal,
       fontWeight: FontWeight.bold,
       fontSize: 20,
@@ -320,7 +322,7 @@ final lightTheme = base.copyWith(
     ),
     labelLarge: base.primaryTextTheme.labelLarge!.copyWith(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.bold,
       fontSize: 16,
       height: 1.25,
@@ -328,7 +330,7 @@ final lightTheme = base.copyWith(
     ),
     labelMedium: base.primaryTextTheme.labelMedium!.copyWith(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.w500,
       fontSize: 16,
       height: 1.25,
@@ -336,14 +338,14 @@ final lightTheme = base.copyWith(
     ),
     labelSmall: const TextStyle(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.bold,
       fontSize: 12,
       height: 1.1,
     ),
     bodyLarge: base.primaryTextTheme.bodyLarge!.copyWith(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.normal,
       fontSize: 16,
       letterSpacing: -.32,
@@ -351,7 +353,7 @@ final lightTheme = base.copyWith(
     ),
     bodyMedium: base.primaryTextTheme.bodyMedium!.copyWith(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.normal,
       fontSize: 14,
       letterSpacing: -.16,
@@ -359,7 +361,7 @@ final lightTheme = base.copyWith(
     ),
     bodySmall: const TextStyle(
       color: AppColors.charcoal,
-      fontFamily: FontFamily.CeraPro,
+      fontFamily: FontFamily.mulish,
       fontWeight: FontWeight.normal,
       fontSize: 12,
       height: 1.1,

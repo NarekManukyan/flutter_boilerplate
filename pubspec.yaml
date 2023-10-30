@@ -28,21 +28,17 @@ dependencies:
 
   # A powerful Http client for Dart, which supports Interceptors,
   # Global configuration, FormData, Request Cancellation, File downloading, Timeout etc.
-  dio: ^5.2.1+1
-
-  # NoSQL persistent embedded file system document-based database
-  # for Dart VM and Flutter with encryption support.
-  sembast: ^3.4.9
+  dio: ^5.3.3
 
   # This plugin allows Flutter apps to discover network
   # connectivity and configure themselves accordingly.
   # It can distinguish between cellular vs WiFi connection.
-  connectivity_plus: ^4.0.1
+  connectivity_plus: ^5.0.1
 
   # Simple direct Service Locator that allows to decouple the interface
   # from a concrete implementation and to access the concrete
   # implementation from everywhere in your App
-  get_it: ^7.6.0
+  get_it: ^7.6.4
 
   # Classes and helper functions that support JSON code generation
   # via the `json_serializable` package.
@@ -50,7 +46,7 @@ dependencies:
 
   # MobX is a library for reactively managing the state of your applications.
   # Use the power of observables, actions, and reactions to supercharge your Dart and Flutter apps.
-  mobx: ^2.2.0
+  mobx: ^2.2.1
 
   # Flutter integration for MobX. It provides a set of Observer widgets
   # that automatically rebuild when the tracked observables change.
@@ -58,23 +54,19 @@ dependencies:
 
   # Flutter plugin for reading and writing simple key-value pairs.
   # Wraps NSUserDefaults on iOS and SharedPreferences on Android.
-  shared_preferences: ^2.2.0
+  shared_preferences: ^2.2.2
 
   # Official extension image, support placeholder(loading)/ failed state, cache network, zoom/pan,
   # photo view, slide out page, editor(crop,rotate,flip), painting etc.
-  extended_image: ^8.0.2
+  extended_image: ^8.1.1
 
   # AutoRoute is a declarative routing solution, where everything
   # needed for navigation is automatically generated for you.
-  auto_route: ^7.7.0
-
-  # An SVG rendering and widget library for Flutter,
-  # which allows painting and displaying Scalable Vector Graphics 1.1 files.
-  flutter_svg: ^2.0.7
+  auto_route: ^7.8.4
 
   # Easy and Fast internationalizing and localization your Flutter Apps,
   # this package simplify the internationalizing process .
-  easy_localization: ^3.0.2
+  easy_localization: ^3.0.3
 
   # Annotations for the freezed code-generator. This package does nothing without freezed too.
   freezed_annotation: ^2.4.1
@@ -88,9 +80,23 @@ dependencies:
   rxdart: ^0.27.7
 
   # Flutter plugin for launching a URL. Supports web, phone, SMS, and email schemes.
-  url_launcher: ^6.1.12
+  url_launcher: ^6.2.1
 
-  flutter_hooks: ^0.19.0
+  # retrofit is a type conversion dio client generator using source_gen and inspired by Chopper and Retrofit.
+  retrofit: ^4.0.3
+
+  # A Flutter implementation of React hooks:
+  flutter_hooks: ^0.20.3
+
+  # Provider support for overlay, make it easy to build toast and In-App notification.
+  overlay_support: ^2.1.0
+
+  # The Flutter code generator for your assets, fonts, colors.
+  flutter_gen: ^5.3.2
+
+  # Theme Tailor, a code generator and theming utility for supercharging Flutter ThemeExtension classes introduced in Flutter 3.0! The generator helps to minimize the required boilerplate code
+  theme_tailor: ^2.0.0
+  theme_tailor_annotation: ^2.0.0
 
 # Dependencies that are only needed in the development phase
 # of the package itself are listed under dev_dependencies.
@@ -101,7 +107,7 @@ dev_dependencies:
 
   # AutoRoute is a declartive routing solution, where everything
   # needed for navigation is automatically generated for you.
-  auto_route_generator: ^7.2.0
+  auto_route_generator: ^7.3.2
 
   # A build system for Dart code generation and modular compilation.
   build_runner: ^2.4.6
@@ -111,11 +117,17 @@ dev_dependencies:
 
   # Code generator for MobX that adds support for annotating your code with
   # @observable, @computed, @action and also creating Store classes.
-  mobx_codegen: ^2.3.0
+  mobx_codegen: ^2.4.0
 
   # Code generation for immutable classes that has a simple
   # syntax/API without compromising on the features.
-  freezed: ^2.4.1
+  freezed: ^2.4.5
+
+  # retrofit.dart is a type conversion dio client generator using source_gen and inspired by Chopper and Retrofit.
+  retrofit_generator: ^8.0.2
+
+  # he Flutter code generator for your assets, fonts, color.
+  flutter_gen_runner: ^5.3.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -135,6 +147,8 @@ flutter:
 
   assets:
     - assets/translations/
+    - assets/images/
+    - assets/fonts/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
@@ -147,17 +161,60 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
+  fonts:
+    - family: Mulish
+      fonts:
+        - asset: assets/fonts/Mulish/Mulish-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Mulish/Mulish-Bold.ttf
+          weight: 700
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+flutter_gen:
+  output: lib/gen/
+  line_length: 80
+  integrations:
+    flutter_svg: true
+    flare_flutter: false
+    rive: false
+    lottie: false
+    #  assets:
+    # Optional
+    #    enabled: true
+    # Optional
+    outputs:
+      # Optional
+      # Set to true if you want this package to be a package dependency
+      # See: https://flutter.dev/docs/development/ui/assets-and-images#from-packages
+      package_parameter_enabled: false
+      # Optional
+      # Available values:
+      # - camel-case
+      # - snake-case
+      # - dot-delimiter
+      style: camel-case
+    #      class_name: Assets
+    #    exclude:
+    #      [
+    #        "assets/translations/*.json",
+    #        "assets/icons/1.5x/*",
+    #        "assets/icons/2.0x/*",
+    #        "assets/icons/3.0x/*",
+    #        "assets/icons/4.0x/*",
+    #      ]
+    #  fonts:
+    # Optional
+    #    enabled: true
+    # Optional
+  #    outputs:
+  #      class_name: FontFamily
+  colors:
+    # Optional
+    enabled: true
+    # Optional
+    inputs:
+      - assets/colors/colors.xml
+    # Optional
+    outputs:
+      class_name: AppColors

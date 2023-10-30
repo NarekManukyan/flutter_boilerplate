@@ -15,11 +15,13 @@ class SplashPage extends HookWidget {
     useEffect(
       () {
         checkSession();
+
         return;
       },
     );
-    return const Scaffold(
-      body: Center(
+
+    return const Material(
+      child: Center(
         child: FlutterLogo(
           size: 128,
         ),
@@ -30,9 +32,9 @@ class SplashPage extends HookWidget {
   Future<void> checkSession() async {
     final _token = await StorageUtils.getAccessToken();
     if (_token != null) {
-      await router.popAndPush(const LoginRoute());
+      await router.pushAndPopAll(const LoginRoute());
     } else {
-      await router.popAndPush(const DashboardRoute());
+      await router.pushAndPopAll(const DashboardRoute());
     }
   }
 }
