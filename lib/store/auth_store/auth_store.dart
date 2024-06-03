@@ -5,11 +5,11 @@ import '../../models/user/user_dto.dart';
 import '../../utils/storage_utils.dart';
 import '../store.dart';
 
-part 'auth_state.g.dart';
+part 'auth_store.g.dart';
 
-class AuthState = _AuthState with _$AuthState;
+class AuthStore = AuthStoreBase with _$AuthStore;
 
-abstract class _AuthState with Store {
+abstract class AuthStoreBase with Store {
   @observable
   UserDto? _currentUser;
 

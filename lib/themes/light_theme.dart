@@ -6,13 +6,14 @@ import '../gen/colors.gen.dart';
 import '../gen/fonts.gen.dart';
 import 'theme_tailor/theme_colors.dart';
 
-final base = ThemeData.light();
+final base = ThemeData.light(useMaterial3: false);
+const scaffoldBackgroundColor = AppColors.charcoal;
+
+final _customThemeLight = CustomTheme(background: AppColors.white);
 
 final lightTheme = base.copyWith(
   shadowColor: AppColors.yellow,
-  extensions: [
-    ThemeColors.light,
-  ],
+  extensions: [_customThemeLight],
   colorScheme: base.colorScheme.copyWith(
     primary: AppColors.white,
     onPrimary: AppColors.charcoal,
@@ -181,15 +182,15 @@ final lightTheme = base.copyWith(
   ),
   textButtonTheme: TextButtonThemeData(
     style: ButtonStyle(
-      padding: MaterialStateProperty.all(
+      padding: WidgetStateProperty.all(
         const EdgeInsets.symmetric(
           horizontal: 24,
           vertical: 16,
         ),
       ),
-      textStyle: MaterialStateProperty.resolveWith(
+      textStyle: WidgetStateProperty.resolveWith(
         (states) {
-          return states.contains(MaterialState.disabled)
+          return states.contains(WidgetState.disabled)
               ? TextStyle(
                   color: AppColors.burgundy.withOpacity(0.5),
                   fontFamily: FontFamily.mulish,
@@ -206,24 +207,24 @@ final lightTheme = base.copyWith(
                 );
         },
       ),
-      shape: MaterialStateProperty.resolveWith((state) {
+      shape: WidgetStateProperty.resolveWith((state) {
         return const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(30)),
         );
       }),
-      foregroundColor: MaterialStateProperty.resolveWith((states) {
-        return states.contains(MaterialState.disabled)
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        return states.contains(WidgetState.disabled)
             ? AppColors.burgundy.withOpacity(0.4)
             : AppColors.burgundy;
       }),
-      backgroundColor: MaterialStateProperty.resolveWith(
+      backgroundColor: WidgetStateProperty.resolveWith(
         (states) {
-          return states.contains(MaterialState.disabled)
+          return states.contains(WidgetState.disabled)
               ? AppColors.extraLightGray.withOpacity(0.4)
               : AppColors.extraLightGray;
         },
       ),
-      overlayColor: MaterialStateProperty.all(
+      overlayColor: WidgetStateProperty.all(
         AppColors.grayMedium.withOpacity(.5),
       ),
     ),
@@ -237,17 +238,17 @@ final lightTheme = base.copyWith(
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ButtonStyle(
-      shadowColor: MaterialStateProperty.all(AppColors.yellow),
-      padding: MaterialStateProperty.all(
+      shadowColor: WidgetStateProperty.all(AppColors.yellow),
+      padding: WidgetStateProperty.all(
         const EdgeInsets.symmetric(
           horizontal: 24,
           vertical: 16,
         ),
       ),
       overlayColor:
-          MaterialStateProperty.all(AppColors.grayMedium.withOpacity(.5)),
-      elevation: MaterialStateProperty.all(0),
-      textStyle: MaterialStateProperty.resolveWith(
+          WidgetStateProperty.all(AppColors.grayMedium.withOpacity(.5)),
+      elevation: WidgetStateProperty.all(0),
+      textStyle: WidgetStateProperty.resolveWith(
         (states) {
           return const TextStyle(
             color: AppColors.white,
@@ -258,15 +259,15 @@ final lightTheme = base.copyWith(
           );
         },
       ),
-      shape: MaterialStateProperty.all(
+      shape: WidgetStateProperty.all(
         RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
         ),
       ),
-      foregroundColor: MaterialStateProperty.all(AppColors.white),
-      backgroundColor: MaterialStateProperty.resolveWith(
+      foregroundColor: WidgetStateProperty.all(AppColors.white),
+      backgroundColor: WidgetStateProperty.resolveWith(
         (states) {
-          return states.contains(MaterialState.disabled)
+          return states.contains(WidgetState.disabled)
               ? AppColors.yellow.withOpacity(0.5)
               : AppColors.yellow;
         },

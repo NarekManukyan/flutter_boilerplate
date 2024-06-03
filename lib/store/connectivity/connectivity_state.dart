@@ -9,7 +9,7 @@ class ConnectivityState = _ConnectivityState with _$ConnectivityState;
 
 abstract class _ConnectivityState with Store {
   final Connectivity connectivity = Connectivity();
-  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
 
   @observable
   bool hasConnection = true;
@@ -34,8 +34,8 @@ abstract class _ConnectivityState with Store {
         connectivity.onConnectivityChanged.listen(_addStatus);
   }
 
-  void _addStatus(ConnectivityResult result) {
-    hasConnection = setConnection(result);
+  void _addStatus(List<ConnectivityResult> result) {
+    hasConnection = setConnection(result.first);
   }
 
   void dispose() {

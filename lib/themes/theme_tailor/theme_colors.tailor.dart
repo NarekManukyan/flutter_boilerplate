@@ -8,39 +8,22 @@ part of 'theme_colors.dart';
 // TailorAnnotationsGenerator
 // **************************************************************************
 
-class ThemeColors extends ThemeExtension<ThemeColors> {
-  const ThemeColors({
-    required this.background,
-  });
-
-  final Color background;
-
-  static const ThemeColors light = ThemeColors(
-    background: AppColors.blackHeadlines,
-  );
-
-  static const ThemeColors dark = ThemeColors(
-    background: AppColors.gray,
-  );
-
-  static const themes = [
-    light,
-    dark,
-  ];
+mixin _$CustomThemeTailorMixin on ThemeExtension<CustomTheme> {
+  Color get background;
 
   @override
-  ThemeColors copyWith({
+  CustomTheme copyWith({
     Color? background,
   }) {
-    return ThemeColors(
+    return CustomTheme(
       background: background ?? this.background,
     );
   }
 
   @override
-  ThemeColors lerp(covariant ThemeExtension<ThemeColors>? other, double t) {
-    if (other is! ThemeColors) return this as ThemeColors;
-    return ThemeColors(
+  CustomTheme lerp(covariant ThemeExtension<CustomTheme>? other, double t) {
+    if (other is! CustomTheme) return this as CustomTheme;
+    return CustomTheme(
       background: Color.lerp(background, other.background, t)!,
     );
   }
@@ -49,7 +32,7 @@ class ThemeColors extends ThemeExtension<ThemeColors> {
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is ThemeColors &&
+            other is CustomTheme &&
             const DeepCollectionEquality()
                 .equals(background, other.background));
   }
@@ -63,7 +46,7 @@ class ThemeColors extends ThemeExtension<ThemeColors> {
   }
 }
 
-extension ThemeColorsBuildContextProps on BuildContext {
-  ThemeColors get themeColors => Theme.of(this).extension<ThemeColors>()!;
-  Color get background => themeColors.background;
+extension CustomThemeBuildContextProps on BuildContext {
+  CustomTheme get customTheme => Theme.of(this).extension<CustomTheme>()!;
+  Color get background => customTheme.background;
 }
