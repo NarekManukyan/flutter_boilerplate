@@ -1,5 +1,0 @@
-{
-  "apiUrl": "https://example-staging.com",
-  "env": "STAGING",
-  "production": false
-}

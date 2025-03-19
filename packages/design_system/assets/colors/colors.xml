@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Purple Colors -->
+    <color name="purple-20">#FDFAFF</color>
+    <color name="purple-40">#F3F0FF</color>
+    <color name="purple-60">#DFDCFE</color>
+    <color name="purple-80">#CFCAFA</color>
+    <color name="purple-100">#C3BCFD</color>
+    <color name="purple-150">#B4ABFD</color>
+    <color name="purple-200">#A59AFC</color>
+    <color name="purple-300">#9487FB</color>
+    <color name="purple-400">#8374FB</color>
+    <color name="purple-500">#7261FB</color>
+    <color name="purple-600">#614EFA</color>
+    <color name="purple-650">#5544DC</color>
+    <color name="purple-700">#4A3BBE</color>
+    <color name="purple-750">#372D8F</color>
+    <color name="purple-800">#2A216B</color>
+    <color name="purple-850">#1C1647</color>
+
+    <!-- Orange Colors -->
+    <color name="orange-40">#FFE9E7</color>
+    <color name="orange-60">#FFD2CF</color>
+    <color name="orange-80">#FFBCB7</color>
+    <color name="orange-200">#FE877F</color>
+    <color name="orange-400">#FE6257</color>
+    <color name="orange-500">#CE4F46</color>
+    <color name="orange-700">#9D3D36</color>
+    <color name="orange-750">#612521</color>
+
+    <!-- Neutral Colors -->
+    <color name="neutral-0">#FFFFFF</color>
+    <color name="neutral-20">#F7F7F8</color>
+    <color name="neutral-40">#F4F4F5</color>
+    <color name="neutral-60">#E7E7EA</color>
+    <color name="neutral-80">#D3D2D9</color>
+    <color name="neutral-100">#C8C7D0</color>
+    <color name="neutral-200">#B0AFBB</color>
+    <color name="neutral-300">#A19FAD</color>
+    <color name="neutral-400">#918F9F</color>
+    <color name="neutral-500">#75738B</color>
+    <color name="neutral-600">#626076</color>
+    <color name="neutral-700">#525069</color>
+    <color name="neutral-750">#42405B</color>
+    <color name="neutral-800">#32304D</color>
+    <color name="neutral-850">#232040</color>
+    <color name="neutral-900">#131032</color>
+
+    <!-- Grey Colors -->
+    <color name="grey-700">#464655</color>
+    <color name="grey-750">#383848</color>
+    <color name="grey-800">#2A2A36</color>
+    <color name="grey-850">#191A24</color>
+    <color name="grey-900">#121217</color>
+
+    <!-- Aqua Colors -->
+    <color name="aqua-40">#EAFDFA</color>
+    <color name="aqua-60">#CCFAF3</color>
+    <color name="aqua-80">#A2F7EA</color>
+    <color name="aqua-100">#6FF2DE</color>
+    <color name="aqua-200">#27ECCE</color>
+    <color name="aqua-300">#23D6BA</color>
+    <color name="aqua-400">#20BFA7</color>
+    <color name="aqua-800">#0B433B</color>
+
+    <!-- Merino Colors -->
+    <color name="merino-20">#FCFAF7</color>
+    <color name="merino-40">#F7F3ED</color>
+    <color name="merino-60">#F2ECE2</color>
+    <color name="merino-80">#E7DBC8</color>
+    <color name="merino-100">#D1C6B5</color>
+    <color name="merino-300">#B0A798</color>
+    <color name="merino-400">#8F887C</color>
+    <color name="merino-600">#6E685F</color>
+
+    <!-- Yellow Colors -->
+    <color name="yellow-20">#FFFAED</color>
+    <color name="yellow-40">#FFF1CA</color>
+    <color name="yellow-60">#FFE69D</color>
+    <color name="yellow-80">#FFDA71</color>
+    <color name="yellow-100">#FFCF44</color>
+    <color name="yellow-200">#FCBF11</color>
+    <color name="yellow-300">#E59D00</color>
+    <color name="yellow-800">#4D2800</color>
+
+    <!-- Red Colors -->
+    <color name="red-40">#FDECED</color>
+    <color name="red-80">#FFC7C9</color>
+    <color name="red-200">#F5989C</color>
+    <color name="red-300">#F17277</color>
+    <color name="red-500">#EB3A41</color>
+    <color name="red-600">#D21E2D</color>
+    <color name="red-700">#A50D13</color>
+    <color name="red-850">#440306</color>
+
+    <!-- Green Colors -->
+    <color name="green-40">#E8FAF6</color>
+    <color name="green-60">#CEF4EC</color>
+    <color name="green-100">#79E0CA</color>
+    <color name="green-200">#4CD5B8</color>
+    <color name="green-500">#00C39A</color>
+    <color name="green-600">#009E7D</color>
+    <color name="green-700">#008065</color>
+    <color name="green-800">#003328</color>
+
+    <!-- Blue Colors -->
+    <color name="blue-40">#EAF7FF</color>
+    <color name="blue-60">#D7F0FF</color>
+    <color name="blue-100">#87D3FF</color>
+    <color name="blue-200">#59C1FF</color>
+    <color name="blue-500">#16A9FF</color>
+    <color name="blue-600">#038CE2</color>
+    <color name="blue-700">#0074CC</color>
+    <color name="blue-800">#002647</color>
+
+</resources>

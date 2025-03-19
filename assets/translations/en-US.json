@@ -3,14 +3,72 @@
         "next": "Next",
         "skip": "Skip",
         "cancel": "Cancel",
+        "delete": "Delete",
         "signOut": "Sign out",
         "close": "Close",
         "yes": "Yes",
-        "ok": "Ok"
+        "ok": "Ok",
+        "continue": "Continue",
+        "save": "Save",
+        "start": "Start",
+        "search": "Search",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "yesterday": "Yesterday",
+        "join": "Join",
+        "share": "Share",
+        "updateNow": "Update now",
+        "updateLater": "I’ll update later",
+        "noTitle": "(No title)",
+        "unassigned": "Unassigned",
+        "copy": "Copy",
+        "copied": "Copied to clipboard",
+        "tryAgain": "Try again",
+        "retry": "Retry"
+    },
+    "enums": {
+        "appVersionTranslationsTitle": {
+            "MINOR": "New tools to power your meetings",
+            "MAJOR": "Smarter meetings, one tap away."
+        },
+        "appVersionTranslationsSubtitle": {
+            "MINOR": "Discover fresh to make your meetings easier, smarter, and more effective.",
+            "MAJOR": "Update and enjoy the fresh app."
+        },
+        "meetingAvailability": {
+            "PRIVATE": "Private",
+            "VIEW_ONLY": "View only",
+            "COLLABORATIVE": "Collaborative"
+        }
     },
     "error": {
         "phoneNumber": "Looks like the number you entered is not valid.\nPlease check the number and try again.",
         "invalidSmsCode": "Looks like something went wrong, please check the verification code and try again.",
-        "emailExists": "Email already exist"
+        "emailExists": "Email already exist",
+        "recaptchaFailed": "Recaptcha failed"
+    },
+    "empty": {
+        "noUpcomingEvents": "No upcoming Meetings",
+        "noUpcomingEventsSubtitle": "Make the most of this calm before your next wave of productivity.",
+        "noActivitiesAll": "All activities in one place",
+        "noActivitiesAllSubtitle": "Stay tuned here for updates on your meetings.",
+        "noActivitiesImportant": "Nothing to follow up",
+        "noActivitiesImportantSubtitle": "You’ve got it all.",
+        "noActivitiesUnread": "No unread activities",
+        "noActivitiesUnreadSubtitle": "We'll notify you of new activities."
+    },
+    "loginPage": {
+        "extrasFreePlan": "Work accounts get extras on the Free plan",
+        "continueWith": "Continue with {provider}",
+        "continueWithEmail": "Continue with email",
+        "termsIntroText": "By signing up you agree to the",
+        "termsOfUse": "Terms of Use",
+        "and": " and ",
+        "privacyPolicy": "Privacy Policy.",
+        "letsVerifyEmail": "Let’s verify your email",
+        "checkEmail": "Check <bold>{email}</bold> email\nfor the 6-digit verification code.",
+        "expirationInfo": "It will expire shortly, so enter it soon.",
+        "resendAgainInSeconds": "You can resend code in {second} sec.",
+        "resendCode": "Resend verification code"
     }
 }

@@ -1,0 +1,1 @@
+enum FlavorType { DEVELOPMENT, PROD }
