@@ -18,25 +18,136 @@ https://github.com/NarekManukyan/flutter_boilerplate
 
 **Step 2:**
 
-Go to project root and execute the following command in console to get the required dependencies:
+Install Melos globally (if not already installed):
 
-```
-flutter create .
+```bash
+dart pub global activate melos
 ```
 
 **Step 3:**
 
-This project uses `inject` library that works with code generation, execute the following command to generate files:
+Bootstrap the workspace to set up all dependencies and generate code:
 
-```
-flutter packages pub run build_runner build --delete-conflicting-outputs
+```bash
+melos bootstrap
 ```
 
-or watch command in order to keep the source code synced automatically:
+This will:
+- Install dependencies for all packages
+- Generate code for all packages
+- Set up the workspace
 
+**Step 4:**
+
+For development, use the development workflow:
+
+```bash
+melos run dev
 ```
-flutter packages pub run build_runner watch
+
+This will:
+- Get dependencies for all packages
+- Generate code for all packages
+
+## Monorepo Management with Melos
+
+This project uses [Melos](https://melos.invertase.dev/) to manage the monorepo structure. Melos provides powerful tools for managing multiple packages in a single repository.
+
+### Prerequisites
+
+Install Melos globally:
+
+```bash
+dart pub global activate melos
 ```
+
+### Initial Setup
+
+1. **Bootstrap the workspace:**
+   ```bash
+   melos bootstrap
+   ```
+   This command will:
+   - Install dependencies for all packages
+   - Generate code for all packages
+   - Set up the workspace
+
+2. **Get dependencies for all packages:**
+   ```bash
+   melos run deps
+   ```
+
+### Available Melos Commands
+
+#### Development Workflow
+- **`melos run dev`** - Complete development setup (deps, generate)
+- **`melos run deps`** - Get dependencies for all packages
+- **`melos run generate`** - Generate code for all packages
+- **`melos run build`** - Build all packages (generate code)
+- **`melos run clean`** - Clean all packages
+
+#### Code Quality
+- **`melos run analyze`** - Analyze all packages for issues
+- **`melos run test`** - Run tests for all packages
+- **`melos run format`** - Format code in all packages
+- **`melos run lint`** - Apply linting fixes to all packages
+
+#### Asset Generation
+- **`melos run assets`** - Generate assets and translations
+- **`melos run translations`** - Generate translation keys
+
+#### Workspace Management
+- **`melos run bootstrap`** - Complete workspace setup
+
+#### Deployment
+- **`melos run deploy-dev`** - Deploy to development environment
+
+### Package Structure
+
+The monorepo contains the following packages:
+
+- **`flutter_boilerplate`** (root) - Main Flutter application
+- **`packages/api`** - API client and network layer
+- **`packages/design_system`** - Reusable UI components and themes
+
+### Working with Packages
+
+- **Run commands on specific packages:**
+  ```bash
+  melos exec --scope api -- "dart run build_runner build"
+  melos exec --scope design_system -- "dart test"
+  ```
+
+- **Run commands on all packages except specific ones:**
+  ```bash
+  melos exec --ignore="**/test/**" -- "dart analyze"
+  ```
+
+- **Add a new package:**
+  1. Create a new directory in `packages/`
+  2. Add a `pubspec.yaml` file
+  3. Run `melos bootstrap` to set up the new package
+
+### IDE Integration
+
+Melos provides IDE integration for:
+- **VS Code** - Enhanced workspace management
+- **IntelliJ/Android Studio** - Better package navigation
+
+### Migration from Derry
+
+If you were using derry before, here are the equivalent Melos commands:
+
+| Old Derry Command | New Melos Command |
+|-------------------|-------------------|
+| `derry generate_translations` | `melos run translations` |
+| `derry delete_generated_files` | `melos run clean` |
+| `derry build_runner` | `melos run build` |
+| `derry build_api` | `melos exec --scope api -- "dart run build_runner build -d"` |
+| `derry build_design_system` | `melos exec --scope design_system -- "dart run build_runner build -d"` |
+| `derry build_all` | `melos run build` |
+| `derry generate` | `melos run dev` |
+| `derry deploy_dev` | `melos run deploy-dev` |
 
 ## Hide Generated Files
 
@@ -75,6 +186,7 @@ In Visual Studio Code, navigate to `Preferences` -> `Settings` and search for `F
 - Multilingual Support
 - Flavor Configuration
 - Environment-Based Configurations
+- **Monorepo Management with Melos**
 
 ### Up-Coming Features:
 
@@ -95,6 +207,7 @@ In Visual Studio Code, navigate to `Preferences` -> `Settings` and search for `F
 - [Json Serialization](https://github.com/dart-lang/json_serializable)
 - [Freezed](https://github.com/rrousselGit/freezed) (Code generation for immutable classes)
 - [Dependency Injection](https://github.com/fluttercommunity/get_it)
+- [Melos](https://melos.invertase.dev/) (Monorepo Management)
 - **Local Libraries:**
   - `packages/api` - Handles API-related logic and network requests.
   - `packages/design_system` - Contains reusable UI components, themes, and design elements.
@@ -236,4 +349,4 @@ Future<void> main() async {
 
 I will be happy to answer any questions that you may have on this approach, and if you want to lend a hand with the boilerplate then please feel free to submit an issue and/or pull request 🙂
 
-Again to note, this example can appear as over-architected for what it is - but it is an example only. If you liked my work, don’t forget to ⭐ star the repo to show your support.
+Again to note, this example can appear as over-architected for what it is - but it is an example only. If you liked my work, don't forget to ⭐ star the repo to show your support.

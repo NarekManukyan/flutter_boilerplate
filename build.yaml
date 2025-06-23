@@ -17,11 +17,6 @@ targets:
           generic_argument_factories: false
           ignore_unannotated: false
           include_if_null: false
-      theme_tailor:
-        options:
-          themes: [light, dark]
-          theme_getter: on_build_context_props
-          require_static_const: true
 global_options:
   freezed:
     runs_before:

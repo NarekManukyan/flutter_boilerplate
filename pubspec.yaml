@@ -1,97 +1,96 @@
 name: flutter_boilerplate
 description: A boilerplate project created in flutter using MobX.
-
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.3.0-0 <4.0.0'
+  sdk: '>=3.8.0-0 <4.0.0'
 
 dependencies:
-  api:
-    path: packages/api
-  design_system:
-    path: packages/design_system
-
-  auto_route: ^10.0.1
-  connectivity_plus: ^6.1.3
-  dio: ^5.8.0+1
-  easy_localization: ^3.0.7
+  # Core Flutter dependencies
   flutter:
     sdk: flutter
-  flutter_gen: ^5.10.0
-  flutter_hooks: ^0.21.2
+
+  # State management
+  # MobX and Provider for state management
+  mobx: ^2.5.0
   flutter_mobx: ^2.3.0
-  freezed_annotation: ^3.0.0
-  gap: ^3.0.1
+  provider: ^6.1.5
+
+  # Routing
+  # AutoRoute for navigation
+  auto_route: ^10.1.0
+
+  # Networking
+  # Dio for HTTP requests, connectivity_plus for network status
+  connectivity_plus: ^6.1.4
+  dio: ^5.8.0+1
+
+  # Localization
+  # easy_localization for i18n
+  easy_localization: ^3.0.7
+
+  # Dependency injection
+  # get_it and injectable for DI
   get_it: ^8.0.3
   injectable: ^2.5.0
+
+  # Code generation
+  # For code generation and serialization
+  freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
-  mobx: ^2.5.0
+
+  # UI & design
+  # UI helpers and widgets
+  flutter_gen: ^5.10.0
+  gap: ^3.0.1
   overlay_support: ^2.1.0
-  provider: ^6.1.2
+  extended_image: ^10.0.1
+  skeletonizer: ^2.0.1
+
+  # Utilities
+  # Useful utilities for app development
   rxdart: ^0.28.0
   faker: ^2.2.0
-  shared_preferences: ^2.5.2
-  file_picker: ^9.1.0
+  shared_preferences: ^2.5.3
+  file_picker: ^10.2.0
   path_provider: ^2.1.5
   url_launcher: ^6.3.1
+  uuid: ^4.5.1
+  open_settings_plus: ^0.4.0
+
+  # App update
+  # For checking app updates
   new_version_plus:
     git:
       url: https://github.com/hussenIbrahim/new_version_plus
       ref: e0be8b3
-  sentry_flutter: ^8.14.0
-  sentry_logging: ^8.14.0
-  extended_image: ^10.0.0
-  open_settings_plus: ^0.4.0
-  skeletonizer: ^1.4.3
-  uuid: ^4.5.1
-  sign_in_with_apple: ^6.1.4
+
+  # Authentication & social login
+  # Apple and Google sign-in
+  sign_in_with_apple: ^7.0.1
   google_sign_in: ^6.3.0
 
+  # Analytics & error reporting
+  # Sentry for error tracking
+  sentry_flutter: ^9.0.0
+  sentry_logging: ^9.0.0
+
 dev_dependencies:
-  auto_route_generator: ^10.0.1
-  build_runner: ^2.4.15
-  freezed: ^3.0.4
+  # Code generation tools
+  build_runner: ^2.5.4
+  freezed: ^3.0.6
+  auto_route_generator: ^10.2.3
+  injectable_generator: ^2.7.0
+  json_serializable: ^6.9.5
+  mobx_codegen: ^2.7.1
+  # Testing
   flutter_driver:
     sdk: flutter
-  flutter_gen_runner: ^5.10.0
-  injectable_generator: ^2.7.0
-  json_serializable: ^6.9.4
-  mobx_codegen:
-    git:
-      url: https://github.com/sunbromarko/mobx.dart.git
-      ref: FEAT--Bump-source_get-version
-      path: mobx_codegen
+  # Monorepo management
+  melos: ^6.3.3
 
+# Flutter assets and material design
 flutter:
   uses-material-design: true
   assets:
     - assets/translations/
-
-# Before running the command, make sure you have the following dependencies installed: dart pub global activate derry
-# To run the command, use the following command: derry [command_name]
-scripts:
-  generate_translations:
-    - dart run easy_localization:generate -f keys -O lib/gen -o locale_keys.g.dart -S assets/translations -s en-US.json -u true
-  delete_generated_files:
-    - find . -name "*.g.dart" -delete
-    - find . -name "*.freezed.dart" -delete
-  build_runner:
-    - dart run build_runner build -d
-  build_api:
-    - cd packages/api && dart run build_runner build -d
-  build_design_system:
-    - cd packages/design_system && dart run build_runner build -d
-  build_all:
-    - $build_api
-    - $build_design_system
-    - $build_runner
-  generate:
-    - $delete_generated_files
-    - flutter clean
-    - flutter pub get
-    - $build_all
-    - $generate_translations
-  deploy_dev:
-    - cd ios && pod install --repo-update
-    - cd ios && fastlane dev

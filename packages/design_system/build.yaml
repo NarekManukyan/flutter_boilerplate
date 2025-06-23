@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      theme_tailor:
+        options:
+          theme_getter: on_build_context_props
+      flutter_gen_runner:
+        options:
+          output: lib/gen/

@@ -98,3 +98,7 @@ Thumbs.db
 **/*.tailor.dart
 **/*.config.dart
 
+# Melos
+.melos_tool/
+melos.yaml.bak
+

@@ -1,0 +1,85 @@
+name: flutter_boilerplate
+repository: https://github.com/NarekManukyan/flutter_boilerplate
+
+packages:
+  - packages/**
+  - .
+
+scripts:
+  # Development Workflow
+  dev:
+    description: Complete development setup (deps, generate)
+    run: melos run deps && melos run generate
+
+  deps:
+    description: Get dependencies for all packages
+    run: melos exec -c 1 -- "dart pub get"
+
+  generate:
+    description: Generate code for all packages
+    run: melos run build
+
+  build:
+    description: Build all packages
+    run: melos exec -c 1 -- "dart run build_runner build -d"
+    packageFilters:
+      scope:
+        - api
+        - design_system
+        - flutter_boilerplate
+
+  clean:
+    description: Clean all packages
+    run: melos exec -c 1 -- "dart run build_runner clean"
+    packageFilters:
+      scope:
+        - api
+        - design_system
+        - flutter_boilerplate
+
+  # Code Quality
+  analyze:
+    description: Analyze all packages
+    run: melos exec -c 1 -- "dart analyze ."
+    packageFilters:
+      ignore:
+        - '**/test/**'
+        - '**/build/**'
+
+  test:
+    description: Run tests for all packages
+    run: melos exec -c 1 -- "dart test"
+    packageFilters:
+      ignore:
+        - '**/test/**'
+        - '**/build/**'
+
+  format:
+    description: Format code in all packages
+    run: melos exec -c 1 -- "dart format ."
+
+  lint:
+    description: Apply linting fixes
+    run: melos exec -c 1 -- "dart fix --apply"
+
+  # Asset Generation
+  assets:
+    description: Generate assets and translations
+    run: melos exec --scope design_system -- "dart run build_runner build -d" && melos run translations
+
+  translations:
+    description: Generate translation keys
+    run: dart run easy_localization:generate -f keys -O lib/gen -o locale_keys.g.dart -S assets/translations -s en-US.json -u true
+
+  # Workspace Management
+  bootstrap:
+    description: Bootstrap the workspace
+    run: melos run deps && melos run generate
+
+  # Deployment
+  deploy-dev:
+    description: Deploy to development environment (stops on error)
+    run: |
+      cd ios
+      pod install --repo-update
+      fastlane dev

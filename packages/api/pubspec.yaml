@@ -4,7 +4,7 @@ version: 0.0.2
 publish_to: 'none'
 
 environment:
-  sdk: '>=3.3.0-0 <4.0.0'
+  sdk: '>=3.8.0-0 <4.0.0'
 
 dependencies:
   json_annotation: ^4.9.0
@@ -12,13 +12,13 @@ dependencies:
   freezed_annotation: ^3.0.0
   retrofit: ^4.4.2
   rxdart: ^0.28.0
-  socket_io_client: ^3.0.2
+  socket_io_client: ^3.1.2
 
 dev_dependencies:
-  build_runner: ^2.4.15
-  json_serializable: ^6.9.4
-  freezed: ^3.0.4
-  retrofit_generator: ^9.1.9
+  build_runner: ^2.5.4
+  json_serializable: ^6.9.5
+  freezed: ^3.0.6
+  retrofit_generator: ^9.2.0
 
 flutter:
   generate: true
