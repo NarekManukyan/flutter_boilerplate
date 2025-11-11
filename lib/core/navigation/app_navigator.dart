@@ -41,11 +41,11 @@ class AppNavigator {
     return _router.push(route, onFailure: onFailure);
   }
 
-  Future<void> navigateNamed<T extends Object?>(
+  Future<void> navigatePath<T extends Object?>(
     String path, {
     OnNavigationFailure? onFailure,
   }) {
-    return _router.navigateNamed(path, onFailure: onFailure);
+    return _router.navigatePath(path, onFailure: onFailure);
   }
 
   Future<void> pushAndPopAll(
@@ -101,7 +101,7 @@ class AppNavigator {
       ),
       clipBehavior: Clip.antiAlias,
       builder: builder,
-      sheetAnimationStyle: AnimationStyle(
+      sheetAnimationStyle: const AnimationStyle(
         curve: Curves.bounceIn,
         reverseCurve: Curves.bounceOut,
         duration: Durations.medium3,

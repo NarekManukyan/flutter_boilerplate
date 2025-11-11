@@ -6,7 +6,6 @@ import 'package:mobx/mobx.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/social_provider_enum.dart';
-import '../../../core/navigation/app_navigator.dart';
 import '../../../core/services/social_auth_service.dart';
 import '../../../shared/state/loading_state/loading_state.dart';
 
@@ -16,14 +15,12 @@ part 'login_page_state.g.dart';
 class LoginPageState = _LoginPageStateBase with _$LoginPageState;
 
 abstract class _LoginPageStateBase with Store {
-  final AppNavigator _appNavigator;
   final SocialAuthService _socialAuthService;
 
   final loadingState = LoadingState();
   final socialLoadingState = LoadingState();
 
   _LoginPageStateBase(
-    this._appNavigator,
     this._socialAuthService,
   );
 

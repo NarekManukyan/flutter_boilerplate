@@ -181,7 +181,7 @@ final _customThemeLight = CustomTheme(
   blanketDefault: const Color.fromRGBO(50, 48, 77, 0.5),
   overlayLow: const Color.fromRGBO(50, 48, 77, 0.1),
   overlayMedium: const Color.fromRGBO(50, 48, 77, 0.2),
-  overlayDefault: const Color.fromRGBO(0, 0, 0, 0).withOpacity(.2),
+  overlayDefault: const Color.fromRGBO(0, 0, 0, 0).withValues(alpha: 0.2),
   overlayHigh: const Color.fromRGBO(50, 48, 77, 0.3),
   headerH1: TextStyles.headerH1,
   headerH2: TextStyles.headerH2,

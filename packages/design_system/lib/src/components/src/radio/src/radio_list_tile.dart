@@ -19,21 +19,23 @@ class CustomRadioListTile<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged.call(value),
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Radio<T>(
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: const VisualDensity(
-              horizontal: VisualDensity.minimumDensity,
-              vertical: VisualDensity.minimumDensity,
-            ),
-            splashRadius: 0,
-            fillColor: WidgetStateProperty.resolveWith(
-              (states) {
+    return RadioGroup<T>(
+      groupValue: groupValue,
+      onChanged: onChanged,
+      child: GestureDetector(
+        onTap: () => onChanged.call(value),
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Radio<T>(
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: const VisualDensity(
+                horizontal: VisualDensity.minimumDensity,
+                vertical: VisualDensity.minimumDensity,
+              ),
+              splashRadius: 0,
+              fillColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.disabled)) {
                   return context.backgroundNeutralPressedLighter;
                 }
@@ -44,19 +46,17 @@ class CustomRadioListTile<T> extends StatelessWidget {
                   return context.backgroundPrimaryDefault;
                 }
                 return context.borderNeutral;
-              },
+              }),
+              value: value,
             ),
-            value: value,
-            groupValue: groupValue,
-            onChanged: onChanged,
-          ),
-          const Gap(8),
-          DefaultTextStyle(
-            style: context.labelLMedium.setColor(context.textNeutralDarker),
-            child: label,
-          ),
-          const Spacer(),
-        ],
+            const Gap(8),
+            DefaultTextStyle(
+              style: context.labelLMedium.setColor(context.textNeutralDarker),
+              child: label,
+            ),
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }

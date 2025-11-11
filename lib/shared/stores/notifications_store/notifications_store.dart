@@ -81,10 +81,6 @@ abstract class _NotificationsStoreBase with Store {
     /// to be implemented
   // }
 
-  void _onMessage(notification) {
-    /// to be implemented
-  }
-
   void showToast(notification) {
     /// to be implemented
   }

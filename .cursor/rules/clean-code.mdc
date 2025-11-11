@@ -1,0 +1,305 @@
+---
+description: Clean code principles for Flutter/Dart: clarity, single responsibility, DRY, meaningful naming, function design, error handling, documentation patterns, testing practices, and Flutter-specific guidelines (constants, type safety, code style, widget best practices, performance). Always check code quality against analysis_options.yaml and run dart analyze before committing.
+globs:
+  - "**/*.dart"
+alwaysApply: true
+---
+
+# Clean Code Guidelines
+
+## Code Quality Standards
+
+**Always check code quality against `analysis_options.yaml`** before submitting code. The analyzer and linter rules defined in `analysis_options.yaml` must be satisfied. Run `dart analyze` to verify compliance with all rules.
+
+## Core Principles
+
+1. **Clarity First**
+   ```dart
+   // ✅ Clear and intention-revealing
+   final isUserEligible = age >= 18 && hasValidId;
+
+   // ❌ Cryptic and unclear
+   final check = a >= 18 && v;
+   ```
+
+2. **Single Responsibility**
+   ```dart
+   // ✅ Single responsibility
+   class UserAuthentication {
+     Future<AuthResult> authenticate(Credentials credentials);
+   }
+
+   // ❌ Multiple responsibilities
+   class UserManager {
+     void authenticate() {}
+     void updateProfile() {}
+     void sendEmail() {}
+   }
+   ```
+
+3. **DRY (Don't Repeat Yourself)**
+   ```dart
+   // ✅ Reusable function
+   String formatCurrency(double amount) {
+     return NumberFormat.currency(locale: 'en-US', symbol: '\$').format(amount);
+   }
+
+   // ❌ Repeated code
+   NumberFormat.currency(locale: 'en-US', symbol: '\$').format(price1);
+   NumberFormat.currency(locale: 'en-US', symbol: '\$').format(price2);
+   ```
+
+## Naming Conventions
+
+Follow Dart naming conventions (see `effective_dart.md`). Always comply with `analysis_options.yaml` linter rules.
+
+1. **Variables**
+   ```dart
+   // ✅ Clear and descriptive
+   final userCount = users.length;
+   final isActive = user.status == 'active';
+   static const maxRetries = 3;
+
+   // ❌ Unclear or abbreviated
+   final n = users.length;
+   final check = user.status == 'active';
+   final max = 3;
+   ```
+
+2. **Functions**
+   ```dart
+   // ✅ Action-based names with explicit return types
+   Future<UserProfile> fetchUserProfile(String userId);
+   double calculateTotalPrice(List<Item> items);
+
+   // ❌ Unclear names, missing types
+   Future<dynamic> userData(String id);
+   dynamic process(List<Item> items);
+   ```
+
+## Function Design
+
+1. **Small and Focused**
+   ```dart
+   // ✅ Small, focused function (< 20 lines)
+   bool validateEmail(String email) {
+     final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+     return emailRegex.hasMatch(email);
+   }
+
+   // ❌ Too many responsibilities
+   void processUser(User user) {
+     validateEmail(user.email);
+     checkPassword(user.password);
+     saveToDatabase(user);
+     sendWelcomeEmail(user);
+   }
+   ```
+
+2. **Parameter Objects**
+   ```dart
+   // ✅ Using parameter object (class or record)
+   class UserCreateConfig {
+     final String name;
+     final String email;
+     final UserRole role;
+
+     const UserCreateConfig({
+       required this.name,
+       required this.email,
+       required this.role,
+     });
+   }
+
+   User createUser(UserCreateConfig config);
+
+   // ❌ Too many parameters
+   User createUser(
+     String name,
+     String email,
+     UserRole role,
+     String department,
+     String manager,
+   );
+   ```
+
+## Error Handling
+
+1. **Explicit Error Types**
+   ```dart
+   // ✅ Custom error types
+   class ValidationError implements Exception {
+     final String message;
+     ValidationError(this.message);
+     
+     @override
+     String toString() => 'Validation failed: $message';
+   }
+
+   // ❌ Generic errors
+   throw Exception('Something went wrong');
+   ```
+
+2. **Meaningful Error Messages**
+   ```dart
+   // ✅ Descriptive error
+   throw ValidationError(
+     'User email $email is invalid. Expected format: user@domain.com',
+   );
+
+   // ❌ Vague error
+   throw Exception('Invalid input');
+   ```
+
+3. **Specific Exception Handling**
+   ```dart
+   // ✅ Specific exception handling
+   try {
+     await processData();
+   } on NetworkException catch (e) {
+     // Handle network error
+   } on ValidationException catch (e) {
+     // Handle validation error
+   }
+
+   // ❌ Generic catch
+   try {
+     await processData();
+   } catch (e) {
+     // Too broad
+   }
+   ```
+
+## Comments and Documentation
+
+1. **Self-Documenting Code**
+   ```dart
+   // ✅ Clear without comments
+   final isWorkingHours = currentTime.hour >= 9 && currentTime.hour <= 17;
+
+   // ❌ Needs comment to understand
+   final isValid = h >= 9 && h <= 17; // check working hours
+   ```
+
+2. **API Documentation**
+   ```dart
+   /// Processes a payment transaction.
+   ///
+   /// [payment] contains the payment information to process.
+   /// Returns the transaction result if successful.
+   /// Throws [PaymentException] if payment processing fails.
+   Future<TransactionResult> processPayment(PaymentDetails payment);
+   ```
+
+3. **Documentation Rules**
+   - Use `///` doc comments for public APIs (not `//` or `/* */`)
+   - Document why code exists, not just what it does
+   - Put doc comments before metadata annotations
+   - See `effective_dart.md` for comprehensive documentation guidelines
+
+## Testing
+
+1. **Arrange-Act-Assert**
+   ```dart
+   group('UserService', () {
+     test('should create user', () async {
+       // Arrange
+       final userData = UserData(name: 'Test User');
+
+       // Act
+       final user = await userService.create(userData);
+
+       // Assert
+       expect(user.name, equals(userData.name));
+     });
+   });
+   ```
+
+2. **Test Naming**
+   ```dart
+   // ✅ Clear test names using "should"
+   test('should throw error when email is invalid', () {});
+   test('should successfully create user with valid data', () {});
+
+   // ❌ Unclear test names
+   test('test email validation', () {});
+   test('user creation', () {});
+   ```
+
+3. **Test Organization**
+   - Always use `group()` in test files, even if there's only one test
+   - Name the group after the class under test
+   - See `testing.md` for detailed testing guidelines
+
+## Flutter/Dart Specific Guidelines
+
+### Constants Over Magic Numbers
+- Replace hard-coded values with named constants
+- Use `static const` for compile-time constants
+- Use `final` for runtime constants
+- Keep constants at the top of the file or in a dedicated constants file
+- Use `use_named_constants` linter rule from `analysis_options.yaml`
+
+### Meaningful Names
+- Variables, functions, and classes should reveal their purpose
+- Names should explain why something exists and how it's used
+- Avoid abbreviations unless they're universally understood
+- Follow Dart naming conventions (see `effective_dart.md`)
+- Comply with `non_constant_identifier_names` rule from `analysis_options.yaml`
+
+### Type Safety
+- Always declare return types explicitly (`always_declare_return_types`)
+- Type annotate public APIs (`type_annotate_public_apis`)
+- Prefer `final` over `var` (`prefer_final_locals`, `prefer_final_fields`)
+- Use nullable types appropriately (`null_check_on_nullable_type_parameter`)
+
+### Code Style
+- Use single quotes for strings (`prefer_single_quotes`)
+- Require trailing commas (`require_trailing_commas`)
+- Use curly braces for all flow control (`curly_braces_in_flow_control_structures`)
+- Prefer relative imports within packages (`prefer_relative_imports`)
+- Format code using `dart format` (enforced by `analysis_options.yaml`)
+
+### Widget Best Practices
+- Use `const` constructors when possible (`prefer_const_constructors`)
+- Extract reusable widgets into separate components
+- Keep build methods simple and focused
+- Use `HookWidget` instead of `StatefulWidget` when needed (see `widgets.md`)
+- Never pass state as widget parameters (see `flutter_app_architecture.md`)
+
+### Error Handling
+- Prefer specific exception handling (`avoid_catching_errors`)
+- Use `rethrow` to rethrow exceptions (`use_rethrow_when_possible`)
+- Handle all possible state scenarios explicitly in UI
+
+### Performance
+- Avoid expensive operations in build methods
+- Use `const` constructors to improve performance
+- Implement pagination for large lists
+- Use `RepaintBoundary` for complex animations
+
+### Code Quality Maintenance
+- **Always run `dart analyze` before committing** to verify compliance with `analysis_options.yaml`
+- Refactor continuously
+- Fix technical debt early
+- Leave code cleaner than you found it
+- Fix all linter errors and warnings from `analysis_options.yaml`
+
+### Testing
+- Write tests before fixing bugs
+- Keep tests readable and maintainable
+- Test edge cases and error conditions
+- Always use `group()` in test files (see `testing.md`)
+
+### Version Control
+- Write clear commit messages
+- Make small, focused commits
+- Use meaningful branch names
+
+## Compliance with analysis_options.yaml
+
+**Critical**: All code must comply with the rules defined in `analysis_options.yaml`. This includes:
+- All analyzer errors must be resolved
+- All enabled linter rules must be satisfied
+- Run `dart analyze` to verify compliance before submitting code
+- Fix all warnings and errors reported by the analyzer

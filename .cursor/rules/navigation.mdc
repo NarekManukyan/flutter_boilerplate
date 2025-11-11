@@ -1,0 +1,350 @@
+---
+description: Auto Route navigation patterns and AppNavigator usage. NEVER use context.router directly - always use AppNavigator injected into state classes. RoutePage annotations, router configuration, navigation guards, deep linking, tab navigation, modal/dialog patterns, and type-safe route generation with build_runner.
+globs:
+  - "**/*_page.dart"
+  - "lib/core/navigation/**"
+alwaysApply: false
+---
+
+# Navigation Rules
+
+## Auto Route Configuration
+
+### Router Setup
+1. The main router is defined in `lib/core/navigation/app_router.dart`
+2. Use `@AutoRouterConfig(replaceInRouteName: 'Page,Route')` annotation on the router class
+3. Router class should extend `RootStackRouter` and be annotated with `@singleton`
+4. Define all routes in the `routes` getter as a `List<AutoRoute>`
+5. Use `meta` field to document route purpose: `meta: const {'description': 'Route description'}`
+
+### Route Definition Pattern
+```dart
+@singleton
+@AutoRouterConfig(replaceInRouteName: 'Page,Route')
+class AppRouter extends RootStackRouter {
+  @override
+  late final List<AutoRoute> routes = [
+    AutoRoute(
+      initial: true,
+      path: '/',
+      page: SplashRoute.page,
+      guards: [authGuard],
+      meta: const {'description': 'Splash screen, entry point of the app'},
+    ),
+    AutoRoute(
+      page: LoginRoute.page,
+      path: '/login-page',
+      meta: const {'description': 'Login page for user authentication'},
+    ),
+    // Nested routes
+    AutoRoute(
+      path: '/dashboard',
+      page: DashboardRoute.page,
+      children: [
+        AutoRoute(path: 'agenda', page: AgendaRoute.page),
+        AutoRoute(path: 'meetings', page: MeetingsListRoute.page),
+      ],
+    ),
+  ];
+}
+```
+
+## Page Annotations
+
+### RoutePage Annotation
+1. All pages that should be routable must use `@RoutePage()` annotation
+2. The annotation should be placed directly above the page class
+3. Page classes should follow the naming pattern: `*_page.dart` (e.g., `login_page.dart`)
+
+### Page Pattern
+```dart
+@RoutePage()
+class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Page implementation
+  }
+}
+```
+
+## Navigation Service
+
+### AppNavigator Usage
+1. **NEVER use `context.router` directly in pages or widgets** - This is strictly forbidden
+2. **ALWAYS use `AppNavigator`** for navigation, never access the router directly
+3. **Inject `AppNavigator`** into state classes via constructor dependency injection
+4. **Create navigation methods in state classes** - Pages should call state methods, not navigate directly
+5. Use `AppNavigator` methods for all navigation operations
+
+### ❌ FORBIDDEN Patterns (DO NOT USE)
+```dart
+// ❌ NEVER do this in pages or widgets
+context.router.push(const SomeRoute());
+context.router.pop();
+context.router.replace(const SomeRoute());
+
+// ❌ NEVER access router directly
+final router = context.router;
+```
+
+### ✅ CORRECT Patterns
+```dart
+// ✅ In State Class - Inject AppNavigator
+abstract class _SettingsPageStateBase with Store {
+  final AppNavigator _appNavigator;
+
+  _SettingsPageStateBase(this._appNavigator);
+
+  @action
+  Future<void> navigateToSubscription() async {
+    await _appNavigator.push(const SubscriptionRoute());
+  }
+}
+
+// ✅ In Page Widget - Call state method
+TextButton.medium(
+  onPressed: () {
+    state.navigateToSubscription(); // ✅ Correct
+  },
+  child: Text('Navigate'),
+)
+```
+
+### Navigation Methods
+- `push(PageRouteInfo route)` - Navigate to a new route
+- `pop<T>({T? result})` - Pop current route
+- `popUntilRoot()` - Pop until root route
+- `popUntilRouteWithName(String routeName)` - Pop until specific route
+- `replace(PageRouteInfo route)` - Replace current route
+- `pushAndPopAll(PageRouteInfo route)` - Replace entire navigation stack
+- `showModal({required WidgetBuilder builder})` - Show modal bottom sheet
+- `showAlertDialog({required Widget content})` - Show alert dialog
+- `showAppDialog({required String title, required String content, required List<AdaptiveDialogAction> actions})` - Show adaptive dialog
+
+### Navigation Pattern in State Classes
+```dart
+abstract class _LoginPageStateBase with Store {
+  final AppNavigator _appNavigator;
+
+  _LoginPageStateBase(this._appNavigator);
+
+  Future<void> onEmailTap() => 
+      _appNavigator.push(const SignUpWithEmailRoute());
+  
+  Future<void> onSocialLoginTap() async {
+    // ... logic ...
+    await _appNavigator.push(TwoFactorAuthenticationRoute(code: code));
+  }
+}
+```
+
+## Route Naming Conventions
+
+### Route Class Names
+1. Route classes are generated from page classes using the pattern: `{PageName}Route`
+2. Example: `LoginPage` → `LoginRoute`, `SignUpWithEmailPage` → `SignUpWithEmailRoute`
+3. Always use the generated route classes (from `app_router.gr.dart`)
+
+### Route Paths
+1. Use kebab-case for route paths: `/login-page`, `/sign-up-with-email`
+2. Use descriptive paths that match the page purpose
+3. For nested routes, use relative paths in children
+
+### Route Parameters
+1. Pass route parameters via constructor: `MeetingRoute(meetingId: '123')`
+2. Use named parameters for optional values
+3. Always use const constructors when possible: `const LoginRoute()`
+
+## Navigation Guards
+
+### Guard Pattern
+1. Guards extend `AutoRouteGuard` and implement `onNavigation` method
+2. Guards should be injectable: `@injectable`
+3. Use guards for authentication, permissions, and conditional navigation
+4. Guards can redirect using `resolver.redirectUntil()` or `resolver.next()`
+
+### Guard Example
+```dart
+@injectable
+class AuthGuard extends AutoRouteGuard {
+  final AuthStore _authStore;
+
+  const AuthGuard(this._authStore);
+
+  @override
+  Future<void> onNavigation(
+    NavigationResolver resolver,
+    StackRouter router,
+  ) async {
+    if (!_authStore.isLoggedIn) {
+      return resolver.redirectUntil<void>(const LoginRoute());
+    }
+    resolver.next();
+  }
+}
+```
+
+### Common Guards
+- `AuthGuard` - Check authentication status
+- `MicrophonePermissionGuard` - Check microphone permission
+- `InPersonMeetingGuard` - Check in-person meeting conditions
+- `PlayerGuard` - Check player state
+- `MacCatalystCheckGuard` - Check Mac Catalyst compatibility
+
+## Navigation Observers
+
+### Observer Pattern
+1. Navigation observers are registered in `AppNavigator.config`
+2. Use observers for analytics, logging, and page visibility tracking
+3. Observers should implement `NavigatorObserver` or use auto_route observers
+
+### Common Observers
+- `PageViewObserver` - Track page views for analytics
+- `PageVisibilityObserver` - Track page visibility (iOS only)
+- `TalkerRouteObserver` - Log navigation events
+
+## Deep Linking
+
+### Deep Link Configuration
+1. Deep links are configured in `AppNavigator.config`
+2. Use `deepLinkBuilder` for Android deep link handling
+3. Deep links should be handled in `AppLinksService`
+
+### Deep Link Pattern
+```dart
+deepLinkBuilder: Platform.isAndroid
+    ? (deepLink) {
+        if (deepLink.initial) {
+          return DeepLink.defaultPath;
+        }
+        return DeepLink.none;
+      }
+    : null,
+```
+
+## Tab Navigation
+
+### TabsRouter Usage
+1. Use `TabsRouter` for tab-based navigation (e.g., Dashboard tabs)
+2. Set tabs router via `AppNavigator.setTabsRouter(TabsRouter tabsRouter)`
+3. Access tabs router via `AppNavigator.tabsRouter`
+4. Use `tabsRouter.setActiveIndex(index)` to switch tabs
+
+### Tab Navigation Pattern
+```dart
+// In dashboard page
+final tabsRouter = context.tabsRouter;
+
+// Switch tab
+_appNavigator.setCurrentTab(0); // Switch to first tab
+```
+
+## Modal and Dialog Navigation
+
+### Modal Bottom Sheets
+1. Use `AppNavigator.showModal()` for modal bottom sheets
+2. Configure modal behavior via parameters (isDismissible, enableDrag, etc.)
+3. Modal automatically handles safe area and styling
+
+### Dialogs
+1. Use `AppNavigator.showAlertDialog()` for custom dialogs
+2. Use `AppNavigator.showAppDialog()` for adaptive dialogs with title/content
+3. Dialogs automatically handle platform-specific styling
+
+### Modal/Dialog Pattern
+```dart
+// Modal
+await _appNavigator.showModal(
+  builder: (context) => MyModalWidget(),
+  enableDrag: true,
+  isDismissible: true,
+);
+
+// Dialog
+await _appNavigator.showAlertDialog(
+  content: MyDialogContent(),
+);
+```
+
+## Best Practices
+
+1. **NEVER use `context.router` in pages or widgets** - This is strictly forbidden and will cause build failures
+2. **ALWAYS use AppNavigator** - Never access router directly from pages or state classes
+3. **Inject AppNavigator into state classes** - Use dependency injection, don't create instances
+4. **Create navigation methods in state** - Pages should call state methods like `state.navigateToX()`, not navigate directly
+5. **Use const routes** - Use const constructors for route instances when possible
+6. **Handle navigation errors** - Use `onFailure` callback for error handling
+7. **Document routes** - Always include `meta` description for routes
+8. **Use guards appropriately** - Don't overuse guards; prefer conditional logic in state classes when possible
+9. **Type-safe navigation** - Always use generated route classes, never string-based navigation
+10. **Test navigation** - Test navigation flows in integration tests
+11. **Handle context nullability** - Check for null context in navigation methods that require it
+12. **Use proper route parameters** - Pass data via route parameters, not global state
+
+## Enforcement Rules
+
+### Code Review Checklist
+- [ ] No `context.router` usage in pages or widgets
+- [ ] All navigation goes through `AppNavigator` injected in state classes
+- [ ] Navigation methods are defined in state classes, not in pages
+- [ ] Pages call state methods for navigation, not router directly
+
+## Code Generation
+
+### Build Runner Commands
+```bash
+# Generate router code
+dart run build_runner build --delete-conflicting-outputs
+
+# Or use melos
+melos run build_all
+```
+
+### Code Generation Rules
+1. Always run code generation after adding/modifying routes
+2. Keep generated files (`.gr.dart`) in version control
+3. Never manually edit generated files
+4. Regenerate code when changing route structure or parameters
+
+## Common Patterns
+
+### Navigation from State Class
+```dart
+@action
+Future<void> onItemTap(String itemId) async {
+  await _appNavigator.push(ItemDetailRoute(itemId: itemId));
+}
+```
+
+### Navigation with Result
+```dart
+// Navigate and wait for result
+final result = await _appNavigator.push<ItemResult>(
+  ItemSelectionRoute(),
+);
+
+if (result != null) {
+  // Handle result
+}
+```
+
+### Conditional Navigation
+```dart
+if (condition) {
+  await _appNavigator.push(RouteA());
+} else {
+  await _appNavigator.push(RouteB());
+}
+```
+
+### Navigation Guards in Routes
+```dart
+AutoRoute(
+  page: ProtectedRoute.page,
+  path: '/protected',
+  guards: [authGuard, permissionGuard],
+)
+```
+

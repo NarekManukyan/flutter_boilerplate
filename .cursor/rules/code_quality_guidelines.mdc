@@ -1,0 +1,83 @@
+---
+description: Code quality and development workflow guidelines. Verify information before presenting, make file-by-file changes, avoid unnecessary confirmations, preserve existing code, provide real file links, ensure files end with newline characters (excluded JSON files), and follow single-chunk edit patterns.
+globs:
+alwaysApply: true
+---
+
+# Code Quality Guidelines
+
+## Verify Information
+
+Always verify information before presenting it. Do not make assumptions or speculate without clear evidence.
+
+## File-by-File Changes
+
+Make changes file by file and give me a chance to spot mistakes.
+
+## No Apologies
+
+Never use apologies.
+
+## No Understanding Feedback
+
+Avoid giving feedback about understanding in comments or documentation.
+
+## No Whitespace Suggestions
+
+Don't suggest whitespace changes.
+
+## No Summaries
+
+Don't summarize changes made.
+
+## No Inventions
+
+Don't invent changes other than what's explicitly requested.
+
+## No Unnecessary Confirmations
+
+Don't ask for confirmation of information already provided in the context.
+
+## Preserve Existing Code
+
+Don't remove unrelated code or functionalities. Pay attention to preserving existing structures.
+
+## Single Chunk Edits
+
+Provide all edits in a single chunk instead of multiple-step instructions or explanations for the same file.
+
+## No Implementation Checks
+
+Don't ask the user to verify implementations that are visible in the provided context.
+
+## No Unnecessary Updates
+
+Don't suggest updates or changes to files when there are no actual modifications needed.
+
+## Provide Real File Links
+
+Always provide links to the real files, not x.md.
+
+## No Current Implementation
+
+Don't show or discuss the current implementation unless specifically requested.
+
+## End of File Newline
+
+Always ensure files end with a newline character to comply with linting rules. Excluded json files
+
+## Auto-Fix Issues with Dart CLI
+
+After making changes, always run `dart fix --apply` to automatically fix issues that can be resolved by the Dart analyzer:
+- Unused imports
+- Unused elements
+- Other auto-fixable lint issues
+
+**Workflow:**
+1. Make your code changes
+2. Run `dart fix --apply` to auto-fix issues
+3. If there are issues that cannot be auto-fixed, check them file by file
+4. Run `dart analyze` to verify all issues are resolved
+
+**Pre-commit Hook:**
+The pre-commit hook automatically runs `dart fix --apply` before analysis, so most auto-fixable issues will be resolved automatically. However, you should still run it manually after making significant changes to catch issues early.

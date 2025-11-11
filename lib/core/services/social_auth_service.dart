@@ -4,6 +4,12 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'flavor_service.dart';
 
+const _googlePublicScopes = [
+    'profile',
+    'email',
+    'openid',
+];
+
 @injectable
 class SocialAuthService {
   final FlavorService _flavorService;
@@ -11,26 +17,28 @@ class SocialAuthService {
   SocialAuthService(this._flavorService);
 
   Future<String?> signInByGoogle() async {
-    final googleClient = GoogleSignIn(
-      scopes: [
-        'profile',
-        'email',
-        'openid',
-      ],
-      serverClientId: _flavorService.config.google.serverClientId,
-    );
+    try {
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
 
-    await googleClient.signOut();
+      try {
+        await GoogleSignIn.instance.initialize(
+          serverClientId: _flavorService.config.google.serverClientId,
+        );
+      } catch (_) {}
 
-    final res = await googleClient.signIn();
+      final serverAuth = await GoogleSignIn.instance.authorizationClient
+          .authorizeServer(_googlePublicScopes);
 
-    final code = res?.serverAuthCode;
-
-    if (code == null) {
+      return serverAuth?.serverAuthCode;
+    } catch (_) {
       return null;
+    } finally {
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
     }
-
-    return code;
   }
 
   Future<String?> signInByApple() async {

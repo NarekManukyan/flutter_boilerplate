@@ -1,0 +1,218 @@
+---
+description: Flutter app architecture patterns: layered architecture (UI, Business Logic, Data), feature-based organization, unidirectional data flow, dependency injection with GetIt/@injectable, project structure (lib/features, lib/shared, packages), state access via Provider (never pass state as widget parameters), and separation of concerns between Views, State classes, and API providers.
+globs:
+  - "lib/**/*.dart"
+alwaysApply: false
+---
+
+# Flutter App Architecture
+
+### Architecture
+1. Separate your features into a UI Layer (presentation), a Business Logic Layer (MobX state), and a Data Layer (API providers).
+2. Organize code by feature: The classes needed for each feature are grouped together. For example, you might have an auth directory, which would contain files like auth_page_state.dart (MobX state class), login_page.dart, etc.
+3. Only allow communication between adjacent layers; the UI layer should not access the data layer directly, and vice versa.
+4. Clearly define the responsibilities, boundaries, and interfaces of each layer and component (Views, State classes, API Providers, Services).
+5. Further divide each layer into components with specific responsibilities and well-defined interfaces.
+6. In the UI Layer, use Views to describe how to present data to the user; keep logic minimal and only UI-related.
+7. Pass user interactions from Views to State classes (MobX stores) via action methods.
+8. In State classes, contain logic to convert app data into UI state and maintain the current state needed by the view.
+9. Expose action methods from State classes to Views and retrieve/transform data from API providers.
+10. In the Data Layer, use API Providers (from `packages/api`) to wrap API endpoints and expose asynchronous response objects.
+11. State classes should use API providers via `DioService` to fetch and transform data.
+12. Use Services for core functionality (analytics, logging, navigation, etc.) that don't hold state.
+13. Use dependency injection to provide components with their dependencies, enabling testability and flexibility.
+
+### Data Flow and State
+1. Follow unidirectional data flow: state flows from the data layer (API providers) through the business logic layer (MobX state) to the UI layer, and events from user interaction flow in the opposite direction.
+2. Data changes should always happen in State classes (MobX stores), not in the UI layer.
+3. The UI should always reflect the current (immutable) state; trigger UI rebuilds only in response to state changes.
+4. Views should contain as little logic as possible and be driven by observable state from State classes (MobX stores).
+
+### Extensibility and Testability
+1. All architectural components should have well-defined inputs and outputs (interfaces).
+2. Favor dependency injection to allow swapping implementations without changing consumers.
+3. Test state classes by mocking API providers; test UI logic independently of widgets.
+4. Design components to be easily replaceable and independently testable.
+
+### Project Structure
+
+#### Root Structure
+```
+krisp-mobile/
+├── lib/                    # Main application code
+├── packages/               # Reusable packages (API, design system, etc.)
+├── assets/                 # Static assets (images, translations, etc.)
+├── android/                # Android native code
+├── ios/                    # iOS native code
+├── test/                   # Tests
+├── docs/                   # Documentation
+└── ...                     # Config, scripts, etc.
+```
+
+#### /lib Directory Structure
+- `core/` — Core functionality, services, constants, utils, navigation, extensions, configs:
+  - `configs/` — App configuration (environments, firebase, models)
+  - `constants/` — App-wide constants
+  - `extensions/` — Dart extensions
+  - `navigation/` — Navigation system (guards, observers)
+  - `services/` — Core services (analytics, interceptors, platform channels)
+  - `utils/` — Utility functions
+- `features/` — Feature modules, each with its own substructure:
+  - `view/` — UI components (pages, widgets) and page state files (`*_page_state.dart`)
+    - **State files** (`*_state.dart`): Control UI, no API access, use Stores for data
+  - `mobx/` — Feature-specific MobX stores (optional, for feature-specific stores)
+    - **Store files** (`*_store.dart`): Business logic with API access, use `@injectable` (not singleton)
+    - Only create here if store is used in one feature only
+  - `models/` — Data models
+  - `core/`, `shared/` — Feature-specific logic or shared code
+  - `components/` — Feature-specific components (optional)
+  - `constants/` — Feature-specific constants (optional)
+  - `modals/` — Feature-specific modals (optional)
+  - `overlays/` — Feature-specific overlays (optional)
+- `shared/` — Shared models, stores, widgets, state, features, and constants:
+  - `stores/` — Shared MobX stores (use `@singleton` for app-wide stores)
+    - **Store files** (`*_store.dart`): Business logic with API access, used across multiple features
+    - Example: `UserStore`, `AgendaStore`, `MeetingsStore`
+  - `features/` — Shared feature components (used in many places)
+    - If a feature is used across multiple places, move it here
+    - Example: `dashboard`, `upload_queue`, `user_profile`
+    - Can have state files in `view/` directory (no API access)
+  - `widgets/` — Shared UI widgets
+  - `models/` — Shared data models
+  - `state/` — Shared state utilities (loading_state, timer)
+  - `constants/` — Shared constants
+- `gen/` — Generated code
+
+#### Naming Patterns
+See `effective_dart.md` for comprehensive naming conventions. Common patterns:
+- Pages: `*_page.dart`
+- Widgets: `*_widget.dart`
+- State: `*_state.dart`
+- Models: `*_model.dart`
+- Services: `*_service.dart`
+- Utils: `*_utils.dart`
+- Constants: `*_constants.dart`
+
+#### /packages Directory
+- Contains reusable, decoupled Dart/Flutter packages for use across the app and potentially other projects
+- Each package (e.g., `api`, `design_system`) follows a similar structure to `/lib`, with its own `lib/`, `src/`, and submodules
+- Packages should be self-contained, documented, and follow the same naming and architecture rules as the main app
+
+### Environment Configuration
+
+#### Entry Points
+- **Pre-live** (recommended for development): `lib/main_plive.dart` with `--flavor plive`
+- **Production**: `lib/main_prod.dart` with `--flavor prod`
+- **Stage**: `lib/main_stage.dart` with `--flavor stage`
+
+#### Development Commands
+```bash
+# Pre-live environment (recommended for development)
+flutter run -t lib/main_plive.dart --flavor plive
+
+# Code generation
+melos run build_all
+
+# Health checks
+melos run health_check
+melos run health_check_quick
+```
+
+### General Guidelines
+- **Language:** All code and documentation in English
+- **Architecture:** Follow clean architecture principles with clear separation of concerns
+- **Naming:** See `effective_dart.md` for detailed naming conventions
+- **State Management:** Use MobX, with `@injectable` for DI, and `@observable`/`@computed` for state (see `mobx.md` for details)
+- **Widgets:** See `widgets.md` for widget patterns and hooks guidelines
+- **Error Handling:** Use `IssueTrackingService`, handle errors at the right level, proper error boundaries and UI error states
+- **Dependency Injection:** Use GetIt with `@injectable` for automatic registration
+- **Code Generation:** Use build_runner, keep generated code in `gen/`
+- **Testing:** See `testing.md` for detailed testing guidelines
+- **Code Style:** See `effective_dart.md` for types, functions, performance, and documentation guidelines
+
+### Best Practices
+1. Follow separation of concerns and layered architecture.
+2. Use dependency injection for testability and flexibility.
+3. Keep views focused on presentation and extract reusable widgets into separate components.
+4. Use MobX for state management with `@observable`, `@computed`, and `@action` annotations (see `mobx.md` for details).
+5. Keep state as local as possible to minimize rebuilds and complexity.
+6. See `widgets.md` for widget patterns and best practices.
+7. See `effective_dart.md` for code style, naming, and general Dart best practices.
+
+### Widgets and State Access
+
+See `widgets.md` for comprehensive widget patterns, hooks guidelines, and when to use `HookWidget` vs `StatelessWidget`.
+
+#### State Access Pattern
+**Never pass state as widget parameters.** Always access state via Provider created at the root element (the page widget).
+
+**❌ Wrong - Passing state as parameter:**
+```dart
+class _MySection extends StatelessWidget {
+  const _MySection({required this.state});
+  final MyPageState state; // ❌ Don't pass state as parameter
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(state.someValue);
+  }
+}
+```
+
+**✅ Correct - Accessing state via Provider:**
+```dart
+class MyPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Provider<MyPageState>(
+      create: (_) => getIt<MyPageState>(),
+      child: const _MyPageContent(), // ✅ Provider at root
+    );
+  }
+}
+
+class _MyPageContent extends StatelessWidget {
+  const _MyPageContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.read<MyPageState>(); // ✅ Access via context
+    return Column(
+      children: [
+        _MySection(), // ✅ No state parameter needed
+      ],
+    );
+  }
+}
+
+class _MySection extends StatelessWidget {
+  const _MySection(); // ✅ No state parameter
+  
+  @override
+  Widget build(BuildContext context) {
+    final state = context.read<MyPageState>(); // ✅ Access via context
+    return Text(state.someValue);
+  }
+}
+```
+
+**Rules:**
+1. Create `Provider` at the root page widget (e.g., `MyPage`)
+2. Never pass state as a parameter to child widgets
+3. Access state in child widgets using `context.read<StateType>()`
+4. This pattern ensures proper dependency injection and testability
+
+### State vs Store Organization
+
+See `mobx.md` for comprehensive State vs Store architecture, location rules, naming conventions, and patterns.
+
+### Quick Navigation Tips
+- **Pages**: Look in `lib/features/*/view/`
+- **Page States**: Look in `lib/features/*/view/*_page_state.dart`
+- **Feature Stores**: Look in `lib/features/*/mobx/` (if exists)
+- **Shared Stores**: Look in `lib/shared/stores/`
+- **API Models**: Look in `packages/api/lib/src/models/`
+- **UI Components**: Look in `packages/design_system/lib/src/components/`
+- **Core Services**: Look in `lib/core/services/`
+- **Configuration**: Look in `lib/core/configs/`
+

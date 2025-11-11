@@ -1,0 +1,373 @@
+---
+description: MobX state management patterns, architecture, and best practices for State classes (*_state.dart) and Store classes (*_store.dart). Covers @observable, @computed, @action, @readonly annotations, state vs store separation, dependency injection with @injectable/@singleton, API access rules, location patterns (feature-specific vs shared stores), and MobX code generation.
+globs:
+  - "**/*_state.dart"
+  - "**/*_store.dart"
+alwaysApply: false
+---
+
+# MobX Rules
+
+### State vs Store Architecture
+
+#### State Classes (`*_state.dart`)
+1. **Purpose**: Control UI state, no direct API access
+2. **Naming**: `FeatureName` + `PageState` or `FeatureName` + `State`. Example: `AgendaPageState`, `LoginPageState`, `UserProfileState`
+3. **Location**: 
+   - Page states: `lib/features/{feature}/view/*_page_state.dart`
+   - Shared feature states: `lib/shared/features/{feature}/view/*_state.dart`
+4. **Dependency Injection**: Use `@injectable`
+5. **API Access**: **NO direct API access** - State classes should use Stores to access API layer
+6. **Pattern**: `class FeaturePageState = _FeaturePageStateBase with _$FeaturePageState;`
+
+#### Store Classes (`*_store.dart`)
+1. **Purpose**: Business logic with API access
+2. **Naming**: `FeatureName` + `Store`. Example: `MeetingStore`, `TeamsStore`, `MeetingBotStore`, `UserStore`, `AgendaStore`
+3. **API Access**: **YES** - Stores can access API providers via `DioService`
+4. **Location Decision**:
+   - **Feature-specific stores** (not singleton, used in one feature): `lib/features/{feature}/mobx/*_store.dart`
+     - Use `@injectable` (not `@singleton`)
+     - Example: `MeetingBotStore` in `lib/features/agenda/mobx/`
+   - **Shared stores** (singleton, used across features): `lib/shared/stores/{store_name}/*_store.dart`
+     - Use `@singleton` for app-wide stores
+     - Example: `UserStore`, `AgendaStore`, `MeetingsStore` in `lib/shared/stores/`
+5. **Pattern**: `class FeatureStore = _FeatureStoreBase with _$FeatureStore;`
+6. **Persistence**: Shared stores can extend `HydratedMobX` for persistence
+
+### Naming Conventions
+1. Use descriptive names for observable properties that clearly indicate their purpose
+2. Use boolean prefixes: `is`, `has`, `can` for boolean observables (e.g., `isLoading`, `hasError`, `canSubmit`)
+3. Use past participle for computed values that represent derived state (e.g., `filteredItems`, `sortedList`)
+4. The abstract base class should be named: `_FeatureStateBase` or `_FeatureStoreBase` and extend or mix in `Store`
+
+### Modeling State
+1. Use `@observable` for reactive properties that should trigger UI updates when changed
+2. Use `@readonly` for observable properties that should not be modified directly from outside the class
+   - **CRITICAL RULE**: `@readonly` automatically generates a public getter with the same name (without the underscore prefix) after code generation
+   - **NEVER create a manual getter or `@computed` property for `@readonly` fields** - the generated getter is sufficient
+   - Example: `@readonly bool _hasActiveSubscription;` automatically generates `bool get hasActiveSubscription => ...`
+   - Access the generated getter directly: `store.hasActiveSubscription` (not `store._hasActiveSubscription`)
+   - **If you see `@computed bool get hasActiveSubscription => _hasActiveSubscription;` it's redundant and must be removed**
+3. Use `@computed` ONLY for derived state that depends on other observables or performs calculations
+   - **DO NOT use `@computed` to simply return a `@readonly` field** - this is redundant and violates the rules
+4. Keep state classes immutable where possible; use `@action` for all state modifications
+5. Use `ObservableList`, `ObservableMap`, and `ObservableSet` for collections that need to be reactive
+6. Initialize observable collections with `.asObservable()` or `ObservableList.of()` for proper reactivity
+7. Use nullable types appropriately for optional state (e.g., `String? error`)
+8. Store complex state in separate models when appropriate, but keep them observable
+9. Use `@computed` to derive UI state from business logic rather than storing redundant state
+10. Prefer computed properties over storing derived values to avoid synchronization issues
+
+### MobX Concepts
+1. **State Classes** (`*_state.dart`):
+   - Use `@injectable` for page state classes
+   - **NO direct API access** - inject Stores to access API layer
+   - Inject `AppNavigator` for navigation
+   - Inject other Stores for business logic
+   - Example: `AgendaPageState` uses `AgendaStore`, not `DioService`
+
+2. **Feature-Specific Stores** (`lib/features/{feature}/mobx/*_store.dart`):
+   - Use `@injectable` (not `@singleton`)
+   - **YES API access** - inject `DioService` to access API providers
+   - Used only within one feature
+   - Example: `MeetingBotStore` in `lib/features/agenda/mobx/`
+
+3. **Shared Stores** (`lib/shared/stores/{store_name}/*_store.dart`):
+   - Use `@singleton` for app-wide singletons (e.g., `UserStore`, `AgendaStore`)
+   - **YES API access** - inject `DioService` to access API providers
+   - Used across multiple features
+   - Can extend `HydratedMobX` for persistence (e.g., `AgendaStore`)
+
+4. **General MobX Rules**:
+   - All state modifications must be wrapped in `@action` methods
+   - Use `@action` for synchronous state changes
+   - Use `@action` for async methods that modify state; MobX will handle the async boundaries
+   - Use `runInAction` for modifying state outside of action methods (e.g., in callbacks)
+   - UI components should observe state using `Observer` widget or `reaction`/`autorun`
+   - Use `reaction` to perform side effects when observables change (e.g., navigation, API calls)
+   - Use `autorun` for reactive computations that should run automatically
+   - Always dispose of reactions and autoruns in a `dispose` method to prevent memory leaks
+   - Store `ReactionDisposer` instances and call them in `dispose`
+   - Use `when` to wait for a condition to become true before executing code
+   - Use `debounceReaction` for debouncing reactive side effects (e.g., search queries)
+   - Keep business logic in state/store classes, not in UI widgets
+   - Inject dependencies via constructor; never directly instantiate services
+   - Use `@computed` for expensive computations that depend on observables; MobX will cache results
+
+### Architecture
+
+#### Layer Separation
+1. **Presentation Layer** (UI): Renders UI based on state observables, handles user input
+2. **Business Logic Layer**:
+   - **State Classes** (`*_state.dart`): Control UI state, coordinate with Stores
+   - **Store Classes** (`*_store.dart`): Business logic with API access
+3. **Data Layer**: API Providers (from `packages/api`)
+
+#### State vs Store Responsibilities
+1. **State Classes** (`*_state.dart`):
+   - Control UI state and presentation logic
+   - **NO direct API access** - must use Stores to access API layer
+   - Inject Stores, `AppNavigator`, and other services
+   - Coordinate between UI and Stores
+   - Example: `AgendaPageState` uses `AgendaStore` to fetch data
+
+2. **Store Classes** (`*_store.dart`):
+   - Business logic and data management
+   - **YES API access** - inject `DioService` to access API providers
+   - Transform API data into domain models
+   - Manage observable state for multiple consumers
+   - Example: `AgendaStore` uses `DioService.agendaProvider` to fetch agendas
+
+#### Store Location Rules
+1. **Feature-Specific Stores** (`lib/features/{feature}/mobx/*_store.dart`):
+   - Not singleton (`@injectable`)
+   - Used only within one feature
+   - Example: `MeetingBotStore` in `lib/features/agenda/mobx/`
+
+2. **Shared Stores** (`lib/shared/stores/{store_name}/*_store.dart`):
+   - Singleton (`@singleton`)
+   - Used across multiple features
+   - Example: `UserStore`, `AgendaStore`, `MeetingsStore`
+
+#### Shared Features
+1. If a feature is used in many places, move it to `lib/shared/features/{feature}/`
+2. Example: `dashboard`, `upload_queue`, `user_profile` in `lib/shared/features/`
+
+#### Communication Patterns
+1. **State → Store**: State classes call Store methods to fetch/update data
+2. **State → State**: Avoid direct state-to-state communication; use Stores as intermediaries
+3. **Store → Store**: Stores can inject other Stores for coordination
+4. **Store → API**: Stores use `DioService` to access API providers
+5. Always strive for loose coupling between architectural layers and components
+
+### Flutter MobX Concepts
+1. Use `Observer` widget to rebuild widgets in response to observable changes; the builder function must be pure
+2. Use `reaction` to perform side effects (e.g., navigation, dialogs) in response to observable changes
+3. Use `autorun` when you need automatic reactive computations
+4. Use GetIt with `@injectable` to provide state instances to widget subtrees via dependency injection
+5. Use `context.read<T>()` or `getIt<T>()` to access state instances without listening for changes (e.g., in callbacks)
+6. Use `Observer` widget to listen for changes and trigger rebuilds
+7. Avoid wrapping large widget subtrees in `Observer` if only a small part depends on observables; wrap only the part that needs to rebuild
+8. Scope rebuilds using `Observer` widgets strategically to minimize unnecessary rebuilds
+9. Handle all possible state scenarios explicitly in the UI (e.g., loading, error, empty, populated)
+10. Use `runInAction` when modifying state from callbacks or event handlers that are not action methods
+11. Prefer `@action` methods over `runInAction` for better code organization and debugging
+
+### Code Quality & Linting
+1. Always run code generation after adding or modifying MobX annotations: `flutter pub run build_runner build --delete-conflicting-outputs`
+2. Keep generated files (`.g.dart`) in version control but never edit them manually
+3. Avoid importing Flutter dependencies in your state classes when possible; keep business logic platform-agnostic
+4. Avoid exposing public fields that should be observable; use getters with `@computed` or `@observable` properties
+5. Use `@readonly` for internal observables that should not be modified externally
+6. Document complex state logic and computed properties
+7. Use meaningful names for actions that describe what they do (e.g., `loadData`, `updateUser`, `deleteItem`)
+8. Keep actions focused on a single responsibility
+9. Use early returns in actions to reduce nesting and improve readability
+10. Handle errors appropriately in actions; set error state observables rather than throwing exceptions
+
+### Developer Tools & Integrations
+1. Use MobX DevTools for debugging and state inspection during development
+2. Use `mobx_codegen` for code generation to reduce boilerplate
+3. Use `hydrated_mobx` for state persistence across app sessions when needed
+4. Use `mobx_codegen` annotations: `@observable`, `@computed`, `@action`, `@readonly`
+
+### Testing
+1. Add the `test` and `mobx_test` packages to your dev dependencies for MobX testing
+2. Organize tests into groups to share setup and teardown logic
+3. Create a dedicated test file (e.g., `agenda_page_state_test.dart`) for each state class
+4. Import the `test` and `mobx_test` packages in your test files
+5. Use `setUp` to initialize state instances before each test and `tearDown` to clean up after tests
+6. Test the state's initial values before testing state transitions
+7. Use `when` or `asyncWhen` to wait for observable conditions in tests
+8. Test state transitions by calling action methods and verifying observable changes
+9. Keep tests concise, focused, and easy to maintain to ensure confidence in refactoring
+10. Mock dependencies (repositories, services) in state tests to verify business logic independently
+11. Test computed properties by modifying their dependencies and verifying the computed result
+12. Test reactions by modifying observables and verifying side effects
+13. Always dispose of state instances in tests to prevent memory leaks
+
+### Ecosystem & Packages
+1. The MobX ecosystem consists of multiple packages: `mobx` (core), `flutter_mobx` (Flutter widgets), `mobx_codegen` (code generation), `hydrated_mobx` (persistence)
+2. Use `mobx_codegen` for automatic code generation of store classes
+3. Use `hydrated_mobx` for automatic state persistence and restoration across app sessions
+4. Install packages based on your needs: start with `mobx` and `flutter_mobx` for basic functionality
+5. Use `injectable` and `get_it` for dependency injection with MobX state classes
+
+### Decision Tree: State vs Store
+
+#### When to Create a State (`*_state.dart`)
+- ✅ Controls UI state for a specific page or widget
+- ✅ No need for direct API access
+- ✅ Can use existing Stores to fetch data
+- **Location**: `lib/features/{feature}/view/*_page_state.dart` or `lib/shared/features/{feature}/view/*_state.dart`
+- **Example**: `AgendaPageState` - controls agenda page UI, uses `AgendaStore` to fetch data
+
+#### When to Create a Feature-Specific Store (`lib/features/{feature}/mobx/*_store.dart`)
+- ✅ Needs API access via `DioService`
+- ✅ Used only within one feature
+- ✅ Not a singleton (multiple instances possible)
+- **Location**: `lib/features/{feature}/mobx/*_store.dart`
+- **DI**: Use `@injectable` (not `@singleton`)
+- **Example**: `MeetingBotStore` in `lib/features/agenda/mobx/` - used only in agenda feature
+
+#### When to Create a Shared Store (`lib/shared/stores/{store_name}/*_store.dart`)
+- ✅ Needs API access via `DioService`
+- ✅ Used across multiple features
+- ✅ Should be a singleton (one instance for entire app)
+- **Location**: `lib/shared/stores/{store_name}/*_store.dart`
+- **DI**: Use `@singleton`
+- **Example**: `UserStore`, `AgendaStore`, `MeetingsStore` - used across multiple features
+
+#### When to Move Feature to Shared (`lib/shared/features/{feature}/`)
+- ✅ Feature is used in many places across the app
+- ✅ Feature has its own pages, state, and components
+- **Location**: `lib/shared/features/{feature}/`
+- **Example**: `dashboard`, `upload_queue`, `user_profile` - used throughout the app
+
+### Examples
+
+#### State Class (No API Access)
+```dart
+// lib/features/agenda/view/agenda_page_state.dart
+@injectable
+class AgendaPageState = _AgendaPageStateBase with _$AgendaPageState;
+
+abstract class _AgendaPageStateBase with Store {
+  final AgendaStore _agendaStore;  // ✅ Use Store, not DioService
+  final AppNavigator _appNavigator;
+  
+  _AgendaPageStateBase(this._agendaStore, this._appNavigator);
+  
+  @action
+  Future<void> fetchAgendas() async {
+    // ✅ Call Store method, not API provider
+    await _agendaStore.fetchAgendas();
+  }
+}
+```
+
+#### Feature-Specific Store (API Access, One Feature)
+```dart
+// lib/features/agenda/mobx/meeting_bots_store.dart
+@injectable  // ✅ Not @singleton
+class MeetingBotStore = _MeetingBotStoreBase with _$MeetingBotStore;
+
+abstract class _MeetingBotStoreBase with Store {
+  final DioService _dioService;  // ✅ Can access API
+  
+  _MeetingBotStoreBase(this._dioService);
+  
+  @action
+  Future<void> inviteBot({required String url}) async {
+    // ✅ Direct API access
+    await _dioService.meetingBotsProvider.inviteBot(
+      request: BotRequestDto(url: url),
+    );
+  }
+}
+```
+
+#### Shared Store (API Access, Multiple Features)
+```dart
+// lib/shared/stores/agenda/agenda_store.dart
+@singleton  // ✅ Singleton for app-wide use
+class AgendaStore = _AgendaStoreBase with _$AgendaStore;
+
+abstract class _AgendaStoreBase extends HydratedMobX with Store {
+  final DioService _dioService;  // ✅ Can access API
+  
+  _AgendaStoreBase(this._dioService);
+  
+  @action
+  Future<void> fetchAgendas() async {
+    // ✅ Direct API access
+    final response = await _dioService.agendaProvider.getAgendas();
+    // Transform and store data
+  }
+}
+```
+
+#### Using @readonly Correctly (No Redundant Getters)
+```dart
+// ✅ CORRECT: @readonly generates getter automatically
+abstract class _MyStoreBase with Store {
+  @readonly
+  ObservableList<Item> _items = ObservableList<Item>();
+  
+  @readonly
+  String? _error;
+  
+  @readonly
+  bool _hasActiveSubscription = false;
+  
+  // ✅ Use generated getters: _items → items, _error → error, _hasActiveSubscription → hasActiveSubscription
+  // No need for manual getters! MobX code generation creates them automatically.
+  // Access as: store.items, store.error, store.hasActiveSubscription
+}
+
+// ❌ WRONG: Don't create redundant getters for @readonly fields
+abstract class _MyStoreBase with Store {
+  @readonly
+  ObservableList<Item> _items = ObservableList<Item>();
+  
+  @readonly
+  bool _hasActiveSubscription = false;
+  
+  // ❌ FORBIDDEN - @readonly already generates 'items' getter automatically
+  @computed
+  ObservableList<Item> get items => _items;
+  
+  // ❌ FORBIDDEN - @readonly already generates 'hasActiveSubscription' getter automatically
+  @computed
+  bool get hasActiveSubscription => _hasActiveSubscription;
+  
+  // ✅ CORRECT: Only use @computed for derived/calculated state
+  @computed
+  bool get hasItems => _items.isNotEmpty;  // Derived from _items
+  
+  @computed
+  int get itemCount => _items.length;  // Calculated from _items
+}
+```
+
+#### Common Mistakes to Avoid
+```dart
+// ❌ WRONG: Redundant getter for @readonly field
+abstract class _SubscriptionsStoreBase with Store {
+  @readonly
+  bool _hasActiveSubscription = false;
+  
+  // ❌ DON'T DO THIS - MobX already generates 'hasActiveSubscription' getter
+  @computed
+  bool get hasActiveSubscription => _hasActiveSubscription;
+}
+
+// ✅ CORRECT: Let MobX generate the getter automatically
+abstract class _SubscriptionsStoreBase with Store {
+  @readonly
+  bool _hasActiveSubscription = false;
+  
+  // ✅ Just use store.hasActiveSubscription - it's automatically generated!
+  // No manual getter needed
+}
+```
+
+### Best Practices
+1. **State classes**: Keep focused on UI state, never inject `DioService`
+2. **Store classes**: Handle all API interactions, inject `DioService`
+3. **Location decision**: If store is used in one feature → `lib/features/{feature}/mobx/`, if used across features → `lib/shared/stores/`
+4. **Shared features**: If feature is used in many places → `lib/shared/features/`
+5. Use composition over inheritance when sharing state logic between features
+6. Prefer computed properties over storing derived state
+7. Use reactions sparingly; prefer computed properties for derived UI state
+8. Always dispose of reactions and autoruns to prevent memory leaks
+9. **Use `@readonly` for internal observables that should not be modified externally**
+   - **NEVER create manual getters or `@computed` properties for `@readonly` fields** - MobX code generation automatically creates public getters
+   - Example: `@readonly bool _hasActiveSubscription;` automatically generates `bool get hasActiveSubscription => ...`
+   - Access the generated getter directly: `store.hasActiveSubscription` (not `store._hasActiveSubscription`)
+   - **If you see a `@computed` getter that simply returns a `@readonly` field, it's redundant and must be removed**
+10. Keep actions small and focused; extract complex logic into private methods
+11. Use early returns and guard clauses in actions to reduce nesting
+12. Handle errors gracefully by setting error state observables
+13. Document complex state logic and computed properties with comments
+

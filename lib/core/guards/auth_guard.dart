@@ -18,7 +18,7 @@ class AuthGuard extends AutoRouteGuard {
     final isLoggedIn = getIt<AuthStore>().isLoggedIn;
 
     if (!isLoggedIn) {
-      return resolver.redirect<void>(const LoginRoute());
+      return resolver.redirectUntil<void>(const LoginRoute());
     }
 
     return resolver.next();

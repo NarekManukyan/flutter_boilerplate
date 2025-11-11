@@ -1,0 +1,49 @@
+---
+description: Easy Localization workflow and rules. Add translations to assets/translations/en-US.json, run melos generate_translations to generate LocaleKeys, and use LocaleKeys.keyName.tr() in UI code. Never hardcode text strings in UI - all user-facing text must be localized.
+globs:
+  - "**/*_page.dart"
+  - "**/*_widget.dart"
+  - "lib/features/**/*.dart"
+  - "lib/shared/widgets/**/*.dart"
+  - "packages/design_system/**/*.dart"
+alwaysApply: false
+---
+
+# Localization Guidelines
+
+## Using Easy Localization
+
+This project uses `easy_localization` for internationalization. All user-facing text must be localized.
+
+## Workflow
+
+1. **Add translations to JSON files**: Add all text strings to `assets/translations/en-US.json` (and corresponding files for other locales if needed).
+
+2. **Generate translation keys**: Run `melos generate_translations` (or `melos run translations`) to generate the `LocaleKeys` class in `lib/gen/locale_keys.g.dart`.
+
+3. **Use generated keys in UI**: Always use the generated `LocaleKeys` constants with `.tr()` extension method in the UI code.
+
+## Rules
+
+- Never hardcode text strings in UI code. All user-facing text must come from translations.
+- Always add new translations to `assets/translations/en-US.json` first.
+- Always run `melos generate_translations` after adding or modifying translations.
+- Always use `LocaleKeys.keyName.tr()` in UI code, never use string literals directly.
+- For translations with parameters, use named arguments: `LocaleKeys.keyName.tr(namedArgs: {'param': value})`.
+- The generated `lib/gen/locale_keys.g.dart` file should never be manually edited.
+
+## Example
+
+```dart
+// ❌ Wrong - hardcoded text
+Text('Continue with email')
+
+// ✅ Correct - using generated LocaleKeys
+Text(LocaleKeys.loginPage_continueWithEmail.tr())
+
+// ✅ Correct - with parameters
+LocaleKeys.loginPage_continueWith.tr(
+  namedArgs: {'provider': 'Google'},
+)
+```
+

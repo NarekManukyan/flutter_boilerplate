@@ -1,6 +1,7 @@
 name: flutter_boilerplate
 description: A boilerplate project created in flutter using MobX.
 version: 1.0.0+1
+publish_to: none
 
 environment:
   sdk: '>=3.8.0-0 <4.0.0'
@@ -10,6 +11,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+  
+  # local packages
+  api:
+    path: packages/api
+  design_system:
+    path: packages/design_system
+
   # State management
   # MobX and Provider for state management
   mobx: ^2.5.0
@@ -18,20 +26,20 @@ dependencies:
 
   # Routing
   # AutoRoute for navigation
-  auto_route: ^10.1.0
+  auto_route: ^10.2.0
 
   # Networking
   # Dio for HTTP requests, connectivity_plus for network status
-  connectivity_plus: ^6.1.4
-  dio: ^5.8.0+1
+  connectivity_plus: ^7.0.0
+  dio: ^5.9.0
 
   # Localization
   # easy_localization for i18n
-  easy_localization: ^3.0.7
+  easy_localization: ^3.0.8
 
   # Dependency injection
   # get_it and injectable for DI
-  get_it: ^8.0.3
+  get_it: ^9.0.5
   injectable: ^2.5.0
 
   # Code generation
@@ -41,53 +49,51 @@ dependencies:
 
   # UI & design
   # UI helpers and widgets
-  flutter_gen: ^5.10.0
+  flutter_gen: ^5.12.0
   gap: ^3.0.1
   overlay_support: ^2.1.0
   extended_image: ^10.0.1
-  skeletonizer: ^2.0.1
+  skeletonizer: ^2.1.0
 
   # Utilities
   # Useful utilities for app development
   rxdart: ^0.28.0
   faker: ^2.2.0
   shared_preferences: ^2.5.3
-  file_picker: ^10.2.0
+  file_picker: ^10.3.3
   path_provider: ^2.1.5
-  url_launcher: ^6.3.1
-  uuid: ^4.5.1
+  url_launcher: ^6.3.2
+  uuid: ^4.5.2
   open_settings_plus: ^0.4.0
 
   # App update
   # For checking app updates
-  new_version_plus:
-    git:
-      url: https://github.com/hussenIbrahim/new_version_plus
-      ref: e0be8b3
+  new_version_plus: ^0.1.1
 
   # Authentication & social login
   # Apple and Google sign-in
   sign_in_with_apple: ^7.0.1
-  google_sign_in: ^6.3.0
+  google_sign_in: ^7.2.0
 
   # Analytics & error reporting
   # Sentry for error tracking
-  sentry_flutter: ^9.0.0
-  sentry_logging: ^9.0.0
+  sentry_flutter: ^9.8.0
+  sentry_logging: ^9.8.0
 
+  flutter_hooks: any
 dev_dependencies:
   # Code generation tools
-  build_runner: ^2.5.4
-  freezed: ^3.0.6
-  auto_route_generator: ^10.2.3
-  injectable_generator: ^2.7.0
-  json_serializable: ^6.9.5
-  mobx_codegen: ^2.7.1
+  build_runner: ^2.10.1
+  freezed: ^3.2.3
+  auto_route_generator: ^10.2.5
+  injectable_generator: ^2.9.1
+  json_serializable: ^6.11.1
+  mobx_codegen: ^2.7.4
   # Testing
   flutter_driver:
     sdk: flutter
   # Monorepo management
-  melos: ^6.3.3
+  melos: ^7.3.0
 
 # Flutter assets and material design
 flutter:

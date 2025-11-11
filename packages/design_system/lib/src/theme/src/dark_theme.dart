@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../gen/colors.gen.dart';
@@ -176,7 +175,7 @@ final _customThemeDark = CustomTheme(
   overlayLow: const Color.fromRGBO(244, 244, 245, 0.1),
   overlayMedium: const Color.fromRGBO(244, 244, 245, 0.2),
   overlayHigh: const Color.fromRGBO(244, 244, 245, 0.3),
-  overlayDefault: const Color.fromRGBO(0, 0, 0, 0).withOpacity(.2),
+  overlayDefault: const Color.fromRGBO(0, 0, 0, 0).withValues(alpha: 0.2),
   headerH1: TextStyles.headerH1,
   headerH2: TextStyles.headerH2,
   headerH3: TextStyles.headerH3,

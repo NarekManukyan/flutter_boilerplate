@@ -1,0 +1,247 @@
+---
+description: API layer package architecture and Retrofit patterns. Package structure (providers, models, services, utils), Retrofit API provider implementation with @RestApi, DioService integration, DTO patterns (*_dto.dart), error handling, interceptors, and code generation with build_runner.
+globs:
+  - "packages/api/**"
+alwaysApply: false
+---
+
+# API Layer Rules
+
+## Package Structure
+
+### Directory Organization
+```
+packages/api/
+└── lib/
+    ├── api.dart                 # Main library exports
+    └── src/
+        ├── constants/           # API constants and enums
+        ├── models/             # Data transfer objects (DTOs)
+        ├── providers/          # API client implementations
+        ├── services/            # API services (e.g., isolate upload)
+        └── utils/              # Network utilities
+```
+
+### Naming Conventions
+- Providers: `*_provider.dart` (e.g., `auth_provider.dart`, `meetings_provider.dart`)
+- API Provider Implementation: `*_api_provider.dart` (e.g., `auth_api_provider.dart`)
+- Models: `*_dto.dart` for data transfer objects (e.g., `user_dto.dart`, `meeting_dto.dart`)
+- Constants: `*_type.dart` for enums/types (e.g., `language_type.dart`, `available_plans_type.dart`)
+- Services: `*_service.dart` (e.g., `isolate_upload_service.dart`)
+- Utils: `*_utils.dart` (e.g., `json_utils.dart`)
+
+## API Provider Pattern
+
+### Provider Structure
+1. Each provider should be in its own directory: `providers/{feature}_provider/`
+2. The directory should contain:
+   - `{feature}_api_provider.dart` - Retrofit API interface
+   - `{feature}_api_provider.g.dart` - Generated code
+   - `{feature}_provider.dart` - Public provider export
+   - `models/` - Feature-specific DTOs (if any)
+   - `constants/` - Feature-specific constants (if any)
+
+### Retrofit API Provider Pattern
+```dart
+import 'dart:async';
+
+import 'package:dio/dio.dart';
+import 'package:retrofit/retrofit.dart';
+
+import '../../../api.dart';
+
+part 'auth_api_provider.g.dart';
+
+class _Paths {
+  static const getUserProfile = '/user/profile/2';
+  static const googleLogin = '/auth/google/continue';
+  // ... other paths
+
+  _Paths._();
+}
+
+@RestApi()
+abstract class AuthProvider {
+  factory AuthProvider(Dio dio) = _AuthProvider;
+
+  @GET(_Paths.getUserProfile)
+  Future<BaseResponseDto<UserResponseDto>> getUserProfile();
+
+  @POST(_Paths.googleLogin)
+  Future<BaseResponseDto<AuthResponseDto>> googleLogin(
+    @Body() SocialLoginDto socialLoginDto,
+  );
+}
+```
+
+### Provider Rules
+1. Use `@RestApi()` annotation on abstract provider classes
+2. Use factory constructor pattern: `factory ProviderName(Dio dio) = _ProviderName;`
+3. Define API paths in a private `_Paths` class with static const strings
+4. Use Retrofit annotations: `@GET`, `@POST`, `@PUT`, `@DELETE`, `@PATCH`
+5. Use parameter annotations: `@Path()`, `@Body()`, `@Query()`, `@Header()`
+6. Always wrap responses in `BaseResponseDto<T>` for type safety
+7. Use descriptive method names that match the HTTP verb and resource
+8. Group related endpoints in the same provider
+9. Keep providers focused on a single domain (auth, meetings, agenda, etc.)
+
+## Data Transfer Objects (DTOs)
+
+### DTO Structure
+1. Use Freezed for immutable DTOs with JSON serialization
+2. Place DTOs in `models/` directory within provider or shared `models/` directory
+3. Use `@freezed` annotation with `@JsonSerializable` for JSON support
+4. Use `@JsonKey` for custom JSON field names
+
+### DTO Pattern
+```dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'user_dto.freezed.dart';
+part 'user_dto.g.dart';
+
+@freezed
+class UserDto with _$UserDto {
+  factory UserDto({
+    @JsonKey(name: 'id') required String id,
+    @JsonKey(name: 'email') required String email,
+    @JsonKey(name: 'name') String? name,
+  }) = _UserDto;
+
+  factory UserDto.fromJson(Map<String, dynamic> json) =>
+      _$UserDtoFromJson(json);
+}
+```
+
+### DTO Rules
+1. Use `@freezed` for immutable DTOs
+2. Use `@JsonKey` to map JSON field names to Dart properties
+3. Make required fields non-nullable; optional fields nullable
+4. Use descriptive property names in camelCase
+5. Include `fromJson` factory for JSON deserialization
+6. Keep DTOs focused on data structure, not business logic
+7. Use sealed classes for discriminated unions when needed
+8. Group related DTOs in the same file or directory
+
+## Base Response Wrapper
+
+### BaseResponseDto Pattern
+```dart
+@Freezed(genericArgumentFactories: true)
+sealed class BaseResponseDto<T> with _$BaseResponseDto<T> {
+  factory BaseResponseDto({
+    @JsonKey(name: 'code') int? code,
+    @JsonKey(name: 'message') String? message,
+    @JsonKey(name: 'data') required T data,
+    @JsonKey(name: 'req_id') String? reqId,
+  }) = _BaseResponseDto<T>;
+
+  factory BaseResponseDto.fromJson(
+    Map<String, dynamic> json,
+    T Function(Object? json) fromJsonT,
+  ) => _$BaseResponseDtoFromJson(json, fromJsonT);
+}
+```
+
+### Response Rules
+1. Always wrap API responses in `BaseResponseDto<T>`
+2. Use generic type parameter `T` for the actual data type
+3. Include `code`, `message`, `data`, and `req_id` fields
+4. Use `genericArgumentFactories: true` for proper JSON deserialization
+5. Handle error responses by checking `code` and `message` fields
+
+## Constants and Types
+
+### Constants Structure
+1. Place constants in `constants/` directory
+2. Use enums for type-safe constants
+3. Use `*_type.dart` naming for enum files
+4. Export constants from main provider file
+
+### Constants Rules
+1. Use enums for type-safe API constants
+2. Use descriptive enum value names
+3. Export constants from provider's main export file
+4. Group related constants together
+5. Use `@JsonEnum` for JSON serialization when needed
+
+## Code Generation
+
+### Build Runner Commands
+```bash
+# Generate code for API package
+cd packages/api
+dart run build_runner build --delete-conflicting-outputs
+
+# Or use melos
+melos run build_api
+```
+
+### Code Generation Rules
+1. Always run code generation after adding/modifying providers or DTOs
+2. Use `--delete-conflicting-outputs` flag to avoid conflicts
+3. Keep generated files (`.g.dart`, `.freezed.dart`) in version control
+4. Never manually edit generated files
+5. Regenerate code when changing Retrofit annotations or Freezed classes
+
+## Error Handling
+
+### Error Handling Pattern
+1. Use Dio interceptors for centralized error handling
+2. Handle HTTP status codes appropriately
+3. Parse error responses from `BaseResponseDto`
+4. Throw custom exceptions for different error types
+5. Log errors for debugging
+
+### Error Handling Rules
+1. Use Dio interceptors to handle errors globally
+2. Map HTTP status codes to meaningful error messages
+3. Extract error details from `BaseResponseDto.message`
+4. Throw typed exceptions (e.g., `NetworkException`, `ApiException`)
+5. Handle network errors (timeout, connection) separately from API errors
+
+## Testing
+
+### Testing Pattern
+1. Mock Dio instances for unit tests
+2. Use `MockDio` or similar for testing providers
+3. Test DTO serialization/deserialization
+4. Test error handling scenarios
+
+### Testing Rules
+1. Mock Dio instances in tests, not actual network calls
+2. Test JSON serialization/deserialization of DTOs
+3. Test error scenarios (network errors, API errors)
+4. Test provider methods with various inputs
+5. Use test fixtures for consistent test data
+
+## Usage in Application
+
+### Provider Usage
+```dart
+// In service or state class
+final authProvider = AuthProvider(dio);
+final response = await authProvider.getUserProfile();
+final user = response.data; // Type-safe access to UserResponseDto
+```
+
+### Usage Rules
+1. Inject providers via dependency injection (GetIt)
+2. Use providers in services or repositories, not directly in UI
+3. Handle async operations with proper error handling
+4. Extract data from `BaseResponseDto.data` for type-safe access
+5. Check response codes and messages for error handling
+
+## Best Practices
+
+1. **Separation of Concerns**: Keep API logic separate from business logic
+2. **Type Safety**: Always use typed DTOs and responses
+3. **Error Handling**: Centralize error handling with interceptors
+4. **Code Generation**: Use build_runner for generated code
+5. **Documentation**: Document complex endpoints and DTOs
+6. **Testing**: Write tests for providers and DTOs
+7. **Consistency**: Follow the same patterns across all providers
+8. **Performance**: Use appropriate HTTP methods and caching strategies
+9. **Security**: Never expose sensitive data in API calls
+10. **Maintainability**: Keep providers focused and well-organized
+

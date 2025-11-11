@@ -1,0 +1,337 @@
+---
+description: Design system package architecture and component patterns. Package structure (components, core, theme, utils), component organization, naming conventions (*_widget.dart), theme configuration, text styles, constants, and reusable UI component development guidelines.
+globs:
+  - "packages/design_system/**"
+alwaysApply: false
+---
+
+# Design System Rules
+
+## Package Structure
+
+### Directory Organization
+```
+packages/design_system/
+└── lib/
+    ├── design_system.dart        # Main library exports
+    ├── gen/                      # Generated asset references
+    └── src/
+        ├── components/           # Reusable UI components
+        │   └── inputs/          # Input components and hooks
+        ├── core/                # Core design system utilities
+        ├── theme/               # Theme configuration
+        └── utils/               # Design utilities
+```
+
+### Naming Conventions
+- Components: `*_widget.dart` or descriptive names (e.g., `primary_button.dart`, `custom_text_field.dart`)
+- Theme: `*_theme.dart` (e.g., `light_theme.dart`, `dark_theme.dart`)
+- Text Styles: `text_styles.dart`
+- Constants: `*_constants.dart` or `*_types.dart` (e.g., `app_dimensions.dart`, `button_types.dart`)
+- Utils: `*_utils.dart` (e.g., `mention_utils.dart`, `assets_utils.dart`)
+
+## Component Architecture
+
+### Component Structure
+1. Each component should be in its own directory: `components/{component_name}/`
+2. The directory should contain:
+   - `{component_name}.dart` - Main component file
+   - `src/` - Implementation files (if component is complex)
+   - Shared components in `shared/` subdirectory
+
+### Component Pattern
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+
+import 'core/types.dart';
+import 'shared/filled_button.dart';
+import 'shared/text_button.dart';
+
+enum _ButtonType { filled, text }
+
+class PrimaryButton extends HookWidget {
+  final Widget child;
+  final Widget? rightIcon;
+  final Widget? leftIcon;
+  final VoidCallback? onPressed;
+  final ButtonStyle? style;
+  final bool hasBorderRadius;
+  final bool isLoading;
+  final bool isDisabled;
+  final bool isIconOnly;
+  final ButtonSize _size;
+  final _ButtonType buttonType;
+
+  const PrimaryButton.largeFilled({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.rightIcon,
+    this.leftIcon,
+    this.style,
+    this.hasBorderRadius = true,
+    this.isLoading = false,
+    this.isDisabled = false,
+    this.isIconOnly = false,
+  }) : _size = ButtonSize.large,
+       buttonType = _ButtonType.filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (buttonType) {
+      _ButtonType.filled => MyFilledButton(
+        onPressed: onPressed,
+        isLoading: isLoading,
+        isDisabled: isDisabled,
+        isIconOnly: isIconOnly,
+        hasBorderRadius: hasBorderRadius,
+        buttonSize: _size,
+        rightIcon: rightIcon,
+        leftIcon: leftIcon,
+        style: style,
+        child: child,
+      ),
+      _ButtonType.text => MyTextButton(
+        // ... similar pattern
+      ),
+    };
+  }
+}
+```
+
+### Component Rules
+1. Use `HookWidget` for components that need hooks
+2. Use named constructors for different variants (e.g., `PrimaryButton.largeFilled()`)
+3. Make all parameters optional where appropriate, with sensible defaults
+4. Use `const` constructors when possible
+5. Extract shared logic into base components (e.g., `MyFilledButton`, `MyTextButton`)
+6. Use enums for component types and sizes
+7. Support customization via `style` parameters
+8. Handle loading, disabled, and error states
+9. Use `super.key` for key parameters
+10. Document public APIs with doc comments
+
+## Theme System
+
+### Theme Structure
+1. Use `ThemeTailor` for theme generation
+2. Define theme in `theme/src/theme_tailor/custom_theme.dart`
+3. Create light and dark theme variants
+4. Export theme from `theme/theme.dart`
+
+### Theme Pattern
+```dart
+import 'package:flutter/material.dart';
+
+import '../../../gen/colors.gen.dart';
+import '../../components/components.dart';
+import 'text_styles.dart';
+import 'theme_tailor/custom_theme.dart';
+
+final _customThemeLight = CustomTheme(
+  backgroundBlack: AppColors.neutral1100,
+  textStaticDark: AppColors.neutral950,
+  textStaticLight: AppColors.neutral20,
+  // ... other theme properties
+);
+
+final lightTheme = ThemeData.light(useMaterial3: false).copyWith(
+  extensions: [_customThemeLight],
+  scaffoldBackgroundColor: _customThemeLight.backgroundSurface,
+  // ... other theme overrides
+);
+```
+
+### Theme Rules
+1. Use `ThemeTailor` annotations for theme generation
+2. Define all theme colors, text styles, and spacing in `CustomTheme`
+3. Use generated `AppColors` from `gen/colors.gen.dart`
+4. Create separate light and dark themes
+5. Apply theme via `ThemeData.extensions`
+6. Use theme values consistently across components
+7. Document theme customization points
+
+## Text Styles
+
+### Text Style Pattern
+```dart
+import 'package:flutter/material.dart';
+
+class TextStyles {
+  static const TextStyle headerH1 = TextStyle(
+    fontSize: 32,
+    fontWeight: FontWeight.bold,
+    height: 1.2,
+  );
+
+  static const TextStyle paragraphLRegular = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.normal,
+    height: 1.5,
+  );
+  
+  // ... other text styles
+}
+```
+
+### Text Style Rules
+1. Define text styles as static const properties
+2. Use consistent naming: `{category}{Size}{Weight}` (e.g., `headerH1`, `paragraphLRegular`)
+3. Include fontSize, fontWeight, and height properties
+4. Export text styles from theme
+5. Use text styles consistently across components
+
+## Colors and Assets
+
+### Color System
+1. Colors are defined in `assets/colors/colors.xml`
+2. Generated as `AppColors` in `gen/colors.gen.dart`
+3. Use semantic color names (e.g., `primary`, `secondary`, `neutral`)
+4. Include variants (e.g., `primaryDefault`, `primaryHover`, `primaryPressed`)
+
+### Asset System
+1. Assets are defined in `pubspec.yaml`
+2. Generated as `Assets` in `gen/assets.gen.dart`
+3. Use dot-delimiter style for asset paths
+4. Exclude generated asset variants (e.g., `1.5x`, `2.0x` folders)
+
+### Color and Asset Rules
+1. Always use generated `AppColors` and `Assets` classes
+2. Never hardcode color values or asset paths
+3. Use semantic color names for maintainability
+4. Include all asset variants in `pubspec.yaml`
+5. Regenerate assets after adding new colors or assets
+
+## Component Types and Enums
+
+### Type Definition Pattern
+```dart
+enum ButtonSize { XXLarge, XLarge, large, medium, small, xSmall, xxSmall }
+
+enum FilledButtonType {
+  primary,
+  primaryLight,
+  secondary,
+  secondaryLight,
+  danger,
+  inverted;
+
+  bool get isRadiusDifferent =>
+      this == FilledButtonType.primary || this == FilledButtonType.secondary;
+}
+```
+
+### Type Rules
+1. Use enums for component variants and sizes
+2. Use descriptive enum value names
+3. Add computed properties to enums when needed
+4. Export types from component's main file
+5. Use consistent naming across similar components
+
+## Input Components
+
+### Input Component Pattern
+1. Input components are in `components/inputs/`
+2. Support hooks for advanced functionality (e.g., `useMentionTextSpan`)
+3. Handle validation and formatting
+4. Support customization via parameters
+
+### Input Rules
+1. Use `HookWidget` for input components with hooks
+2. Support mention functionality via `useMentionTextSpan` hook
+3. Handle text formatting and validation
+4. Provide clear error states
+5. Support accessibility features
+
+## Code Generation
+
+### Build Runner Commands
+```bash
+# Generate code for design system package
+cd packages/design_system
+dart run build_runner build --delete-conflicting-outputs
+
+# Or use melos
+melos run build_design_system
+```
+
+### Code Generation Rules
+1. Always run code generation after adding/modifying theme or assets
+2. Use `--delete-conflicting-outputs` flag to avoid conflicts
+3. Keep generated files (`.gen.dart`, `.tailor.dart`) in version control
+4. Never manually edit generated files
+5. Regenerate code when changing theme annotations or asset files
+
+## Usage in Application
+
+### Component Usage
+```dart
+import 'package:design_system/design_system.dart';
+
+PrimaryButton.largeFilled(
+  onPressed: () => handleAction(),
+  child: Text('Submit'),
+  isLoading: isLoading,
+  isDisabled: isDisabled,
+)
+```
+
+### Theme Usage
+```dart
+import 'package:design_system/design_system.dart';
+
+MaterialApp(
+  theme: lightTheme,
+  // ... other app configuration
+)
+```
+
+### Usage Rules
+1. Import components from `design_system` package
+2. Use named constructors for component variants
+3. Apply theme at app level via `MaterialApp.theme`
+4. Access theme values via `Theme.of(context).extension<CustomTheme>()`
+5. Use generated colors and assets consistently
+
+## Best Practices
+
+1. **Consistency**: Use design system components consistently across the app
+2. **Reusability**: Create reusable components for common UI patterns
+3. **Customization**: Support customization via parameters while maintaining defaults
+4. **Accessibility**: Ensure components support accessibility features
+5. **Performance**: Use `const` constructors and optimize widget rebuilds
+6. **Documentation**: Document component APIs and usage examples
+7. **Testing**: Write widget tests for components
+8. **Theme**: Use theme values instead of hardcoded colors/sizes
+9. **Assets**: Always use generated asset references
+10. **Maintainability**: Keep components focused and well-organized
+
+## Component Categories
+
+### Buttons
+- Primary, Secondary, Tertiary variants
+- Filled, Outlined, Text styles
+- Different sizes (XXLarge to xxSmall)
+- Loading and disabled states
+
+### Inputs
+- Text fields with mention support
+- Chips input
+- Custom text fields with validation
+
+### Images
+- Image widgets with error handling
+- No image placeholder widgets
+
+### Dialogs and Modals
+- Alert dialogs
+- Custom modal components
+
+### Other Components
+- Avatars (single, group, stack)
+- Checkboxes and radio buttons
+- Dividers
+- Loading widgets
+- Scaffold messages
+

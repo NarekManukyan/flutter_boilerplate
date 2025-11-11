@@ -1,0 +1,133 @@
+---
+description: Flutter widget patterns and hooks guidelines. When to use HookWidget vs StatelessWidget vs StatefulWidget, hook patterns (useState, useEffect, useMemoized), lifecycle management, controller usage, and page patterns with Provider for state injection.
+globs:
+  - "**/*_page.dart"
+  - "**/*_widget.dart"
+  - "lib/features/**/*.dart"
+  - "lib/shared/widgets/**/*.dart"
+  - "packages/design_system/**/*.dart"
+alwaysApply: false
+---
+
+# Widgets and Hooks Rules
+
+## Prefer Hooks over StatefulWidget
+
+1. Always use `HookWidget` instead of `StatefulWidget` when you need local state or lifecycle management
+2. Use `StatelessWidget` for pure presentation widgets that don't need state or lifecycle
+3. Use `HookWidget` when you need:
+   - Local state management (`useState`, `useMemoized`)
+   - Lifecycle hooks (`useEffect`, `useLayoutEffect`)
+   - Refs (`useRef`, `useTextEditingController`)
+   - Animation controllers (`useAnimationController`)
+   - Stream subscriptions (`useStream`, `useStreamController`)
+   - Focus nodes (`useFocusNode`)
+   - Scroll controllers (`useScrollController`)
+
+## HookWidget Pattern
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+
+class MyWidget extends HookWidget {
+  const MyWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final counter = useState(0);
+    final controller = useTextEditingController();
+    
+    useEffect(() {
+      // Side effect logic
+      return () {
+        // Cleanup
+      };
+    }, []);
+    
+    return Scaffold(
+      body: Column(
+        children: [
+          Text('Count: ${counter.value}'),
+          TextField(controller: controller),
+        ],
+      ),
+    );
+  }
+}
+```
+
+## Hooks Rules
+
+1. Use `useState` for local widget state instead of `setState`
+2. Use `useMemoized` for expensive computations that should be cached
+3. Use `useEffect` for side effects (API calls, subscriptions) with proper cleanup
+4. Use `useLayoutEffect` for synchronous side effects that need to run before paint
+5. Always provide cleanup functions in `useEffect` when needed
+6. Use dependency arrays in `useEffect` to control when effects run
+7. Use `useRef` for mutable values that don't trigger rebuilds
+8. Use `useTextEditingController`, `useScrollController`, etc. for controllers (they auto-dispose)
+9. Combine MobX stores with hooks: use `useMemoized` to get stores, `useEffect` for initialization
+10. Never use `StatefulWidget` when `HookWidget` can be used instead
+
+## When to Use StatelessWidget
+
+1. Pure presentation widgets with no state
+2. Widgets that only receive props and render UI
+3. Widgets that don't need lifecycle management
+4. Simple widgets that don't need hooks
+
+## When to Use HookWidget
+
+1. Widgets that need local state
+2. Widgets that need lifecycle management
+3. Widgets that need controllers (text, scroll, animation)
+4. Widgets that need side effects (API calls, subscriptions)
+5. Widgets that need refs or focus management
+
+## Page Pattern with Provider
+
+Some pages use `StatelessWidget` as a wrapper with `Provider` to inject state, and `HookWidget` or `StatelessWidget` for the content:
+
+```dart
+class MyPage extends StatelessWidget {
+  const MyPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Provider(
+      create: (_) => getIt<MyPageState>()..init(),
+      dispose: (context, value) => value.dispose(),
+      child: const _Content(),
+    );
+  }
+}
+
+class _Content extends HookWidget {
+  const _Content();
+  
+  @override
+  Widget build(BuildContext context) {
+    final state = context.read<MyPageState>();
+    // Use hooks here
+    return Scaffold(/* ... */);
+  }
+}
+```
+
+## When NOT to Use Hooks
+
+1. Don't use hooks for business logic - use MobX stores instead
+2. Don't use hooks for complex state management - use MobX stores
+3. Don't use hooks for shared state - use MobX stores
+4. Hooks are for local widget state and lifecycle, not global state
+
+## Best Practices
+
+1. Prefer `HookWidget` over `StatefulWidget` when you need local state or lifecycle management
+2. Use `StatelessWidget` for pure presentation widgets
+3. Keep build methods simple and focused on rendering
+4. Use `const` constructors when possible to improve performance
+5. Avoid expensive operations in build methods
+6. Extract reusable widgets into separate components
+
