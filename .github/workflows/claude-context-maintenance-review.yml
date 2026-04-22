@@ -1,0 +1,50 @@
+name: Claude Context & Maintenance Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  claude-context-maintenance-review:
+    if: |
+      !contains(github.event.pull_request.title, '[skip-review]') &&
+      !contains(github.event.pull_request.title, '--skip-claude') &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: false
+
+      - name: Setup SSH for submodules
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MONE_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Init and update submodules
+        run: |
+          git submodule sync
+          git submodule update --init --recursive
+
+      - name: Run Claude Context & Maintenance Review
+        id: claude-context-maintenance-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: '/review-context-maintenance ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,mcp__github__get_pull_request,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(git ls-files:*),Bash(grep:*)"
+            --model claude-sonnet-4-5
+            --max-turns 20

@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "dart": {
+      "command": "dart",
+      "args": ["mcp-server", "--force-roots-fallback"]
+    },
+    "OpenAPI": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "apidog-mcp-server@latest",
+        "--oas=https://api-dev.buddyhub.io/documentation-json?v=0.101"
+      ]
+    }
+  }
+}

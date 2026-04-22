@@ -1,0 +1,51 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "flutter_boilerplate",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "flutter_boilerplate (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "flutter_boilerplate (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "api",
+            "cwd": "packages/api",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "design_system",
+            "cwd": "packages/design_system",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "design_system (profile mode)",
+            "cwd": "packages/design_system",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "design_system (release mode)",
+            "cwd": "packages/design_system",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

@@ -94,6 +94,50 @@ alwaysApply: false
    - Inject dependencies via constructor; never directly instantiate services
    - Use `@computed` for expensive computations that depend on observables; MobX will cache results
 
+### Use Cases
+
+Use cases (`*_use_case.dart`) encapsulate a single business operation and are injected into both Store and State classes. See `use_cases.mdc` for full details, location rules, and decision tree.
+
+#### When to Extract into a Use Case
+
+| Scenario | Use Case | Inline |
+|---|---|---|
+| Logic reused in 2+ Stores or States | ✅ | |
+| Operation coordinates 2+ services | ✅ | |
+| Complex enough to warrant independent tests | ✅ | |
+| Trivial one-liner delegation | | ✅ |
+
+#### Use Case Injection in Stores and States
+
+```dart
+// In a Store
+abstract class _TagsStoreBase with Store {
+  final CreateTagUseCase _createTagUseCase;
+
+  _TagsStoreBase(this._createTagUseCase);
+
+  @action
+  Future<void> createTag(String name, String color) async {
+    final id = await _createTagUseCase(name, color); // call() syntax
+    if (id != null) {
+      // update observable state
+    }
+  }
+}
+
+// In a State class
+abstract class _SettingsPageStateBase with Store {
+  final ShowStorageIsFullModalUseCase _showStorageFullUseCase;
+
+  _SettingsPageStateBase(this._showStorageFullUseCase);
+
+  @action
+  void onStorageWarningTap() {
+    _showStorageFullUseCase(); // call() syntax — no .execute() needed
+  }
+}
+```
+
 ### Architecture
 
 #### Layer Separation

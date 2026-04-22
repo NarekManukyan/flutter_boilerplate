@@ -13,6 +13,7 @@ import 'interceptors/auth_interceptor.dart';
 class DioService {
   final FlavorService _flavorService;
   late final AuthProvider authProvider = AuthProvider(dio);
+  late final TodosApiProvider todosProvider = TodosApiProvider(dio);
 
   // Add other repositories
   late final Dio dio;

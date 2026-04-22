@@ -1,6 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:design_system/design_system.dart';
-import 'package:flutter/material.dart';
 
 import '../guards/auth_guard.dart';
 import 'app_router.gr.dart';
@@ -19,18 +17,25 @@ class AppRouter extends RootStackRouter {
       page: SplashRoute.page,
       guards: const [AuthGuard()],
     ),
-    AutoRoute(page: LoginRoute.page),
+    AutoRoute(
+      path: '/login',
+      page: LoginRoute.page,
+    ),
+    AutoRoute(
+      path: '/home',
+      page: HomeRoute.page,
+      guards: const [AuthGuard()],
+    ),
+    AutoRoute(
+      path: '/todos/:id',
+      page: TodoDetailsRoute.page,
+      guards: const [AuthGuard()],
+    ),
+    AutoRoute(
+      path: '/challenges/joined',
+      page: ChallengeJoinedRoute.page,
+      fullscreenDialog: true,
+      guards: const [AuthGuard()],
+    ),
   ];
-}
-
-@RoutePage()
-class EmptyPage extends StatelessWidget {
-  const EmptyPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.backgroundSurface,
-    );
-  }
 }

@@ -1,74 +1,60 @@
 {
     "keywords": {
-        "next": "Next",
-        "skip": "Skip",
         "cancel": "Cancel",
-        "delete": "Delete",
-        "signOut": "Sign out",
         "close": "Close",
-        "yes": "Yes",
-        "ok": "Ok",
         "continue": "Continue",
         "save": "Save",
-        "start": "Start",
-        "search": "Search",
-        "today": "Today",
-        "tomorrow": "Tomorrow",
-        "yesterday": "Yesterday",
-        "join": "Join",
-        "share": "Share",
+        "retry": "Retry",
         "updateNow": "Update now",
-        "updateLater": "I’ll update later",
-        "noTitle": "(No title)",
-        "unassigned": "Unassigned",
-        "copy": "Copy",
-        "copied": "Copied to clipboard",
-        "tryAgain": "Try again",
-        "retry": "Retry"
+        "updateLater": "I’ll update later"
     },
     "enums": {
         "appVersionTranslationsTitle": {
-            "MINOR": "New tools to power your meetings",
-            "MAJOR": "Smarter meetings, one tap away."
+            "MINOR": "New tools are ready",
+            "MAJOR": "A new version is available"
         },
         "appVersionTranslationsSubtitle": {
-            "MINOR": "Discover fresh to make your meetings easier, smarter, and more effective.",
-            "MAJOR": "Update and enjoy the fresh app."
-        },
-        "meetingAvailability": {
-            "PRIVATE": "Private",
-            "VIEW_ONLY": "View only",
-            "COLLABORATIVE": "Collaborative"
+            "MINOR": "Update to get the latest improvements.",
+            "MAJOR": "Update to keep enjoying the app."
         }
     },
-    "error": {
-        "phoneNumber": "Looks like the number you entered is not valid.\nPlease check the number and try again.",
-        "invalidSmsCode": "Looks like something went wrong, please check the verification code and try again.",
-        "emailExists": "Email already exist",
-        "recaptchaFailed": "Recaptcha failed"
-    },
-    "empty": {
-        "noUpcomingEvents": "No upcoming Meetings",
-        "noUpcomingEventsSubtitle": "Make the most of this calm before your next wave of productivity.",
-        "noActivitiesAll": "All activities in one place",
-        "noActivitiesAllSubtitle": "Stay tuned here for updates on your meetings.",
-        "noActivitiesImportant": "Nothing to follow up",
-        "noActivitiesImportantSubtitle": "You’ve got it all.",
-        "noActivitiesUnread": "No unread activities",
-        "noActivitiesUnreadSubtitle": "We'll notify you of new activities."
+    "splashPage": {
+        "loading": "Loading…"
     },
     "loginPage": {
-        "extrasFreePlan": "Work accounts get extras on the Free plan",
-        "continueWith": "Continue with {provider}",
-        "continueWithEmail": "Continue with email",
-        "termsIntroText": "By signing up you agree to the",
-        "termsOfUse": "Terms of Use",
-        "and": " and ",
-        "privacyPolicy": "Privacy Policy.",
-        "letsVerifyEmail": "Let’s verify your email",
-        "checkEmail": "Check <bold>{email}</bold> email\nfor the 6-digit verification code.",
-        "expirationInfo": "It will expire shortly, so enter it soon.",
-        "resendAgainInSeconds": "You can resend code in {second} sec.",
-        "resendCode": "Resend verification code"
+        "title": "Sign in",
+        "emailHint": "Email",
+        "continueButton": "Continue",
+        "invalidEmail": "Enter a valid email",
+        "termsText": "By continuing you agree to the Terms of Service and Privacy Policy."
+    },
+    "homePage": {
+        "title": "Todos",
+        "empty": "No todos yet",
+        "errorLoading": "Could not load todos",
+        "logout": "Log out"
+    },
+    "addTodoModal": {
+        "title": "New todo",
+        "titleHint": "What to do?",
+        "add": "Add",
+        "cancel": "Cancel"
+    },
+    "todoDetailsPage": {
+        "title": "Todo details",
+        "toggleCompleted": "Toggle completed",
+        "loading": "Loading…",
+        "error": "Could not load todo"
+    },
+    "challengeJoinedPage": {
+        "title": "Don't stop at just one!",
+        "subtitle": "Having 3+ challenges may double your speed to your goal",
+        "tipPodcastTitle": "Listen to a Podcast",
+        "tipPodcastParticipants": "{} participants",
+        "tipMeditateTitle": "Meditate",
+        "tipMeditateParticipants": "{} participants",
+        "tipWorkOutTitle": "Work out",
+        "tipWorkOutParticipants": "{} participants",
+        "joinChallengeButton": "Join challenge"
     }
 }

@@ -38,7 +38,7 @@ alwaysApply: false
 
 #### Root Structure
 ```
-krisp-mobile/
+your_project/
 ├── lib/                    # Main application code
 ├── packages/               # Reusable packages (API, design system, etc.)
 ├── assets/                 # Static assets (images, translations, etc.)
@@ -56,6 +56,7 @@ krisp-mobile/
   - `extensions/` — Dart extensions
   - `navigation/` — Navigation system (guards, observers)
   - `services/` — Core services (analytics, interceptors, platform channels)
+  - `use_cases/` — App-wide use cases shared across many features
   - `utils/` — Utility functions
 - `features/` — Feature modules, each with its own substructure:
   - `view/` — UI components (pages, widgets) and page state files (`*_page_state.dart`)
@@ -64,6 +65,10 @@ krisp-mobile/
     - **Store files** (`*_store.dart`): Business logic with API access, use `@injectable` (not singleton)
     - Only create here if store is used in one feature only
   - `models/` — Data models
+  - `use_cases/` — Feature-scoped use cases (optional)
+    - **Use case files** (`*_use_case.dart`): Encapsulate a single business logic operation
+    - Only place here if the use case is consumed within one feature
+    - For use cases shared across a store's consumers, prefer `features/*/core/use_cases/`
   - `core/`, `shared/` — Feature-specific logic or shared code
   - `components/` — Feature-specific components (optional)
   - `constants/` — Feature-specific constants (optional)
@@ -72,6 +77,7 @@ krisp-mobile/
 - `shared/` — Shared models, stores, widgets, state, features, and constants:
   - `stores/` — Shared MobX stores (use `@singleton` for app-wide stores)
     - **Store files** (`*_store.dart`): Business logic with API access, used across multiple features
+    - `use_cases/` — Use cases scoped to this store's consumers (injected into the store)
     - Example: `UserStore`, `AgendaStore`, `MeetingsStore`
   - `features/` — Shared feature components (used in many places)
     - If a feature is used across multiple places, move it here
@@ -90,6 +96,7 @@ See `effective_dart.md` for comprehensive naming conventions. Common patterns:
 - State: `*_state.dart`
 - Models: `*_model.dart`
 - Services: `*_service.dart`
+- Use Cases: `*_use_case.dart`
 - Utils: `*_utils.dart`
 - Constants: `*_constants.dart`
 
@@ -211,6 +218,7 @@ See `mobx.md` for comprehensive State vs Store architecture, location rules, nam
 - **Page States**: Look in `lib/features/*/view/*_page_state.dart`
 - **Feature Stores**: Look in `lib/features/*/mobx/` (if exists)
 - **Shared Stores**: Look in `lib/shared/stores/`
+- **Use Cases**: Look in `lib/features/*/use_cases/`, `lib/features/*/core/use_cases/`, `lib/shared/stores/*/use_cases/`, or `lib/core/use_cases/`
 - **API Models**: Look in `packages/api/lib/src/models/`
 - **UI Components**: Look in `packages/design_system/lib/src/components/`
 - **Core Services**: Look in `lib/core/services/`

@@ -8,8 +8,8 @@ import 'package:overlay_support/overlay_support.dart';
 
 import 'core/navigation/app_navigator.dart';
 import 'core/services/flavor_service.dart';
+import 'features/app/view/connection_wrapper_page.dart';
 import 'injectable.dart';
-import 'shared/features/connection_wrapper/view/connection_wrapper_page.dart';
 
 class MyApp extends HookWidget {
   const MyApp({super.key});

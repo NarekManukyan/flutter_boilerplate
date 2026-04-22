@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 
+import '../../features/auth/mobx/auth_store.dart';
 import '../../injectable.dart';
-import '../../shared/stores/auth_store/auth_store.dart';
 import '../navigation/app_router.gr.dart';
 
 class AuthGuard extends AutoRouteGuard {
@@ -15,12 +15,13 @@ class AuthGuard extends AutoRouteGuard {
     StackRouter router,
   ) async {
     await getIt<AuthStore>().getAccessToken();
-    final isLoggedIn = getIt<AuthStore>().isLoggedIn;
+    final isAuthed = getIt<AuthStore>().isAuthed;
 
-    if (!isLoggedIn) {
-      return resolver.redirectUntil<void>(const LoginRoute());
+    if (!isAuthed) {
+      resolver.redirectUntil(const LoginRoute());
+      return;
     }
 
-    return resolver.next();
+    resolver.next();
   }
 }

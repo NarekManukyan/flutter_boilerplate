@@ -1,0 +1,213 @@
+---
+description: Use case patterns for Flutter app. When to create use cases, 4 types (API, Navigation, Service Coordination, State Delegation), location rules (feature/store/core), @injectable pattern with call() method, injection into stores and state classes, and decision tree for when to extract logic into a use case vs keeping it inline.
+globs:
+  - "lib/**/*_use_case.dart"
+  - "lib/**/*_store.dart"
+  - "lib/**/*_state.dart"
+alwaysApply: false
+---
+
+# Use Cases
+
+Use cases (`*_use_case.dart`) encapsulate a single business operation. They are `@injectable` classes with a `call()` method, injected into Store and State classes via constructor dependency injection.
+
+## Anatomy
+
+```dart
+@injectable
+class CreateTagUseCase {
+  final DioService _dioService;
+  final IssueTrackingService _issueTrackingService;
+
+  CreateTagUseCase(this._dioService, this._issueTrackingService);
+
+  Future<String?> call(String name, String color) async {
+    // single operation
+  }
+}
+```
+
+Key points:
+- Annotate with `@injectable` (never `@singleton` unless the use case itself holds state — rare)
+- Name follows `*UseCase` pattern, file follows `*_use_case.dart`
+- Method is named `call()` — Dart's magic method making the object directly callable: `await useCase(name, color)`
+- Constructor injection only — no `getIt<>()` calls inside
+
+## 4 Types
+
+### 1. API Use Case
+Wraps one API call, handles `DioException`, maps to domain objects or error types.
+
+```dart
+@injectable
+class CreateTagUseCase {
+  final DioService _dioService;
+  final IssueTrackingService _issueTrackingService;
+
+  CreateTagUseCase(this._dioService, this._issueTrackingService);
+
+  Future<String?> call(String name, String color) async {
+    try {
+      final response = await _dioService.tagsProvider.createTag(
+        tagCreateDto: TagCreateUpdateRequestDto(name: name, color: color),
+      );
+      return response.data.id;
+    } on DioException catch (e) {
+      _issueTrackingService.trackIssue(e);
+      final dto = _issueTrackingService.getDioExceptionDto(e);
+      if (dto?.errorCode == ServerErrorCode.TAG_ALREADY_EXISTS) {
+        throw TagAlreadyCreatedException(dto?.message.tr());
+      }
+    }
+    return null;
+  }
+}
+```
+
+### 2. Navigation Use Case
+Wraps `AppNavigator` calls to open modals, dialogs, or push routes.
+
+```dart
+@injectable
+class ShowStorageIsFullModalUseCase {
+  final AppNavigator _appNavigator;
+
+  ShowStorageIsFullModalUseCase(this._appNavigator);
+
+  void call() {
+    _appNavigator.showModal(builder: (_) => const StorageIsFullModal());
+  }
+}
+```
+
+### 3. Service Coordination Use Case
+Orchestrates 2+ services or platform calls in a single logical operation.
+
+```dart
+@injectable
+class StartRecordingUseCase {
+  final AudioService _audioService;
+  final PermissionService _permissionService;
+  final IssueTrackingService _issueTrackingService;
+
+  StartRecordingUseCase(
+    this._audioService,
+    this._permissionService,
+    this._issueTrackingService,
+  );
+
+  Future<bool> call() async {
+    final granted = await _permissionService.requestMicrophone();
+    if (!granted) return false;
+    try {
+      await _audioService.startRecording();
+      return true;
+    } catch (e) {
+      _issueTrackingService.trackIssue(e);
+      return false;
+    }
+  }
+}
+```
+
+### 4. State Delegation Use Case
+Encapsulates a conditional flow or guard logic called from many callers.
+
+```dart
+@injectable
+class HandleDeepLinkUseCase {
+  final AppNavigator _appNavigator;
+  final AuthStore _authStore;
+
+  HandleDeepLinkUseCase(this._appNavigator, this._authStore);
+
+  void call(Uri link) {
+    if (!_authStore.isLoggedIn) {
+      _appNavigator.push(const LoginRoute());
+      return;
+    }
+    // route to correct screen
+  }
+}
+```
+
+## Location Rules
+
+| Scope | Path |
+|---|---|
+| Used only within one feature | `lib/features/{feature}/use_cases/` |
+| Used within a feature's core (e.g. by a feature store + its state) | `lib/features/{feature}/core/use_cases/` |
+| Consumed by a specific shared store and its callers | `lib/shared/stores/{store}/use_cases/` |
+| Shared across many unrelated features | `lib/core/use_cases/` |
+
+## Calling Use Cases
+
+Because `call()` is Dart's magic method, use cases are invoked directly without `.call()`:
+
+```dart
+// ✅ Direct call syntax
+final id = await _createTagUseCase(name, color);
+_showStorageFullUseCase();
+
+// ❌ Avoid — verbose and unnecessary
+await _createTagUseCase.call(name, color);
+```
+
+## Injection into Stores and States
+
+### In a Store
+
+```dart
+abstract class _TagsStoreBase with Store {
+  final CreateTagUseCase _createTagUseCase;
+
+  _TagsStoreBase(this._createTagUseCase);
+
+  @action
+  Future<void> createTag(String name, String color) async {
+    final id = await _createTagUseCase(name, color);
+    if (id != null) {
+      // update observable state
+    }
+  }
+}
+```
+
+### In a State class
+
+```dart
+abstract class _SettingsPageStateBase with Store {
+  final ShowStorageIsFullModalUseCase _showStorageFullUseCase;
+
+  _SettingsPageStateBase(this._showStorageFullUseCase);
+
+  @action
+  void onStorageWarningTap() {
+    _showStorageFullUseCase();
+  }
+}
+```
+
+## Decision Tree: Use Case vs Inline
+
+```
+Is the logic reused in 2+ Stores or States?
+  YES → Extract use case
+
+Does the operation coordinate 2+ services or async steps?
+  YES → Extract use case
+
+Is the logic complex enough to warrant its own test?
+  YES → Extract use case
+
+Is it a trivial one-liner delegation?
+  YES → Keep inline
+```
+
+## Common Mistakes
+
+- **`@singleton` on a use case**: Only use if the use case itself manages state (very rare). Default is `@injectable`.
+- **Over-extracting trivial logic**: A single `_dioService.someProvider.fetch()` call with no error handling is fine inline in the store.
+- **Calling `getIt<>()` inside a use case**: Never. Always inject via constructor.
+- **Forgetting code generation**: After adding a new `@injectable` use case, run `melos run build_all` to regenerate DI code.
+- **Using `execute()` instead of `call()`**: All use cases in this project use `call()` so they can be invoked directly.

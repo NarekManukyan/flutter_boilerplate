@@ -6,6 +6,10 @@ publish_to: none
 environment:
   sdk: '>=3.8.0-0 <4.0.0'
 
+workspace:
+  - packages/api
+  - packages/design_system
+
 dependencies:
   # Core Flutter dependencies
   flutter:
@@ -20,18 +24,18 @@ dependencies:
 
   # State management
   # MobX and Provider for state management
-  mobx: ^2.5.0
+  mobx: ^2.6.0
   flutter_mobx: ^2.3.0
-  provider: ^6.1.5
+  provider: ^6.1.5+1
 
   # Routing
   # AutoRoute for navigation
-  auto_route: ^10.2.0
+  auto_route: ^11.1.0
 
   # Networking
   # Dio for HTTP requests, connectivity_plus for network status
-  connectivity_plus: ^7.0.0
-  dio: ^5.9.0
+  connectivity_plus: ^7.1.1
+  dio: ^5.9.2
 
   # Localization
   # easy_localization for i18n
@@ -39,36 +43,36 @@ dependencies:
 
   # Dependency injection
   # get_it and injectable for DI
-  get_it: ^9.0.5
-  injectable: ^2.5.0
+  get_it: ^9.2.1
+  injectable: ^3.0.0
 
   # Code generation
   # For code generation and serialization
-  freezed_annotation: ^3.0.0
-  json_annotation: ^4.9.0
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.11.0
 
   # UI & design
   # UI helpers and widgets
-  flutter_gen: ^5.12.0
+  flutter_gen: ^5.14.0
   gap: ^3.0.1
   overlay_support: ^2.1.0
   extended_image: ^10.0.1
-  skeletonizer: ^2.1.0
+  skeletonizer: ^2.1.3
 
   # Utilities
   # Useful utilities for app development
   rxdart: ^0.28.0
   faker: ^2.2.0
-  shared_preferences: ^2.5.3
-  file_picker: ^10.3.3
+  shared_preferences: ^2.5.5
+  file_picker: ^11.0.2
   path_provider: ^2.1.5
   url_launcher: ^6.3.2
-  uuid: ^4.5.2
-  open_settings_plus: ^0.4.0
+  uuid: ^4.5.3
+  open_settings_plus: ^0.4.2
 
   # App update
   # For checking app updates
-  new_version_plus: ^0.1.1
+  new_version_plus: ^1.0.1
 
   # Authentication & social login
   # Apple and Google sign-in
@@ -77,26 +81,109 @@ dependencies:
 
   # Analytics & error reporting
   # Sentry for error tracking
-  sentry_flutter: ^9.8.0
-  sentry_logging: ^9.8.0
+  sentry_flutter: ^9.18.0
+  sentry_logging: ^9.18.0
 
-  flutter_hooks: any
+  flutter_hooks: ^0.21.2
 dev_dependencies:
   # Code generation tools
-  build_runner: ^2.10.1
-  freezed: ^3.2.3
-  auto_route_generator: ^10.2.5
-  injectable_generator: ^2.9.1
-  json_serializable: ^6.11.1
-  mobx_codegen: ^2.7.4
+  build_runner: ^2.14.0
+  freezed: ^3.2.5
+  auto_route_generator: ^10.5.0
+  injectable_generator: ^3.0.2
+  json_serializable: ^6.13.1
+  mobx_codegen: ^2.7.7
   # Testing
   flutter_driver:
     sdk: flutter
   # Monorepo management
-  melos: ^7.3.0
+  melos: ^7.5.1
 
 # Flutter assets and material design
 flutter:
   uses-material-design: true
   assets:
     - assets/translations/
+
+melos:
+  name: flutter_boilerplate
+  repository: https://github.com/NarekManukyan/flutter_boilerplate
+
+  scripts:
+    # Development Workflow
+    dev:
+      description: Complete development setup (deps, generate)
+      run: melos run deps && melos run generate
+
+    deps:
+      description: Get dependencies for all packages
+      run: melos exec -c 1 -- "dart pub get"
+
+    generate:
+      description: Generate code for all packages
+      run: melos run build
+
+    build:
+      description: Build all packages
+      run: melos exec -c 1 -- "dart run build_runner build -d"
+      packageFilters:
+        scope:
+          - api
+          - design_system
+          - flutter_boilerplate
+
+    clean:
+      description: Clean all packages
+      run: melos exec -c 1 -- "dart run build_runner clean"
+      packageFilters:
+        scope:
+          - api
+          - design_system
+          - flutter_boilerplate
+
+    # Code Quality
+    analyze:
+      description: Analyze all packages
+      run: melos exec -c 1 -- "dart analyze ."
+      packageFilters:
+        ignore:
+          - '**/test/**'
+          - '**/build/**'
+
+    test:
+      description: Run tests for all packages
+      run: melos exec -c 1 -- "dart test"
+      packageFilters:
+        ignore:
+          - '**/test/**'
+          - '**/build/**'
+
+    format:
+      description: Format code in all packages
+      run: melos exec -c 1 -- "dart format ."
+
+    lint:
+      description: Apply linting fixes
+      run: melos exec -c 1 -- "dart fix --apply"
+
+    # Asset Generation
+    assets:
+      description: Generate assets and translations
+      run: melos exec --scope design_system -- "dart run build_runner build -d" && melos run translations
+
+    translations:
+      description: Generate translation keys
+      run: dart run easy_localization:generate -f keys -O lib/gen -o locale_keys.g.dart -S assets/translations -s en-US.json -u true
+
+    # Workspace Management
+    bootstrap:
+      description: Bootstrap the workspace
+      run: melos run deps && melos run generate
+
+    # Deployment
+    deploy-dev:
+      description: Deploy to development environment (stops on error)
+      run: |
+        cd ios
+        pod install --repo-update
+        fastlane dev

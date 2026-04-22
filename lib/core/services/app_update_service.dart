@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:new_version_plus/new_version_plus.dart';
 
-import '../../shared/modals/app_update_modal/view/app_update_modal.dart';
+import '../../features/app/modals/app_update_modal/view/app_update_modal.dart';
 import '../constants/app_update_type.dart';
 import '../navigation/app_navigator.dart';
 import '../utils/storage_utils.dart';
