@@ -360,8 +360,30 @@ Add strings to `assets/translations/en-US.json`, then run `melos run translation
 - Import from `package:design_system/design_system.dart`
 - Use named constructors: `PrimaryButton.largeFilled()`
 - Use generated `AppColors` and `Assets` — never hardcode colors or asset paths
-- Themes (`lightTheme`) exposed from package root
+- Themes (`lightTheme`, `darkTheme`) exposed from package root; both wired in `lib/app.dart`
 - Asset codegen lives in `design_system/lib/gen`; root app asset codegen in `lib/gen` via `flutter_gen`
+
+### No hardcoded colors or styles in `lib/` — NON-NEGOTIABLE
+
+The `lib/` layer (app) must never contain raw `Color(0x…)` / hex literals, raw `TextStyle(…)` composites, or one-off shadow stacks. Every visual token lives in the design system package.
+
+- **Colors** → `context.geist.<token>` (Geist palette) or legacy `context.<token>` (Tailor `CustomTheme`). Add new colors to the appropriate extension in `packages/design_system/lib/src/theme/src/` with **both light and dark variants**.
+- **Typography** → `GeistTextStyles.<role>` or `context.<textStyle>`. Add new text styles to `GeistTextStyles` (geist) or `TextStyles` (legacy) with `.copyWith(color: …)` at the use site for color swaps only.
+- **Radii** → `GeistRadius.<scale>` constants.
+- **Durations** → `GeistDuration.<speed>` constants.
+- **Shadows / elevation** → `context.geist.cardShadow`, `shadowBorder`, `shadowFab`, etc. Never assemble ad-hoc `BoxShadow` stacks in `lib/`.
+- **Spacing** → `kSpacingNpx` constants from `design_system`.
+
+When a new design token is needed:
+1. Add the field to `GeistTheme` (or the relevant `ThemeExtension`) with `light` and `dark` values.
+2. Update `copyWith` and `lerp` methods.
+3. Consume in `lib/` via `context.geist.newToken` — never inline the hex value.
+
+The only allowed "bare" colors in `lib/` are `Colors.transparent` and `Color.lerp` results applied to tokens already sourced from the DS.
+
+### Dark mode
+
+Both `lightTheme` and `darkTheme` include the `GeistTheme` extension. Follow the DESIGN.md dark-mode guidance: desaturated tonal variants, not pure inversion. Always design new tokens in pairs — add a dark value for every new light value. Every foreground/background pair must meet WCAG AA (4.5:1 for body, 3:1 for large/UI glyphs) in **both** modes.
 
 ## Testing
 

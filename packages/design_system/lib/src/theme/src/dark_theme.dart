@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../gen/colors.gen.dart';
+import 'geist_theme.dart';
 import 'text_styles.dart';
 import 'theme_tailor/custom_theme.dart';
 
@@ -245,6 +246,6 @@ final _customThemeDark = CustomTheme(
 );
 
 final darkTheme = ThemeData.dark(useMaterial3: false).copyWith(
-  extensions: [_customThemeDark],
-  scaffoldBackgroundColor: _customThemeDark.backgroundSurface,
+  extensions: [_customThemeDark, GeistTheme.dark],
+  scaffoldBackgroundColor: GeistTheme.dark.surface,
 );

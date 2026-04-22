@@ -31,7 +31,7 @@ class MyApp extends HookWidget {
             localizationsDelegates: context.localizationDelegates,
             debugShowCheckedModeBanner: GetIt.I<FlavorService>().isDev,
             theme: lightTheme,
-            darkTheme: lightTheme,
+            darkTheme: darkTheme,
             routerConfig: getIt<AppNavigator>().config,
             builder: (context, child) {
               return ConnectionWrapperPage(child: child!);

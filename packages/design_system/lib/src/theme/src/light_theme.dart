@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../gen/colors.gen.dart';
+import 'geist_theme.dart';
 import 'text_styles.dart';
 import 'theme_tailor/custom_theme.dart';
 
@@ -252,7 +253,6 @@ final _customThemeLight = CustomTheme(
 );
 
 final lightTheme = ThemeData.light(useMaterial3: false).copyWith(
-  extensions: [_customThemeLight],
-  scaffoldBackgroundColor: _customThemeLight.backgroundSurface,
-  
+  extensions: [_customThemeLight, GeistTheme.light],
+  scaffoldBackgroundColor: GeistTheme.light.surface,
 );
