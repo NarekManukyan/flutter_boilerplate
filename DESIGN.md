@@ -1,5 +1,7 @@
 # Design System Inspired by Vercel
 
+> **Reference doc.** This file is the visual specification (palette, type scale, shadows, components). The *rule* that app code consumes only DS tokens — never raw colors or styles — is captured in [ADR-0013](docs/adr/0013-design-system-tokens-only.md). The *package boundary* (why `design_system` is its own workspace package) is in [ADR-0014](docs/adr/0014-melos-package-split.md).
+
 ## 1. Visual Theme & Atmosphere
 
 Vercel's website is the visual thesis of developer infrastructure made invisible — a design system so restrained it borders on philosophical. The page is overwhelmingly white (`#ffffff`) with near-black (`#171717`) text, creating a gallery-like emptiness where every element earns its pixel. This isn't minimalism as decoration; it's minimalism as engineering principle. The Geist design system treats the interface like a compiler treats code — every unnecessary token is stripped away until only structure remains.
