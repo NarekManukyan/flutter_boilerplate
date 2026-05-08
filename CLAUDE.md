@@ -4,6 +4,25 @@
 
 Flutter mobile boilerplate using layered clean architecture with MobX state management, Retrofit API layer (`packages/api`), shared design system (`packages/design_system`), and GetIt + Injectable dependency injection. Melos-managed monorepo.
 
+## Architectural decisions
+
+Rules below are summaries. Full context, alternatives considered, and rationale are in [`docs/adr/`](docs/adr/README.md). Read the ADR when you need *why*.
+
+- **Layered architecture, adjacent-only access** — UI → State → Store → DioService → API Provider; UI never reaches Dio or stores directly. [ADR-0001](docs/adr/0001-layered-architecture.md)
+- **State vs Store separation** — `*_state.dart` is per-screen with no API access; `*_store.dart` owns API and may be feature-scoped or `@singleton`. [ADR-0002](docs/adr/0002-state-vs-store-separation.md)
+- **No use-case → use-case dependencies** — UCs depend on services/stores/navigators only; shared logic becomes a service, not a peer UC. [ADR-0003](docs/adr/0003-no-use-case-to-use-case-dependencies.md)
+- **Use-case taxonomy + colocation** — 4 UC types (API / Navigation / Service Coordination / State Delegation); placement follows the consumer layer; promote on second consumer. [ADR-0004](docs/adr/0004-use-case-taxonomy-and-colocation.md)
+- **Flat feature tree** — features are peers under a domain grouping; no nested `features/` inside a feature. [ADR-0005](docs/adr/0005-flat-feature-tree.md)
+- **Feature-owned singletons** — every store lives under its owning feature's `mobx/`, regardless of `@singleton` vs `@injectable`; `lib/shared/` is deprecated. [ADR-0006](docs/adr/0006-feature-owned-singletons.md)
+- **DI scopes + constructor injection** — `@injectable`, `@singleton`, `@lazySingleton`; flavor bindings via `@dev`/`@prod`; never `getIt<>()` inside classes (one allowed seam: `Provider(create:)`). [ADR-0007](docs/adr/0007-di-scopes-and-constructor-injection.md)
+- **`AppNavigator` routing abstraction** — pages never use `context.router`; states inject `AppNavigator`. [ADR-0008](docs/adr/0008-appnavigator-routing-abstraction.md)
+- **Provider-based state access** — page roots create `Provider<MyPageState>`; descendants read via `context.read<T>()`; never pass state as widget params. [ADR-0009](docs/adr/0009-provider-based-state-access.md)
+- **`HookWidget` default** — `HookWidget` for any widget needing controllers/effects/local state; `StatelessWidget` for pure presentation; `StatefulWidget` only for hook-incompatible APIs. [ADR-0010](docs/adr/0010-hookwidget-default.md)
+- **Retrofit + freezed typed API layer** — `@RestApi()` providers in `packages/api`; `@freezed sealed` DTOs; `ListResponseDto<T>` for paginated lists; access only via `DioService`. [ADR-0011](docs/adr/0011-retrofit-typed-api-layer.md)
+- **Mandatory localization** — no inline UI strings; `LocaleKeys.x.tr()` only; add to `assets/translations/en-US.json` then `melos run translations`. [ADR-0012](docs/adr/0012-mandatory-localization.md)
+- **DS tokens only in `lib/`** — no raw colors, text styles, or shadow stacks; tokens live in `packages/design_system` with both light + dark values. [ADR-0013](docs/adr/0013-design-system-tokens-only.md)
+- **Melos workspace, two packages** — `packages/api` + `packages/design_system` as Dart workspace siblings; melos scripts drive codegen / lint / test. [ADR-0014](docs/adr/0014-melos-package-split.md)
+
 ## Commands
 
 ```bash
@@ -14,7 +33,8 @@ flutter run -t lib/main_dev.dart
 flutter run -t lib/main_prod.dart
 
 # Bootstrap workspace (deps + codegen, all packages)
-melos bootstrap
+melos run bootstrap     # runs `melos run deps && melos run generate`
+# Note: bare `melos bootstrap` (Melos built-in) only fetches deps.
 
 # Code generation (after changing MobX, Retrofit, Freezed, Injectable annotations)
 melos run build
@@ -41,7 +61,9 @@ melos run deploy-dev
 
 ## Architecture
 
-### Layer Rules (Non-Negotiable)
+Rationale + alternatives: [ADR-0001](docs/adr/0001-layered-architecture.md).
+
+### Layer Rules
 
 | Layer | Files | Can Access | Cannot Access |
 |---|---|---|---|
@@ -106,7 +128,7 @@ flutter_boilerplate/
 └── test/
 ```
 
-### `lib/shared/` — DEPRECATED
+### `lib/shared/` — DEPRECATED — see [ADR-0006](docs/adr/0006-feature-owned-singletons.md)
 
 `lib/shared/` currently contains `stores/` (auth_store, connectivity, notifications_store), `features/connection_wrapper`, `widgets/`, `modals/`, `state/`, `constants/`. **Do not add new files there.** New code belongs under the owning feature, regardless of singleton scope.
 
@@ -116,7 +138,7 @@ flutter_boilerplate/
 
 Existing `lib/shared/` files may be migrated opportunistically when touched.
 
-### No nested `features/` — features are peers
+### No nested `features/` — features are peers — see [ADR-0005](docs/adr/0005-flat-feature-tree.md)
 
 A feature must **never** contain a `features/` subdirectory. Sub-modules with their own store/state/view get promoted to siblings under the domain grouping.
 
@@ -153,6 +175,8 @@ Pure view-layer sub-pages (no store) can remain under `view/` (e.g., `meeting_de
 
 ### Navigation — NEVER use `context.router`
 
+Rationale + alternatives: [ADR-0008](docs/adr/0008-appnavigator-routing-abstraction.md).
+
 Always inject `AppNavigator` into state classes. Pages call state methods, never navigate directly.
 
 ```dart
@@ -172,6 +196,8 @@ abstract class _MyPageStateBase with Store {
 ```
 
 ### State Access — NEVER pass state as widget parameters
+
+Rationale + alternatives: [ADR-0009](docs/adr/0009-provider-based-state-access.md).
 
 Create `Provider` at the page root. Child widgets access via `context.read<T>()`.
 
@@ -225,13 +251,18 @@ bool get hasItems => _items.isNotEmpty;
 
 ### Dependency Injection
 
+Rationale + alternatives: [ADR-0007](docs/adr/0007-di-scopes-and-constructor-injection.md).
+
 - `@injectable` — feature-scoped (State classes, feature Stores, Use Cases)
-- `@singleton` — app-wide Stores (`AuthStore`, etc.) — still live under their owning feature's `mobx/`
+- `@singleton` — app-wide Stores (`AuthStore`, etc.) and `AppNavigator` — still live under their owning feature's `mobx/`
+- `@lazySingleton` — app-wide services constructed on first resolution (e.g. `DioService`)
 - Flavor-scope bindings with `@dev` / `@prod` — `configureDependencies(FlavorType)` passes the flavor name as the `environment` to injectable
 - Always inject via constructor. Never call `getIt<>()` inside classes (except at Widget→State boundary inside `Provider(create:)`)
 - `resetDependencies()` tears down GetIt and re-registers with current flavor — use for env switching
 
 ### Widgets — HookWidget over StatefulWidget
+
+Rationale + alternatives: [ADR-0010](docs/adr/0010-hookwidget-default.md).
 
 Use `HookWidget` for local state/lifecycle. Use `StatelessWidget` for pure presentation.
 
@@ -248,30 +279,11 @@ class _Content extends HookWidget {
 
 ## Use Cases
 
-Use cases (`*_use_case.dart`) encapsulate a single business operation. `@injectable` classes with a `call()` method.
+Use cases (`*_use_case.dart`) encapsulate a single business operation. `@injectable` classes with a `call()` method. Rationale + alternatives: [ADR-0003](docs/adr/0003-no-use-case-to-use-case-dependencies.md), [ADR-0004](docs/adr/0004-use-case-taxonomy-and-colocation.md).
 
-### Use Cases NEVER inject other Use Cases
-
-A use case only depends on services (`DioService`, `AppNavigator`, etc.) — never on another use case. Shared logic goes into a service or utility.
-
-```dart
-// ❌ FORBIDDEN
-class CopyNotesUseCase {
-  final CopyUseCase _copyUseCase; // UC → UC
-}
-
-// ✅ CORRECT
-class CopyNotesUseCase {
-  final AppNavigator _appNavigator;
-}
-```
-
-### 4 Types
-
-1. **API** — wraps one API call, handles `DioException`
-2. **Navigation** — wraps `AppNavigator` calls (modals, routes)
-3. **Service Coordination** — orchestrates 2+ services
-4. **State Delegation** — conditional flow/guard logic for multiple callers
+- **No UC → UC** — UC depends on services / stores / `AppNavigator`, never another UC. Shared logic becomes a service.
+- **4 types** — API / Navigation / Service Coordination / State Delegation.
+- **Place next to consumer** — see Location Rules below; promote on second consumer.
 
 ### Pattern
 
@@ -319,24 +331,28 @@ Rule: **place next to consumer.** Gains second consumer in different layer → p
 
 ## API Layer
 
+Rationale + alternatives: [ADR-0011](docs/adr/0011-retrofit-typed-api-layer.md).
+
 ### Retrofit Provider Pattern
 
 ```dart
 @RestApi()
-abstract class AuthApiProvider {
-  factory AuthApiProvider(Dio dio) = _AuthApiProvider;
+abstract class TodosApiProvider {
+  factory TodosApiProvider(Dio dio) = _TodosApiProvider;
 
-  @GET(_Paths.getUserProfile)
-  Future<BaseResponseDto<UserResponseDto>> getUserProfile();
+  @GET(_Paths.getTodos)
+  Future<List<TodoDto>> getTodos();
 }
 ```
 
-- Wrap responses in `BaseResponseDto<T>`
-- DTOs use `@freezed` + `@JsonKey` (json_serializable with `explicit_to_json: true`, `any_map: true` — see `build.yaml`)
+- Single-resource endpoints return the DTO directly; paginated lists return `ListResponseDto<T>` (see `packages/api/lib/src/models/list_response_entity/`)
+- DTOs are `@freezed sealed class` with `fromJson` factory (json_serializable `explicit_to_json: true`, `any_map: true` — see `build.yaml`)
 - Providers accessed only through `DioService` in Stores/Use Cases
-- Interceptors live in `lib/core/services/interceptors/` (app concerns: auth, logging)
+- Interceptors live in `lib/core/services/interceptors/` (app concerns: auth, logging, mocking)
 
 ## State vs Store Decision Tree
+
+Rationale + alternatives: [ADR-0002](docs/adr/0002-state-vs-store-separation.md).
 
 | Question | → State (`*_state.dart`) | → Store (`*_store.dart`) |
 |---|---|---|
@@ -345,6 +361,8 @@ abstract class AuthApiProvider {
 | Location? | `features/*/view/` | `features/*/mobx/` (always under owning feature) |
 
 ## Localization
+
+Rationale + alternatives: [ADR-0012](docs/adr/0012-mandatory-localization.md).
 
 Never hardcode text in UI. Always use `LocaleKeys.keyName.tr()`.
 
@@ -363,7 +381,7 @@ Add strings to `assets/translations/en-US.json`, then run `melos run translation
 - Themes (`lightTheme`, `darkTheme`) exposed from package root; both wired in `lib/app.dart`
 - Asset codegen lives in `design_system/lib/gen`; root app asset codegen in `lib/gen` via `flutter_gen`
 
-### No hardcoded colors or styles in `lib/` — NON-NEGOTIABLE
+### No hardcoded colors or styles in `lib/` — see [ADR-0013](docs/adr/0013-design-system-tokens-only.md)
 
 The `lib/` layer (app) must never contain raw `Color(0x…)` / hex literals, raw `TextStyle(…)` composites, or one-off shadow stacks. Every visual token lives in the design system package.
 
