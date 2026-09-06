@@ -1,6 +1,8 @@
 # Design System Inspired by Vercel
 
-> **Reference doc.** This file is the visual specification (palette, type scale, shadows, components). The *rule* that app code consumes only DS tokens — never raw colors or styles — is captured in [ADR-0013](docs/adr/0013-design-system-tokens-only.md). The *package boundary* (why `design_system` is its own workspace package) is in [ADR-0014](docs/adr/0014-melos-package-split.md).
+> **Reference doc.** This file is the visual specification: palette, type scale, shadows and components (§1–9), then dark mode, motion, component states, accessibility, the CSS→Flutter token map, and the per-feature design-spec template (§10–15).
+>
+> The *rule* that app code consumes only DS tokens — never raw colors or styles — is [ADR-0013](docs/adr/0013-design-system-tokens-only.md). The *package boundary* (why `design_system` is its own workspace package) is [ADR-0014](docs/adr/0014-melos-package-split.md). To **add** a token, follow the [`add-design-token`](.claude/skills/add-design-token/SKILL.md) playbook — a colour needs six edits and both a light and a dark value.
 
 ## 1. Visual Theme & Atmosphere
 
@@ -310,3 +312,193 @@ What distinguishes Vercel from other monochrome design systems is its shadow-as-
 4. Color is functional, never decorative — workflow colors (Red/Pink/Blue) mark pipeline stages only
 5. The inner `#fafafa` ring in card shadows is what gives Vercel cards their subtle inner glow
 6. Geist Mono uppercase for technical labels, Geist Sans for everything else
+
+---
+
+## 10. Dark Mode
+
+Dark is **not** an inversion. Pure white on pure black halates on OLED and destroys the shadow-as-border effect — the whole depth system is built on a dark hairline over a light ground, which has to be re-thought as a light hairline over a dark ground, not merely negated.
+
+The rules:
+
+- **Surface is `#0A0A0A`, not `#000000`.** True black removes the difference between the page and an unelevated card, and makes every shadow invisible.
+- **Ink is `#EDEDED`, not `#FFFFFF`.** Full-white body text on near-black is the single biggest cause of perceived eye strain.
+- **Hairlines flip from alpha-on-black to alpha-on-white** — `rgba(0,0,0,0.08)` becomes `rgba(255,255,255,0.10)`. The slightly higher alpha compensates for the lower perceptual contrast of a light line on a dark ground.
+- **Shadows get stronger, not weaker** — `0x0A000000` → `0x33000000`. On a dark surface a whisper-level shadow is simply not there.
+- **Accents desaturate and lighten.** `danger` moves `#DC2626` → `#FF6B6B`; `focusBlue` `#0A72EF` → `#47A3FF`. A saturated hue tuned for a white ground reads as neon on a dark one.
+- **Badge surfaces become deep tonal grounds**, not tinted whites: `#EBF5FF` → `#0D2A4A` with the foreground lightened to `#8FC4FF`.
+
+### Token pairs
+
+| Token | Light | Dark | Role |
+|---|---|---|---|
+| `surface` | `#FFFFFF` | `#0A0A0A` | page / card background |
+| `ink` | `#171717` | `#EDEDED` | primary text, primary CTA background |
+| `muted` | `#4D4D4D` | `#A1A1A1` | secondary text |
+| `subtle` | `#666666` | `#8F8F8F` | tertiary / helper text |
+| `placeholder` | `#808080` | `#6E6E6E` | hint text, disabled |
+| `hairline` | `rgba(0,0,0,.08)` | `rgba(255,255,255,.10)` | shadow-as-border stroke |
+| `ringSoft` | `#EBEBEB` | `#262626` | lighter ring — tabs, images |
+| `innerGlow` | `#FAFAFA` | `#141414` | inner highlight in the card stack |
+| `focusBlue` | `#0A72EF` | `#47A3FF` | focus ring |
+| `focusHaloAlpha` | `0.12` | `0.22` | focus halo opacity |
+| `danger` | `#DC2626` | `#FF6B6B` | destructive / error |
+| `warn` | `#B25B00` | `#FFB668` | warning |
+| `badgeInfoBg` / `Fg` | `#EBF5FF` / `#0068D6` | `#0D2A4A` / `#8FC4FF` | info pill |
+| `badgeSuccessBg` / `Fg` | `#E6F6EC` / `#1A7F37` | `#0F2E1B` / `#7FD69A` | success pill |
+| `elevation` | `0x0A000000` | `0x33000000` | soft card lift |
+| `ambient` | `0x0A000000` | `0x4D000000` | diffuse depth |
+| `fabShadow` | `0x33000000` | `0x66000000` | floating action shadow |
+| `skeletonBase` / `Highlight` | `#F5F5F5` / `#EDEDED` | `#1A1A1A` / `#242424` | loading shimmer |
+
+**Every new token is added as a pair.** A light value without a dark one is an incomplete token — see the six edit points in the [`add-design-token`](.claude/skills/add-design-token/SKILL.md) playbook.
+
+## 11. Motion
+
+Motion in this system is **feedback, not decoration**. Every animation answers one of three questions: *did my touch register*, *where did this come from*, or *what changed*. Anything that answers none of those is removed.
+
+### Duration tokens
+
+| Token | Value | Use |
+|---|---|---|
+| `GeistDuration.fast` | 120 ms | press feedback, opacity swaps, colour changes |
+| `GeistDuration.base` | 200 ms | slide-ins, sheet transitions, FAB show/hide |
+| `GeistDuration.slow` | 320 ms | full-screen transitions, large layout changes |
+| `GeistDuration.breathe` | 2400 ms | ambient loops — skeleton shimmer, pulse |
+
+Never write a raw `Duration` in `lib/`. If a new speed is genuinely needed, it becomes a token.
+
+### Curves
+
+- **`Curves.easeOut`** — the default for anything entering or responding to touch. Fast start, settled finish; matches the physical expectation that a thing you pushed decelerates.
+- **`Curves.easeOutCubic`** — position changes over larger distances (slide-ins, FAB dismissal).
+- **Never `easeInOut` on entry.** The slow start reads as lag.
+- **Never a bounce or elastic curve.** This system is engineered, not playful.
+
+### Primitives
+
+They live in `lib/core/ui/geist_motion.dart` and already honour reduced motion:
+
+| Primitive | Does |
+|---|---|
+| `PressScale` | scale to 0.97 on pointer down, `fast`, interruptible, optional selection haptic |
+| `FadeSlideIn` | fade + 6% upward slide on mount, staggerable with `delay` |
+| `AnimatedCount` | tweens an integer with tabular figures so the layout does not jitter |
+
+### Rules
+
+- **Interruptible.** A user who taps mid-animation must not wait for it to finish. Use `AnimatedFoo` widgets and implicit animations rather than driving a controller to completion.
+- **Stagger sparingly.** 40 ms between siblings, four items maximum. Beyond that the screen feels slow to arrive.
+- **Respect `MediaQuery.disableAnimationsOf(context)`** — `geistReducedMotion(context)`. Reduced motion means *instant final state*, never a slower animation.
+- **Haptics are punctuation.** `selectionClick` for a filter or toggle, `lightImpact` for a submit, `mediumImpact` for a primary destructive or creative action. Never on scroll, never on every frame.
+- **Nothing loops in the user's peripheral vision** except the skeleton shimmer, and that stops the moment data arrives.
+
+## 12. Component States
+
+Every interactive component defines all six. A component with only default and pressed is unfinished.
+
+| State | Treatment |
+|---|---|
+| **Default** | as specified in §4 |
+| **Pressed** | `PressScale` 0.97 over `fast`; no colour change on top of the scale |
+| **Hover** (pointer devices) | background steps one level toward `ink`; no size change |
+| **Focus** | 2 px `focusBlue` outline + halo at `focusHaloAlpha`. Never removed, never replaced by colour alone |
+| **Disabled** | foreground → `placeholder`, background → `surface`, shadow reduced to `ringShadow`, cursor/pointer inert. Never below 3:1 against its background — a disabled control must still be readable |
+| **Loading** | in-place spinner or skeleton, control stays the same size, action is inert. Never a layout jump |
+
+### Screen-level states
+
+Every screen that reads remote data implements **four** branches, and each carries a `Key` so an E2E flow can assert it ([ADR-0015](docs/adr/0015-mandatory-test-coverage-and-qa-gate.md)):
+
+| Branch | Treatment |
+|---|---|
+| **Loading** | `skeletonizer` over the real layout, shimmering `skeletonBase` → `skeletonHighlight`. Never a bare centred spinner on first load — it tells the user nothing about what is coming |
+| **Empty** | icon in a `ringSoft` container, `subheading` title in `ink`, one-line `bodyM` explanation in `muted`, and the primary action still reachable. Distinct from both loading and error |
+| **Error** | `cloud_off` glyph in `placeholder`, `sectionTitle` message in `ink`, and a **retry that actually re-runs the request**. Never a dead-end |
+| **Content** | the real thing |
+
+A filtered-empty state ("no active tasks") is a **different surface** from a no-data empty state ("no todos yet"). Do not reuse one for the other — the user's next action is different.
+
+## 13. Accessibility
+
+Non-negotiable, and checked in the QA gate.
+
+- **Contrast: WCAG AA in both themes.** 4.5:1 for body text, 3:1 for large text (≥ 18.66 px at 400, or ≥ 14 px at 600) and for UI glyphs and borders that carry meaning. A token that passes in light and fails in dark is a bug, not a style choice.
+- **Touch targets ≥ 44 × 44 pt**, even when the visual is smaller. Expand the hit area with padding, not the glyph.
+- **Every interactive widget carries a `Semantics` label** sourced from `LocaleKeys` — never a hardcoded English string, never the icon name.
+- **Text scales to 200%** without clipping or overlap. The aggressive negative tracking makes this harder than usual: verify at scale, do not assume.
+- **Colour is never the only signal.** The workflow accents (Ship Red, Preview Pink, Develop Blue) always pair with a label or an icon.
+- **Focus is always visible.** The 2 px `focusBlue` outline is part of the component, not an optional polish pass.
+- **Reduced motion is honoured** through `geistReducedMotion(context)` — the final state appears immediately.
+- **Reading order matches visual order.** Check with VoiceOver, not by inspection.
+
+## 14. CSS → Flutter Token Map
+
+This document is written in web terms because it describes the Geist source system. In this repo the tokens are Dart. The mapping:
+
+| Spec concept | Flutter token |
+|---|---|
+| `background: #fff` | `context.geist.surface` |
+| `color: #171717` | `context.geist.ink` |
+| `color: #4d4d4d` | `context.geist.muted` |
+| `box-shadow: 0 0 0 1px rgba(0,0,0,.08)` | `context.geist.shadowBorder` / `ringShadow` |
+| the full card stack | `context.geist.cardShadow` |
+| `outline: 2px solid var(--ds-focus-color)` | `context.geist.focusBlue` + `focusHaloAlpha` |
+| `border-radius: 6px` | `GeistRadius.standard` |
+| `border-radius: 8px` | `GeistRadius.comfortable` |
+| `border-radius: 12px` | `GeistRadius.image` |
+| `border-radius: 9999px` | `GeistRadius.pill` |
+| any type role in §3 | `GeistTextStyles.<role>` |
+| `padding: 16px` | `kSpacing16px` |
+| `transition: 120ms` | `GeistDuration.fast` |
+
+**Font — known gap.** `packages/design_system/pubspec.yaml` bundles **Lexend** and **Inter**, but neither `lightTheme` nor `darkTheme` sets a `fontFamily`, so the app currently renders in the platform default (SF Pro on iOS). `GeistTextStyles` sets `fontFamily: 'monospace'` on the mono roles only. Geist Sans is not bundled at all. The type *rules* in §3 — three weights, negative tracking that scales with size, ligatures on — apply regardless of which family is finally wired; picking one and setting it on both themes is outstanding work, not a decision this document has made.
+
+Sizes in this document are CSS pixels; Flutter logical pixels are the same number.
+
+## 15. Feature Design Spec
+
+Before building a feature's UI, write this. It is short on purpose — it exists so the states and edges are *decided* rather than discovered during QA. Attach it to the ticket, or drop it in the plan produced by [`plan-feature`](.claude/skills/plan-feature/SKILL.md).
+
+```markdown
+## Design spec — {feature}
+
+### Screens
+| Screen | Route | Entry points |
+|---|---|---|
+
+### Per screen
+**{Screen name}**
+- Purpose (one line, from the user's side):
+- Layout: sections top to bottom, with the spacing token between each
+- Primary action:  Secondary actions:
+- Tokens used: colours / text roles / radii that already exist
+- New tokens needed: (each with a light AND dark value — see add-design-token)
+
+### The four branches
+| Branch | What the user sees | Next action available | Key |
+|---|---|---|---|
+| Loading | | | |
+| Empty | | | |
+| Error | | | |
+| Content | | | |
+
+### Motion
+- Entry:            (primitive + duration token)
+- Press feedback:   (PressScale? haptic level?)
+- Transitions:      (which duration token)
+
+### Copy
+Every string as a LocaleKey, with the English value. Include error and empty copy.
+
+### Accessibility
+- Semantics labels for each interactive element (as LocaleKeys)
+- Any target smaller than 44pt and how its hit area is expanded
+- Contrast pairs that need checking in dark mode
+
+### Edge cases the design must answer
+- Longest realistic content:
+- Zero / one / many:
+- Offline:
+- In-flight action interrupted:
+```

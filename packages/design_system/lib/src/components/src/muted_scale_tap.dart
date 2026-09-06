@@ -12,16 +12,13 @@ const Curve _DEFAULT_OPACITY_CURVE = Curves.ease;
 const Duration _DEFAULT_DURATION = kAnimationDuration;
 
 class MutedScaleTap extends ScaleTap {
-  MutedScaleTap({
-    required super.child,
-    super.onPressed,
-    super.onLongPress,
-  }) : super(
-          enableFeedback: false,
-          duration: _DEFAULT_DURATION,
-          scaleMinValue: _DEFAULT_SCALE_MIN_VALUE,
-          opacityMinValue: _DEFAULT_OPACITY_MIN_VALUE,
-          scaleCurve: _DEFAULT_SCALE_CURVE,
-          opacityCurve: _DEFAULT_OPACITY_CURVE,
-        );
+  MutedScaleTap({required super.child, super.onPressed, super.onLongPress})
+    : super(
+        enableFeedback: false,
+        duration: _DEFAULT_DURATION,
+        scaleMinValue: _DEFAULT_SCALE_MIN_VALUE,
+        opacityMinValue: _DEFAULT_OPACITY_MIN_VALUE,
+        scaleCurve: _DEFAULT_SCALE_CURVE,
+        opacityCurve: _DEFAULT_OPACITY_CURVE,
+      );
 }

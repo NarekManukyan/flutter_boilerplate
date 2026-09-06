@@ -10,8 +10,10 @@ import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/ui/geist_motion.dart';
+import '../../../core/ui/test_id.dart';
 import '../../../gen/locale_keys.g.dart';
 import '../../../injectable.dart';
+import 'login_keys.dart';
 import 'login_page_state.dart';
 
 @RoutePage()
@@ -77,7 +79,7 @@ class _LoginPageContent extends HookWidget {
                         errorText: state.emailError == null
                             ? null
                             : LocaleKeys.loginPage_emailHint.tr(),
-                      ),
+                      ).withTestId(LoginKeys.emailField),
                     ),
                   ),
                   const Gap(kSpacing16px),
@@ -87,13 +89,13 @@ class _LoginPageContent extends HookWidget {
                       builder: (_) => _ContinueButton(
                         onPressed: state.onContinuePressed,
                         isLoading: state.loadingState.isLoading,
-                      ),
+                      ).withTestId(LoginKeys.continueButton),
                     ),
                   ),
                   const Gap(kSpacing32px),
-                  const FadeSlideIn(
-                    delay: Duration(milliseconds: 220),
-                    child: _Divider(label: 'or'),
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 220),
+                    child: _Divider(label: LocaleKeys.keywords_or.tr()),
                   ),
                   const Gap(kSpacing24px),
                   FadeSlideIn(
@@ -220,6 +222,7 @@ class _EmailField extends HookWidget {
                 : [g.shadowElevation],
           ),
           child: TextField(
+            key: const Key(LoginKeys.emailField),
             controller: controller,
             focusNode: focus,
             keyboardType: TextInputType.emailAddress,

@@ -24,8 +24,9 @@ abstract class _ConnectivityStore with Store {
     final initialStatus = await connectivity.checkConnectivity();
     _addStatus(initialStatus);
 
-    _connectivitySubscription =
-        connectivity.onConnectivityChanged.listen(_addStatus);
+    _connectivitySubscription = connectivity.onConnectivityChanged.listen(
+      _addStatus,
+    );
   }
 
   @action

@@ -32,10 +32,7 @@ class NoImageWidget extends StatelessWidget {
         color: backgroundColor,
       ),
       child: Center(
-        child: Text(
-          letter,
-          style: letterStyle.setColor(letterColor),
-        ),
+        child: Text(letter, style: letterStyle.setColor(letterColor)),
       ),
     );
   }

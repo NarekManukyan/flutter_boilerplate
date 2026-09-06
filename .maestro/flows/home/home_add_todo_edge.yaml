@@ -1,0 +1,67 @@
+# Edge cases for the add-todo sheet: empty input, maximum length, and a rapid
+# double-tap on the primary action.
+#
+# Each edge gets a fresh sheet. `eraseText` without an argument does NOT clear
+# the field — it erases a fixed default (~50 characters), so reusing one sheet
+# leaves the previous input concatenated onto the next. Verified on device.
+#
+# NOTE: no `hideKeyboard` after typing. On iOS Maestro presses the keyboard's
+# Done key, which fires the field's `onSubmitted` and submits early.
+appId: com.example.flutterBoilerplate
+name: "Home — add todo input edges (edge)"
+tags:
+  - edge
+  - home
+---
+- runFlow: ../../common/start_home.yaml
+
+# 1. Empty title — submit must be inert and create nothing.
+- tapOn:
+    id: "home_add_todo_fab"
+- assertVisible:
+    id: "add_todo_submit"
+- tapOn:
+    id: "add_todo_submit"
+# The sheet is still open, so nothing was submitted.
+- assertVisible:
+    id: "add_todo_title_field"
+- assertNotVisible:
+    id: "add_todo_error"
+- tapOn:
+    id: "add_todo_cancel"
+- waitForAnimationToEnd
+
+# 2. Maximum length — the field caps at 80 characters and the counter says so.
+- tapOn:
+    id: "home_add_todo_fab"
+- tapOn:
+    id: "add_todo_title_field"
+- inputText: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbb"
+- assertVisible:
+    id: "add_todo_counter"
+- assertVisible: "80 / 80"
+- tapOn:
+    id: "add_todo_cancel"
+- waitForAnimationToEnd
+
+# 3. Rapid double-tap must create exactly one todo, not two.
+- tapOn:
+    id: "home_add_todo_fab"
+- tapOn:
+    id: "add_todo_title_field"
+- inputText: "Double tap guard"
+- tapOn:
+    id: "add_todo_submit"
+    repeat: 2
+    delay: 80
+
+- extendedWaitUntil:
+    visible: "Double tap guard"
+    timeout: 8000
+
+- assertVisible:
+    text: "Double tap guard"
+    index: 0
+- assertNotVisible:
+    text: "Double tap guard"
+    index: 1

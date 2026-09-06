@@ -1,0 +1,55 @@
+# AC: when GET /todos returns 5xx the user sees a recoverable error — not a
+# crash and not a permanent spinner — and retry works once the server recovers.
+appId: com.example.flutterBoilerplate
+name: "Home — todo list server error (failure)"
+tags:
+  - failure
+  - home
+---
+- runFlow: ../../common/start_home.yaml
+
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "serverError"
+
+# Pull to refresh so the failing GET is issued.
+- swipe:
+    from:
+      id: "home_todo_list"
+    direction: DOWN
+    duration: 400
+
+- extendedWaitUntil:
+    visible:
+      id: "home_error_state"
+    timeout: 10000
+
+# The two things that actually matter on a failure.
+- assertNotVisible:
+    id: "home_skeleton_list"
+- assertVisible:
+    id: "home_error_retry"
+
+# Retrying against a still-broken server keeps the error — no crash, no hang.
+- tapOn:
+    id: "home_error_retry"
+- extendedWaitUntil:
+    visible:
+      id: "home_error_state"
+    timeout: 10000
+
+# Recover the server, then retry again — the list must come back.
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "reset"
+
+- tapOn:
+    id: "home_error_retry"
+- extendedWaitUntil:
+    visible:
+      id: "home_todo_list"
+    timeout: 10000
+- assertNotVisible:
+    id: "home_error_state"

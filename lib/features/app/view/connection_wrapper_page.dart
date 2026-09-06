@@ -1,18 +1,17 @@
 import 'package:design_system/design_system.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
 
+import '../../../gen/locale_keys.g.dart';
 import '../../../injectable.dart';
 import '../mobx/connection_wrapper_state.dart';
 
 class ConnectionWrapperPage extends StatelessWidget {
-  const ConnectionWrapperPage({
-    super.key,
-    required this.child,
-  });
+  const ConnectionWrapperPage({super.key, required this.child});
 
   final Widget child;
 
@@ -27,9 +26,7 @@ class ConnectionWrapperPage extends StatelessWidget {
 }
 
 class _ConnectionWrapperContent extends StatelessWidget {
-  const _ConnectionWrapperContent({
-    required this.child,
-  });
+  const _ConnectionWrapperContent({required this.child});
 
   final Widget child;
 
@@ -56,24 +53,21 @@ class _NoConnectionWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.wifi_off,
-              size: 48,
-            ),
+            const Icon(Icons.wifi_off, size: 48),
             const Gap(16),
             Text(
-              'No internet',
+              LocaleKeys.connectionPage_title.tr(),
               style: context.labelXLMedium,
             ),
             const Gap(8),
             Text(
-              'Please check your internet connection',
+              LocaleKeys.connectionPage_subtitle.tr(),
               style: context.labelXLMedium,
             ),
             const Gap(24),
             ElevatedButton(
               onPressed: state.onSettingsTap,
-              child: const Text('Go to settings'),
+              child: Text(LocaleKeys.connectionPage_goToSettings.tr()),
             ),
           ],
         ),

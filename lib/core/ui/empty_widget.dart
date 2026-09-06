@@ -20,12 +20,7 @@ class EmptyWidget extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Flexible(
-          child: image.image(
-            height: 96,
-            width: 96,
-          ),
-        ),
+        Flexible(child: image.image(height: 96, width: 96)),
         const Gap(kSpacing8px),
         Text(
           title,

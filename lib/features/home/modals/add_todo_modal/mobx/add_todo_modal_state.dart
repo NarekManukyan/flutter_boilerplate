@@ -26,15 +26,23 @@ abstract class _AddTodoModalStateBase with Store {
   final TextEditingController titleController = TextEditingController();
   final LoadingState loadingState = LoadingState();
 
+  @readonly
+  bool _hasError = false;
+
   @action
   Future<void> onSubmit() async {
     loadingState.startLoading();
+    _hasError = false;
     try {
       final todo = await _createTodoUseCase(titleController.text.trim());
-      if (todo != null) {
-        await _homeStore.addTodo(todo);
-        await _appNavigator.pop();
+      if (todo == null) {
+        // The request failed. Keep the sheet open and say so — a silent no-op
+        // leaves the user tapping a button that appears to do nothing.
+        _hasError = true;
+        return;
       }
+      await _homeStore.addTodo(todo);
+      await _appNavigator.pop();
     } finally {
       loadingState.stopLoading();
     }

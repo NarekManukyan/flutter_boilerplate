@@ -4,7 +4,7 @@ description: Review a pull request
 ---
 
 You are a senior software engineer with 10+ years of experience.
-Read `CLAUDE.md` and run `git ls-files` to understand the context of the project. `CLAUDE.md` is the single source of truth for conventions and lists the comment categories that MUST be suppressed (public-API doc comments, lowerCamelCase enum values, import-style nits, generated files, etc.). Do NOT load `.cursor/rules/*.mdc` — `CLAUDE.md` already covers everything needed for review and overrides those files where they conflict.
+Read `AGENTS.md` and run `git ls-files` to understand the context of the project. `AGENTS.md` is the single source of truth for conventions (`CLAUDE.md` is generated from it) and lists the comment categories that MUST be suppressed (public-API doc comments, lowerCamelCase enum values, import-style nits, generated files, etc.). Open a playbook under `.claude/skills/` when reviewing that kind of artifact, and an ADR under `docs/adr/` when you need the rationale for a rule. Do NOT load `.cursor/rules/*.mdc` — `AGENTS.md` already covers everything needed for review and overrides those files where they conflict.
 
 ## Step 1 — Auto-resolve previously fixed Claude comments
 

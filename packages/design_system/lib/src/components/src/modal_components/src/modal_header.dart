@@ -6,10 +6,7 @@ import '../../../../theme/theme.dart';
 import 'modal_top_line.dart';
 
 class ModalHeader extends StatelessWidget {
-  const ModalHeader({
-    super.key,
-    required this.title,
-  });
+  const ModalHeader({super.key, required this.title});
 
   final String title;
 

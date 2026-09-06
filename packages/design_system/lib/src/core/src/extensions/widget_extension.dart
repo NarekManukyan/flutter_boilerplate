@@ -2,10 +2,7 @@ import 'package:flutter/widgets.dart';
 
 extension WidgetModifier on Widget {
   Widget paddingAll([double value = 24]) {
-    return Padding(
-      padding: EdgeInsets.all(value),
-      child: this,
-    );
+    return Padding(padding: EdgeInsets.all(value), child: this);
   }
 
   Widget paddingHorizontal([double value = 24]) {
@@ -24,10 +21,7 @@ extension WidgetModifier on Widget {
 
   Widget paddingSymmetric({double vertical = 12, double horizontal = 24}) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: vertical,
-        horizontal: horizontal,
-      ),
+      padding: EdgeInsets.symmetric(vertical: vertical, horizontal: horizontal),
       child: this,
     );
   }
@@ -50,10 +44,6 @@ extension WidgetModifier on Widget {
   }
 
   Widget expandedHorizontally() {
-    return Row(
-      children: [
-        Expanded(child: this),
-      ],
-    );
+    return Row(children: [Expanded(child: this)]);
   }
 }

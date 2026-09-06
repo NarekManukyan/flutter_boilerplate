@@ -367,11 +367,17 @@ class _MetaCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _MetaRow(label: 'ID', value: id, mono: true),
+          _MetaRow(
+            label: LocaleKeys.todoDetailsPage_metaId.tr(),
+            value: id,
+            mono: true,
+          ),
           const _MetaDivider(),
           _MetaRow(
-            label: 'STATUS',
-            value: completed ? 'Completed' : 'Pending',
+            label: LocaleKeys.todoDetailsPage_metaStatus.tr(),
+            value: completed
+                ? LocaleKeys.todoDetailsPage_statusCompleted.tr()
+                : LocaleKeys.todoDetailsPage_statusPending.tr(),
             mono: false,
           ),
         ],

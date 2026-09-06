@@ -86,6 +86,11 @@ dependencies:
 
   flutter_hooks: ^0.21.2
 dev_dependencies:
+  # Testing — ADR-0015
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+
   # Code generation tools
   build_runner: ^2.14.0
   freezed: ^3.2.5
@@ -124,47 +129,76 @@ melos:
       run: melos run build
 
     build:
-      description: Build all packages
-      run: melos exec -c 1 -- "dart run build_runner build -d"
-      packageFilters:
-        scope:
-          - api
-          - design_system
-          - flutter_boilerplate
+      description: Run codegen for the app and both packages
+      # `translations` must run here, not only on demand: lib/gen/*.g.dart is
+      # gitignored, so a clean checkout has no LocaleKeys and will not analyze
+      # until easy_localization has generated them.
+      run: |
+        melos run translations && \
+        dart run build_runner build -d && \
+        melos exec -c 1 -- "dart run build_runner build -d"
 
     clean:
-      description: Clean all packages
-      run: melos exec -c 1 -- "dart run build_runner clean"
-      packageFilters:
-        scope:
-          - api
-          - design_system
-          - flutter_boilerplate
+      description: Clean codegen output for the app and both packages
+      run: |
+        dart run build_runner clean && \
+        melos exec -c 1 -- "dart run build_runner clean"
 
     # Code Quality
+    # NOTE: `melos exec` only reaches packages/api and packages/design_system —
+    # the root app is not a melos package (see `melos list`). Every script below
+    # therefore runs the root explicitly first, then the workspace packages.
     analyze:
-      description: Analyze all packages
-      run: melos exec -c 1 -- "dart analyze ."
-      packageFilters:
-        ignore:
-          - '**/test/**'
-          - '**/build/**'
+      description: Analyze the app and both packages
+      run: |
+        flutter analyze lib test && \
+        melos exec -c 1 -- "dart analyze ."
 
+    # Testing — ADR-0015. Three tiers: unit + widget here, E2E under `maestro`.
     test:
-      description: Run tests for all packages
-      run: melos exec -c 1 -- "dart test"
-      packageFilters:
-        ignore:
-          - '**/test/**'
-          - '**/build/**'
+      description: Run unit + widget tests (app + any package with a test/ dir)
+      run: |
+        flutter test && \
+        melos exec -c 1 --dir-exists=test -- "dart test"
+
+    test:coverage:
+      description: Run the app's tests with lcov coverage output
+      run: flutter test --coverage
+
+    maestro:
+      description: Run every Maestro E2E flow — needs a booted device with the app installed
+      run: maestro test .maestro
+
+    maestro:happy:
+      description: Run only the happy-path Maestro flows (the PR gate)
+      run: maestro test .maestro --include-tags happy --exclude-tags quarantine
 
     format:
-      description: Format code in all packages
-      run: melos exec -c 1 -- "dart format ."
+      description: Format the app and both packages
+      run: dart format lib test packages tool
+
+    format:check:
+      description: Fail if anything is unformatted (CI)
+      run: dart format --output none --set-exit-if-changed lib test packages
 
     lint:
-      description: Apply linting fixes
-      run: melos exec -c 1 -- "dart fix --apply"
+      description: Apply mechanical lint fixes
+      run: |
+        dart fix --apply && \
+        melos exec -c 1 -- "dart fix --apply"
+
+    verify:
+      description: Everything CI runs except E2E — lint, analyze, format, tests, agent-file drift
+      run: |
+        melos run lint && \
+        melos run analyze && \
+        melos run format:check && \
+        melos run test && \
+        ./tool/sync_agents.sh --check
+
+    sync-agents:
+      description: Regenerate CLAUDE.md / GEMINI.md / copilot-instructions / cursor rule from AGENTS.md
+      run: ./tool/sync_agents.sh
 
     # Asset Generation
     assets:
@@ -173,7 +207,12 @@ melos:
 
     translations:
       description: Generate translation keys
-      run: dart run easy_localization:generate -f keys -O lib/gen -o locale_keys.g.dart -S assets/translations -s en-US.json -u true
+      # easy_localization's generator does not emit dart-format-clean output, so
+      # format it here. Otherwise `format:check` fails on a file nobody edited,
+      # on any machine that regenerated it.
+      run: |
+        dart run easy_localization:generate -f keys -O lib/gen -o locale_keys.g.dart -S assets/translations -s en-US.json -u true && \
+        dart format lib/gen/locale_keys.g.dart
 
     # Workspace Management
     bootstrap:

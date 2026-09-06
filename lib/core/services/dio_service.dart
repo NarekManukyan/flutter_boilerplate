@@ -8,6 +8,7 @@ import 'package:injectable/injectable.dart';
 import 'flavor_service.dart';
 import 'interceptors/api_interceptor.dart';
 import 'interceptors/auth_interceptor.dart';
+import 'interceptors/mock_todos_interceptor.dart';
 
 @lazySingleton
 class DioService {
@@ -19,9 +20,7 @@ class DioService {
   late final Dio dio;
   late final Dio uploadImageDio;
 
-  DioService(
-    this._flavorService,
-  ) {
+  DioService(this._flavorService) {
     initDio();
   }
 
@@ -36,20 +35,21 @@ class DioService {
       ..headers[HttpHeaders.contentTypeHeader] = 'audio/mpeg';
 
     dio = Dio(options)
-      ..interceptors.addAll(
-        <Interceptor>[
-          ApiInterceptor(),
-          AuthInterceptor(),
-          // CacheInterceptor(),
-          LogInterceptor(
-            requestBody: true,
-            responseBody: true,
-            logPrint: (res) {
-              log(res.toString(), name: 'BE');
-            },
-          ),
-        ],
-      );
+      ..interceptors.addAll(<Interceptor>[
+        // Dev only — a mock interceptor must never reach production traffic.
+        // Must come first so it can short-circuit before auth/logging.
+        if (_flavorService.isDev) MockTodosInterceptor(),
+        ApiInterceptor(),
+        AuthInterceptor(),
+        // CacheInterceptor(),
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          logPrint: (res) {
+            log(res.toString(), name: 'BE');
+          },
+        ),
+      ]);
 
     uploadImageDio = Dio(uploadDioOptions)
       ..interceptors.addAll([

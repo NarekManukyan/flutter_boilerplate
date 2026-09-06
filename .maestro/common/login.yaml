@@ -1,0 +1,19 @@
+# Signs in and waits for Home. Runs after `launch.yaml`.
+#
+# The dev flavor accepts any well-formed email — LoginUseCase is mocked. Pass a
+# different address with `env: { EMAIL: "..." }` when a flow needs one.
+appId: com.example.flutterBoilerplate
+---
+- tapOn:
+    id: "login_email_field"
+- inputText: "${EMAIL}"
+- hideKeyboard:
+    optional: true
+
+- tapOn:
+    id: "login_continue_button"
+
+- extendedWaitUntil:
+    visible:
+      id: "home_todo_list"
+    timeout: 20000

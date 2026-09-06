@@ -1,0 +1,14 @@
+# Maestro workspace config — ADR-0015.
+#
+# Run:  maestro test .maestro/flows
+#       maestro test .maestro/flows --include-tags happy   (the PR gate)
+flows:
+  - "flows/**"
+
+# Device-level flakiness is expected; a broad `retry:` inside a flow would mask
+# real instability, so the retry budget lives here instead.
+executionOrder:
+  continueOnFailure: true
+
+# Flows tagged `quarantine` are known-flaky and excluded from the blocking run.
+# They stay in the repo with a linked ticket — never deleted.

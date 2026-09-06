@@ -13,7 +13,7 @@ enum ReCaptchaAction {
       ReCaptchaAction.auth_mfa_verify => 'auth_mfa_verify',
       ReCaptchaAction.auth_mfa_recovery => 'auth_mfa_recovery',
       ReCaptchaAction.transcript_update => 'transcript_update',
-      ReCaptchaAction.generate_notes => 'generate_notes'
+      ReCaptchaAction.generate_notes => 'generate_notes',
     };
   }
 }

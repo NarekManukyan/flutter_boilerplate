@@ -88,11 +88,7 @@ class ChallengeJoinedTipsStack extends StatelessWidget {
       left: left,
       right: right,
       top: top,
-      child: Icon(
-        Icons.auto_awesome,
-        size: 14,
-        color: context.iconSecondary,
-      ),
+      child: Icon(Icons.auto_awesome, size: 14, color: context.iconSecondary),
     );
   }
 }

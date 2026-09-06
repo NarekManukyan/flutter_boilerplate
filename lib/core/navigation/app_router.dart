@@ -5,9 +5,7 @@ import 'app_router.gr.dart';
 
 export 'app_router.gr.dart';
 
-@AutoRouterConfig(
-  replaceInRouteName: 'Page,Route',
-)
+@AutoRouterConfig(replaceInRouteName: 'Page,Route')
 class AppRouter extends RootStackRouter {
   @override
   final List<AutoRoute> routes = [
@@ -17,15 +15,8 @@ class AppRouter extends RootStackRouter {
       page: SplashRoute.page,
       guards: const [AuthGuard()],
     ),
-    AutoRoute(
-      path: '/login',
-      page: LoginRoute.page,
-    ),
-    AutoRoute(
-      path: '/home',
-      page: HomeRoute.page,
-      guards: const [AuthGuard()],
-    ),
+    AutoRoute(path: '/login', page: LoginRoute.page),
+    AutoRoute(path: '/home', page: HomeRoute.page, guards: const [AuthGuard()]),
     AutoRoute(
       path: '/todos/:id',
       page: TodoDetailsRoute.page,

@@ -5,7 +5,6 @@ analyzer:
     dead_code: error
     avoid_print: error
     cancel_subscriptions: error
-    invariant_booleans: error
     included_file_warning: ignore
     missing_required_param: error
     missing_return: error
@@ -22,6 +21,13 @@ analyzer:
     - 'lib/**/*.freezed.dart'
     - 'lib/**/*.gr.dart'
     - 'pubspec.lock'
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:
@@ -103,7 +109,6 @@ linter:
     # - flutter_style_todos
     - hash_and_equals
     - implementation_imports
-    - invariant_booleans
     - join_return_with_assignment
     - leading_newlines_in_multiline_strings
     # - library_annotations

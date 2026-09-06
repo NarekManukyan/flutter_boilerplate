@@ -3,7 +3,7 @@ allowed-tools: mcp__github_inline_comment__create_inline_comment,mcp__github__ad
 description: Review code quality of a pull request
 ---
 
-Read `CLAUDE.md` and run `git ls-files` to understand the context of the project. `CLAUDE.md` is the single source of truth — do NOT load `.cursor/rules/*.mdc` during review.
+Read `AGENTS.md` and run `git ls-files` to understand the context of the project. `AGENTS.md` is the single source of truth (`CLAUDE.md` is generated from it) — do NOT load `.cursor/rules/*.mdc` during review.
 
 ## Step 1 — Auto-resolve previously fixed Claude comments
 
@@ -19,7 +19,7 @@ Before posting any new feedback:
 
 Review code quality of the pull request.
 
-Do NOT raise comments about: missing `///` doc comments on public APIs, enum values using `lowerCamelCase`, package-vs-relative import preferences, `dart format`-accepted style nits, tests for trivial code, or generated files. See `CLAUDE.md` for the full list.
+Do NOT raise comments about: missing `///` doc comments on public APIs, enum values using `lowerCamelCase`, package-vs-relative import preferences, `dart format`-accepted style nits, tests for trivial code, or generated files. See `AGENTS.md` for the full list.
 
 Provide feedback using inline comments for specific issues.
 Use top-level comments for general observations or praise.

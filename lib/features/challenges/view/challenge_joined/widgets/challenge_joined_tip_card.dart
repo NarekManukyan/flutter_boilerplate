@@ -42,11 +42,7 @@ class ChallengeJoinedTipCard extends StatelessWidget {
                 color: context.backgroundWarningDefaultDarker,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: kSpacing32px,
-                color: context.textWarning,
-              ),
+              child: Icon(icon, size: kSpacing32px, color: context.textWarning),
             ),
           ),
           const SizedBox(height: kSpacing4px),

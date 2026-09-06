@@ -8,9 +8,11 @@ import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/ui/geist_motion.dart';
+import '../../../../../core/ui/test_id.dart';
 import '../../../../../gen/locale_keys.g.dart';
 import '../../../../../injectable.dart';
 import '../mobx/add_todo_modal_state.dart';
+import 'add_todo_modal_keys.dart';
 
 const _kMaxLength = 80;
 
@@ -53,7 +55,7 @@ class _AddTodoModalContent extends HookWidget {
               children: [
                 FadeSlideIn(
                   child: Text(
-                    'NEW TASK',
+                    LocaleKeys.addTodoModal_eyebrow.tr(),
                     style: GeistTextStyles.monoLabel.copyWith(color: g.subtle),
                   ),
                 ),
@@ -69,7 +71,7 @@ class _AddTodoModalContent extends HookWidget {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 80),
                   child: Text(
-                    'Keep it short. You can always edit later.',
+                    LocaleKeys.addTodoModal_subtitle.tr(),
                     style: GeistTextStyles.bodyS.copyWith(color: g.muted),
                   ),
                 ),
@@ -83,10 +85,23 @@ class _AddTodoModalContent extends HookWidget {
                         state.onSubmit();
                       }
                     },
-                  ),
+                  ).withTestId(AddTodoModalKeys.titleField),
                 ),
                 const Gap(kSpacing6px),
                 _CounterRow(length: trimmedLen, max: _kMaxLength),
+                Observer(
+                  builder: (_) => state.hasError
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: kSpacing6px),
+                          child: Text(
+                            LocaleKeys.addTodoModal_error.tr(),
+                            style: GeistTextStyles.bodyS.copyWith(
+                              color: g.danger,
+                            ),
+                          ),
+                        ).withTestId(AddTodoModalKeys.errorText)
+                      : const SizedBox.shrink(),
+                ),
                 const Gap(kSpacing16px),
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 160),
@@ -102,7 +117,7 @@ class _AddTodoModalContent extends HookWidget {
                                 state.onSubmit();
                               }
                             : null,
-                      );
+                      ).withTestId(AddTodoModalKeys.submit);
                     },
                   ),
                 ),
@@ -112,7 +127,7 @@ class _AddTodoModalContent extends HookWidget {
                   child: _GhostButton(
                     label: LocaleKeys.addTodoModal_cancel.tr(),
                     onPressed: () => Navigator.of(context).pop(),
-                  ),
+                  ).withTestId(AddTodoModalKeys.cancel),
                 ),
                 Gap(context.bottomSecurePadding + kSpacing8px),
               ],
@@ -134,12 +149,15 @@ class _CounterRow extends StatelessWidget {
     final g = context.geist;
     final warn = length > max * 0.85;
     final color = warn ? g.warn : g.placeholder;
-    return Align(
-      alignment: Alignment.centerRight,
-      child: AnimatedDefaultTextStyle(
-        duration: GeistDuration.fast,
-        style: GeistTextStyles.monoCounter.copyWith(color: color),
-        child: Text('$length / $max'),
+    return TestId(
+      AddTodoModalKeys.counter,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: AnimatedDefaultTextStyle(
+          duration: GeistDuration.fast,
+          style: GeistTextStyles.monoCounter.copyWith(color: color),
+          child: Text('$length / $max'),
+        ),
       ),
     );
   }
@@ -177,6 +195,7 @@ class _TitleField extends HookWidget {
             : [g.shadowElevation],
       ),
       child: TextField(
+        key: const Key(AddTodoModalKeys.titleField),
         controller: controller,
         focusNode: focus,
         autofocus: true,

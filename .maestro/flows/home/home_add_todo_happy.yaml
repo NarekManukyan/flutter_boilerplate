@@ -1,0 +1,40 @@
+# AC: submitting a non-empty title creates the todo and it appears in the list.
+appId: com.example.flutterBoilerplate
+name: "Home — add a todo (happy)"
+tags:
+  - happy
+  - home
+# NOTE: no `hideKeyboard` after typing into the add-todo field. On iOS Maestro
+# presses the keyboard's Done key, which fires the field's `onSubmitted` and
+# submits the form early — verified on device. Tap the submit button instead.
+---
+- runFlow: ../../common/start_home.yaml
+
+- tapOn:
+    id: "home_add_todo_fab"
+    label: "Open the add-todo sheet"
+
+- tapOn:
+    id: "add_todo_title_field"
+- inputText: "Ship the release"
+
+- assertVisible:
+    id: "add_todo_counter"
+
+- tapOn:
+    id: "add_todo_submit"
+
+# The sheet closes on success and the new todo is in the list.
+- extendedWaitUntil:
+    notVisible:
+      id: "add_todo_submit"
+    timeout: 8000
+
+- extendedWaitUntil:
+    visible: "Ship the release"
+    timeout: 8000
+
+- assertVisible:
+    id: "home_todo_list"
+- assertNotVisible:
+    id: "add_todo_error"

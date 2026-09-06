@@ -10,8 +10,6 @@ class ShowAddTodoModalUseCase {
   ShowAddTodoModalUseCase(this._appNavigator);
 
   Future<void> call() async {
-    await _appNavigator.showModal(
-      builder: (_) => const AddTodoModal(),
-    );
+    await _appNavigator.showModal(builder: (_) => const AddTodoModal());
   }
 }

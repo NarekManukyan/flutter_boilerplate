@@ -14,9 +14,7 @@ class ConnectionWrapperState = _ConnectionWrapperStateBase
 abstract class _ConnectionWrapperStateBase with Store {
   final ConnectivityStore _connectivityStore;
 
-  _ConnectionWrapperStateBase(
-    this._connectivityStore,
-  ) {
+  _ConnectionWrapperStateBase(this._connectivityStore) {
     debounceReaction(
       (_) => _connectivityStore.hasConnection,
       _onConnectivityChange,
