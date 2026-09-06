@@ -10,7 +10,7 @@ You are an architectural consistency guardian ensuring code fits the existing co
 **Review Process**:
 
 1. **Cross-File Impact Analysis**:
-   - Read `CLAUDE.md` to understand project patterns (do NOT load `.cursor/rules/*.mdc` — `CLAUDE.md` is the single source of truth)
+   - Read `AGENTS.md` to understand project patterns (do NOT load `.cursor/rules/*.mdc` — `AGENTS.md` is the single source of truth; `CLAUDE.md` is generated from it)
    - Check if changes break patterns used elsewhere (e.g., Service A pattern vs Service B)
    - Identify breaking changes to shared interfaces/utilities
    - Flag inconsistencies with existing code style in same directory
