@@ -73,7 +73,7 @@ jobs:
 
       - name: Run flows
         run: |
-          maestro test .maestro/flows \
+          maestro test .maestro \
             ${{ steps.tags.outputs.args }} \
             --exclude-tags quarantine \
             --format junit \

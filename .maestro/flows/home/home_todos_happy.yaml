@@ -5,7 +5,7 @@ tags:
   - happy
   - home
 ---
-- runFlow: ../../common/launch.yaml
+- runFlow: ../../common/start_home.yaml
 
 - assertVisible:
     id: "home_todo_list"

@@ -4,8 +4,11 @@ name: "Home — add a todo (happy)"
 tags:
   - happy
   - home
+# NOTE: no `hideKeyboard` after typing into the add-todo field. On iOS Maestro
+# presses the keyboard's Done key, which fires the field's `onSubmitted` and
+# submits the form early — verified on device. Tap the submit button instead.
 ---
-- runFlow: ../../common/launch.yaml
+- runFlow: ../../common/start_home.yaml
 
 - tapOn:
     id: "home_add_todo_fab"
@@ -14,8 +17,6 @@ tags:
 - tapOn:
     id: "add_todo_title_field"
 - inputText: "Ship the release"
-- hideKeyboard:
-    optional: true
 
 - assertVisible:
     id: "add_todo_counter"

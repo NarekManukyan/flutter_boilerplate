@@ -1,4 +1,5 @@
 import 'package:api/api.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_boilerplate/core/navigation/app_navigator.dart';
 import 'package:flutter_boilerplate/features/home/mobx/home_store.dart';
 import 'package:flutter_boilerplate/features/home/view/home_keys.dart';
@@ -65,9 +66,9 @@ void main() {
 
       await tester.pumpApp(const HomePage());
 
-      expect(find.byKey(HomeKeys.skeletonList), findsOneWidget);
-      expect(find.byKey(HomeKeys.todoList), findsNothing);
-      expect(find.byKey(HomeKeys.errorState), findsNothing);
+      expect(find.byKey(const Key(HomeKeys.skeletonList)), findsOneWidget);
+      expect(find.byKey(const Key(HomeKeys.todoList)), findsNothing);
+      expect(find.byKey(const Key(HomeKeys.errorState)), findsNothing);
     });
 
     testWidgets('should show the error state with a retry affordance', (
@@ -77,9 +78,9 @@ void main() {
 
       await tester.pumpApp(const HomePage());
 
-      expect(find.byKey(HomeKeys.errorState), findsOneWidget);
-      expect(find.byKey(HomeKeys.errorRetry), findsOneWidget);
-      expect(find.byKey(HomeKeys.skeletonList), findsNothing);
+      expect(find.byKey(const Key(HomeKeys.errorState)), findsOneWidget);
+      expect(find.byKey(const Key(HomeKeys.errorRetry)), findsOneWidget);
+      expect(find.byKey(const Key(HomeKeys.skeletonList)), findsNothing);
     });
 
     testWidgets('should retry the load when the retry button is tapped', (
@@ -88,7 +89,7 @@ void main() {
       _stubStore(store, error: 'boom');
 
       await tester.pumpApp(const HomePage());
-      await tester.tap(find.byKey(HomeKeys.errorRetry));
+      await tester.tap(find.byKey(const Key(HomeKeys.errorRetry)));
       await tester.pump();
 
       // once for the Provider's init(), once for the retry
@@ -102,8 +103,8 @@ void main() {
 
       await tester.pumpApp(const HomePage());
 
-      expect(find.byKey(HomeKeys.emptyState), findsOneWidget);
-      expect(find.byKey(HomeKeys.todoList), findsNothing);
+      expect(find.byKey(const Key(HomeKeys.emptyState)), findsOneWidget);
+      expect(find.byKey(const Key(HomeKeys.todoList)), findsNothing);
       // Also proves the harness really loaded the translations — without them
       // this renders the raw key path 'homePage.empty'.
       expect(find.text('No todos yet'), findsOneWidget);
@@ -114,8 +115,8 @@ void main() {
 
       await tester.pumpApp(const HomePage());
 
-      expect(find.byKey(HomeKeys.todoList), findsOneWidget);
-      expect(find.byKey(HomeKeys.emptyState), findsNothing);
+      expect(find.byKey(const Key(HomeKeys.todoList)), findsOneWidget);
+      expect(find.byKey(const Key(HomeKeys.emptyState)), findsNothing);
       expect(find.text('todo 1'), findsOneWidget);
     });
 
@@ -123,7 +124,7 @@ void main() {
       _stubStore(store, todos: [_todo('1')]);
 
       await tester.pumpApp(const HomePage());
-      await tester.tap(find.byKey(HomeKeys.addTodoFab));
+      await tester.tap(find.byKey(const Key(HomeKeys.addTodoFab)));
       await tester.pump();
 
       verify(state.onAddTodoPressed).called(1);
@@ -134,7 +135,7 @@ void main() {
 
       await tester.pumpApp(const HomePage(), dark: true);
 
-      expect(find.byKey(HomeKeys.todoList), findsOneWidget);
+      expect(find.byKey(const Key(HomeKeys.todoList)), findsOneWidget);
     });
   });
 }

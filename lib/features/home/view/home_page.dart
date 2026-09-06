@@ -10,6 +10,7 @@ import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/ui/geist_motion.dart';
+import '../../../core/ui/test_id.dart';
 import '../../../gen/locale_keys.g.dart';
 import '../../../injectable.dart';
 import 'home_keys.dart';
@@ -70,17 +71,19 @@ class _HomePageContent extends HookWidget {
           final store = state.store;
 
           if (store.isLoading && store.todos.isEmpty) {
-            return const _TodoSkeletonList(key: HomeKeys.skeletonList);
+            return const _TodoSkeletonList().withTestId(HomeKeys.skeletonList);
           }
           if (store.error != null) {
-            return _ErrorState(key: HomeKeys.errorState, onRetry: state.init);
+            return _ErrorState(
+              onRetry: state.init,
+            ).withTestId(HomeKeys.errorState);
           }
 
           final total = store.todos.length;
           final done = store.todos.where((t) => t.completed).length;
 
           if (total == 0) {
-            return const _EmptyState(key: HomeKeys.emptyState);
+            return const _EmptyState().withTestId(HomeKeys.emptyState);
           }
 
           final filtered = store.todos.where((t) {
@@ -95,7 +98,6 @@ class _HomePageContent extends HookWidget {
           }).toList();
 
           return RefreshIndicator(
-            key: HomeKeys.todoList,
             color: g.ink,
             backgroundColor: g.surface,
             onRefresh: state.init,
@@ -123,9 +125,8 @@ class _HomePageContent extends HookWidget {
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: _FilterEmptyState(
-                      key: HomeKeys.filterEmptyState,
                       filter: filter.value,
-                    ),
+                    ).withTestId(HomeKeys.filterEmptyState),
                   )
                 else
                   SliverPadding(
@@ -153,14 +154,13 @@ class _HomePageContent extends HookWidget {
                   ),
               ],
             ),
-          );
+          ).withTestId(HomeKeys.todoList);
         },
       ),
       floatingActionButton: _NewTodoFab(
-        key: HomeKeys.addTodoFab,
         visible: fabVisible.value,
         onPressed: state.onAddTodoPressed,
-      ),
+      ).withTestId(HomeKeys.addTodoFab),
     );
   }
 }
@@ -202,11 +202,10 @@ class _TopNav extends StatelessWidget {
               ),
               const Gap(kSpacing8px),
               _GhostIconButton(
-                key: HomeKeys.logoutButton,
                 icon: Icons.logout_rounded,
                 tooltip: LocaleKeys.homePage_logout.tr(),
                 onPressed: onLogout,
-              ),
+              ).withTestId(HomeKeys.logoutButton),
             ],
           ),
         ),
@@ -236,7 +235,6 @@ class _BrandMark extends StatelessWidget {
 
 class _GhostIconButton extends StatelessWidget {
   const _GhostIconButton({
-    super.key,
     required this.icon,
     required this.onPressed,
     this.tooltip,
@@ -437,28 +435,25 @@ class _FilterBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _FilterChip(
-            key: HomeKeys.filterAll,
             label: LocaleKeys.homePage_filterAll.tr(),
             count: total,
             selected: current == _TodoFilter.all,
             onTap: () => onChanged(_TodoFilter.all),
-          ),
+          ).withTestId(HomeKeys.filterAll),
           const Gap(kSpacing6px),
           _FilterChip(
-            key: HomeKeys.filterActive,
             label: LocaleKeys.homePage_filterActive.tr(),
             count: active,
             selected: current == _TodoFilter.active,
             onTap: () => onChanged(_TodoFilter.active),
-          ),
+          ).withTestId(HomeKeys.filterActive),
           const Gap(kSpacing6px),
           _FilterChip(
-            key: HomeKeys.filterDone,
             label: LocaleKeys.homePage_filterDone.tr(),
             count: done,
             selected: current == _TodoFilter.done,
             onTap: () => onChanged(_TodoFilter.done),
-          ),
+          ).withTestId(HomeKeys.filterDone),
         ],
       ),
     );
@@ -467,7 +462,6 @@ class _FilterBar extends StatelessWidget {
 
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
-    super.key,
     required this.label,
     required this.count,
     required this.selected,
@@ -643,11 +637,7 @@ class _AnimatedCheckbox extends StatelessWidget {
 }
 
 class _NewTodoFab extends StatelessWidget {
-  const _NewTodoFab({
-    required this.visible,
-    required this.onPressed,
-    super.key,
-  });
+  const _NewTodoFab({required this.visible, required this.onPressed});
 
   final bool visible;
   final VoidCallback onPressed;
@@ -697,7 +687,7 @@ class _NewTodoFab extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({super.key});
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -739,7 +729,7 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _FilterEmptyState extends StatelessWidget {
-  const _FilterEmptyState({required this.filter, super.key});
+  const _FilterEmptyState({required this.filter});
 
   final _TodoFilter filter;
 
@@ -767,7 +757,7 @@ class _FilterEmptyState extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry, super.key});
+  const _ErrorState({required this.onRetry});
 
   final Future<void> Function() onRetry;
 
@@ -790,7 +780,6 @@ class _ErrorState extends StatelessWidget {
               ),
               const Gap(kSpacing16px),
               PressScale(
-                key: HomeKeys.errorRetry,
                 haptic: false,
                 // ignore: unnecessary_lambdas
                 onPressed: () {
@@ -817,7 +806,7 @@ class _ErrorState extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
+              ).withTestId(HomeKeys.errorRetry),
             ],
           ),
         ),
@@ -827,7 +816,7 @@ class _ErrorState extends StatelessWidget {
 }
 
 class _TodoSkeletonList extends HookWidget {
-  const _TodoSkeletonList({super.key});
+  const _TodoSkeletonList();
 
   @override
   Widget build(BuildContext context) {

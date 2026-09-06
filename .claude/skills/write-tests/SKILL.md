@@ -149,15 +149,16 @@ void main() {
 
     await tester.pumpApp(const HomePage());
 
-    expect(find.byKey(HomeKeys.emptyState), findsOneWidget);
-    expect(find.byKey(HomeKeys.todoList), findsNothing);
+    expect(find.byKey(const Key(HomeKeys.emptyState)), findsOneWidget);
+    expect(find.byKey(const Key(HomeKeys.todoList)), findsNothing);
   });
 }
 ```
 
 Working example: [`test/features/home/view/home_page_test.dart`](../../../test/features/home/view/home_page_test.dart).
 
-- Find by the feature's `Key` constants, not by text — text is localized and will change.
+- Find by the feature's id constants, not by text — text is localized and will change.
+  Ids are Strings (so Maestro can use the same value), so wrap them: `find.byKey(const Key(HomeKeys.emptyState))`.
 - Test **wiring**, not logic: does the branch render, does the callback fire. Business logic belongs in the state/store unit test where it is cheap.
 - Cover all four branches: loading, error, empty, content — plus one `dark: true` pump.
 
@@ -202,6 +203,6 @@ melos run test:coverage                     # lcov
 - [ ] Faked at the seam below, never at the layer under test
 - [ ] Store/use-case tests cover success, failure, and empty
 - [ ] Failure tests assert loading was cleared
-- [ ] Widget tests find by `Key`, cover loading / error / empty / content
+- [ ] Widget tests find by `Key(HomeKeys.x)`, cover loading / error / empty / content
 - [ ] Every test could fail if the real code broke
 - [ ] Reactions disposed; no cross-test leakage

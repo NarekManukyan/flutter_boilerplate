@@ -51,19 +51,24 @@ Every feature ships Maestro flows for three named categories. This is the QA con
 
 Flow files are named `{feature}_{category}.yaml` (e.g. `todo_create_failure.yaml`) so the category is visible in a directory listing and selectable by Maestro tag.
 
-### Widget keys are part of the feature
+### Test identifiers are part of the feature
 
-Maestro selects by accessibility identifier. Every widget an E2E flow drives carries a stable `Key`, and every interactive widget carries a `Semantics` label sourced from `LocaleKeys` ([ADR-0012](0012-mandatory-localization.md)). Keys live in a per-feature `{feature}_keys.dart` constants file so the flow and the widget cannot drift apart silently.
+Maestro selects by *native* accessibility identifier, and a Flutter `Key` is not one. Verified on device: a widget carrying only a `Key` appears in the accessibility hierarchy with an empty `resource-id`, so every `id:` selector against it fails. The identifier comes from `Semantics(identifier:)`, which maps to `UIAccessibilityElement.accessibilityIdentifier` on iOS and `setViewIdResourceName` on Android.
+
+The repo therefore ships a `TestId` widget (`lib/core/ui/test_id.dart`) that applies both from a single string — the `Semantics(identifier:)` Maestro matches and a `Key` for widget tests. Identifiers are plain `String` constants in a per-feature `{feature}_keys.dart`, so one value is the contract for both tiers and the flow cannot drift from the widget silently.
+
+Every widget an E2E flow drives is tagged with `TestId`, and every interactive widget also carries a `Semantics` label sourced from `LocaleKeys` ([ADR-0012](0012-mandatory-localization.md)).
 
 ### Consequences
 
 - Good: a feature has an executable definition of done that an agent or CI can evaluate.
 - Good: the failure and edge categories force the error branches to be designed, not discovered.
-- Good: widget keys plus semantics labels make the app measurably more accessible as a side effect.
+- Good: test identifiers plus semantics labels make the app measurably more accessible as a side effect.
 - Good: unit tests stay fast because widget tests are limited to wiring, not logic.
 - Bad: feature cost rises — roughly 30–40% more work per feature up front.
 - Bad: Maestro is an external toolchain (JVM + CLI) that every developer and CI runner must install.
 - Bad: flows are device-dependent and will flake; they need retry policy and a quarantine tag rather than being deleted on first red.
+- Bad: driving a real device surfaces host-level behaviour that has to be learned once and written down — `clearState` logging the user out, `hideKeyboard` pressing Done and submitting a form, `eraseText` clearing only a fixed number of characters, and the directory runner not recursing into subdirectories. These are captured in the `write-maestro-flow` playbook.
 
 ## Pros and Cons of the Options
 

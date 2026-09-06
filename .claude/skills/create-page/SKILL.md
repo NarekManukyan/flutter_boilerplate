@@ -113,25 +113,40 @@ Observer(
 - **Empty** — distinct from loading and from error; says what the user can do next.
 - **Content**.
 
-Each branch needs a key (below) so the Maestro failure and edge flows can assert it.
+Each branch needs a test identifier (below) so the Maestro failure and edge flows can assert it.
 
-## Keys and semantics
+## Test identifiers
 
-Every widget an E2E flow touches carries a stable `Key` from the feature's key file, and every interactive widget carries a `Semantics` label from `LocaleKeys` ([ADR-0015](../../../docs/adr/0015-mandatory-test-coverage-and-qa-gate.md)).
+Every widget an E2E flow touches carries a stable identifier, and every interactive widget carries a `Semantics` label from `LocaleKeys` ([ADR-0015](../../../docs/adr/0015-mandatory-test-coverage-and-qa-gate.md)).
+
+**A plain `Key` is not enough.** Verified on device: Flutter does not export a `Key` to the native accessibility tree, so Maestro cannot see it — the widget shows up with an empty `resource-id` and every `id:` selector fails. Only `Semantics(identifier:)` sets the native accessibility identifier.
+
+Use `TestId` (`lib/core/ui/test_id.dart`), which applies both from one string — the `Semantics(identifier:)` Maestro matches, and the `Key` widget tests find:
 
 ```dart
-// lib/features/home/view/home_keys.dart
+// lib/features/home/view/home_keys.dart — plain Strings
 class HomeKeys {
   HomeKeys._();
-  static const addTodoFab = Key('home_add_todo_fab');
-  static const todoList = Key('home_todo_list');
-  static const emptyState = Key('home_empty_state');
-  static const errorState = Key('home_error_state');
-  static const errorRetry = Key('home_error_retry');
+  static const addTodoFab = 'home_add_todo_fab';
+  static const todoList = 'home_todo_list';
+  static const emptyState = 'home_empty_state';
+  static const errorState = 'home_error_state';
+  static const errorRetry = 'home_error_retry';
 }
 ```
 
-Maestro selects on the accessibility id, so the string inside `Key(...)` is the contract — do not rename it without updating the flow.
+```dart
+// wrap the branch or the control
+return const _EmptyState().withTestId(HomeKeys.emptyState);
+
+_NewTodoFab(visible: v, onPressed: p).withTestId(HomeKeys.addTodoFab)
+
+TestId(HomeKeys.todoList, child: RefreshIndicator(...))
+```
+
+Widget tests then use `find.byKey(const Key(HomeKeys.emptyState))`; flows use `id: "home_empty_state"`. The string is the contract across both — do not rename it without updating the flow.
+
+A `TextField` is the one case where the inner widget also wants the raw `Key` (so `find.byKey` targets the field itself rather than the wrapper); tag the wrapper with `TestId` for Maestro and put `key: const Key(...)` on the `TextField` too.
 
 ## Motion
 
@@ -143,7 +158,8 @@ Use the primitives in `lib/core/ui/geist_motion.dart` — `PressScale` for tap f
 - [ ] State injected, never passed as a parameter
 - [ ] No `context.router`; `AppNavigator` in the state
 - [ ] `Observer` scoped to the smallest reactive subtree
-- [ ] Loading / error / empty / content all handled, each with a key
+- [ ] Loading / error / empty / content all handled, each tagged with `TestId`
 - [ ] Tokens + `LocaleKeys` only
-- [ ] Keys in `{feature}_keys.dart`, semantics labels on interactive widgets
+- [ ] Ids are Strings in `{feature}_keys.dart`, applied with `TestId` — never a bare `Key`
+- [ ] Semantics labels on interactive widgets, sourced from `LocaleKeys`
 - [ ] `melos run build` after adding `@RoutePage` or MobX annotations

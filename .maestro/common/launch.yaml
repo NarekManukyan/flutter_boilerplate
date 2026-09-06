@@ -1,5 +1,8 @@
 # Cold launch from a clean slate. Every flow starts here — a flow that depends
 # on the previous flow's state passes locally and fails in CI.
+#
+# `clearState: true` also clears the auth token, so this lands on Login, not
+# Home. Flows that need a signed-in user run `login.yaml` next.
 appId: com.example.flutterBoilerplate
 ---
 - launchApp:
@@ -11,5 +14,5 @@ appId: com.example.flutterBoilerplate
 
 - extendedWaitUntil:
     visible:
-      id: "home_todo_list"
-    timeout: 15000
+      id: "login_email_field"
+    timeout: 20000

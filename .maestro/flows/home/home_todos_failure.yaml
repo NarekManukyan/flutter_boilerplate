@@ -6,7 +6,7 @@ tags:
   - failure
   - home
 ---
-- runFlow: ../../common/launch.yaml
+- runFlow: ../../common/start_home.yaml
 
 - runFlow:
     file: ../../common/set_mock.yaml

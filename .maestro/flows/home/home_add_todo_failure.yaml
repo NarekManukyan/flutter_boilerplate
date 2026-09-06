@@ -5,8 +5,11 @@ name: "Home — add todo server error (failure)"
 tags:
   - failure
   - home
+# NOTE: no `hideKeyboard` after typing into the add-todo field. On iOS Maestro
+# presses the keyboard's Done key, which fires the field's `onSubmitted` and
+# submits the form early — verified on device. Tap the submit button instead.
 ---
-- runFlow: ../../common/launch.yaml
+- runFlow: ../../common/start_home.yaml
 
 - runFlow:
     file: ../../common/set_mock.yaml
@@ -18,8 +21,6 @@ tags:
 - tapOn:
     id: "add_todo_title_field"
 - inputText: "Will not be created"
-- hideKeyboard:
-    optional: true
 
 - tapOn:
     id: "add_todo_submit"

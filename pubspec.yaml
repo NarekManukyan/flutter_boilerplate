@@ -163,11 +163,11 @@ melos:
 
     maestro:
       description: Run every Maestro E2E flow — needs a booted device with the app installed
-      run: maestro test .maestro/flows
+      run: maestro test .maestro
 
     maestro:happy:
       description: Run only the happy-path Maestro flows (the PR gate)
-      run: maestro test .maestro/flows --include-tags happy --exclude-tags quarantine
+      run: maestro test .maestro --include-tags happy --exclude-tags quarantine
 
     format:
       description: Format the app and both packages

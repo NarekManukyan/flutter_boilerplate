@@ -127,7 +127,7 @@ docs/adr/                  architecture decision records
 | Page | `*_page.dart` | | DTO | `*_dto.dart` |
 | Page state | `*_page_state.dart` | | Service | `*_service.dart` |
 | Store | `*_store.dart` | | API provider | `*_api_provider.dart` |
-| Use case | `*_use_case.dart` | | Widget keys | `*_keys.dart` |
+| Use case | `*_use_case.dart` | | Test ids | `*_keys.dart` |
 | Widget | `*_widget.dart` | | Maestro flow | `{feature}_{category}.yaml` |
 
 ## File Boundaries
@@ -170,7 +170,7 @@ These are the ones worth carrying in your head. Everything else is in a playbook
 - **No redundant getter for `@readonly`** — it already generates the public getter. `@computed` is for derived state only.
 - **Relative imports inside `lib/`, single quotes, trailing commas on multiline args.** `analysis_options.yaml` promotes these to errors, along with `cascade_invocations`, `avoid_print`, `cancel_subscriptions`.
 - **Never edit generated files.** Change the annotation and run `melos run build`.
-- **Every interactive widget an E2E flow touches carries a stable `Key`** from the feature's `*_keys.dart`, plus a `Semantics` label from `LocaleKeys`.
+- **Every widget an E2E flow touches is tagged with `TestId`** from the feature's `*_keys.dart` (plain `String` ids), plus a `Semantics` label from `LocaleKeys`. A bare `Key` is invisible to Maestro — only `Semantics(identifier:)` sets a native accessibility id.
 
 ## Testing
 
@@ -183,6 +183,8 @@ A feature is done when all three tiers exist:
 | Unit | `test/features/{feature}/` | stores, states, use cases, services |
 | Widget | `test/features/{feature}/view/` | page renders each state; callbacks fire |
 | E2E | `.maestro/flows/{feature}/` | the journey on a device — **happy, failure, edge** |
+
+Run the E2E suite against `.maestro` (the workspace root), not `.maestro/flows` — the directory runner does not recurse.
 
 Conventions: always `group()` named after the class under test; test names start with `should`; Arrange-Act-Assert; prefer real objects > fake > mock. Before writing a test, ask *"can this fail if the real code is broken?"* — if not, it is testing the mock.
 

@@ -1,0 +1,8 @@
+# Launch + sign in + land on Home. The starting point for every Home flow.
+appId: com.example.flutterBoilerplate
+---
+- runFlow: launch.yaml
+- runFlow:
+    file: login.yaml
+    env:
+      EMAIL: "qa@example.com"

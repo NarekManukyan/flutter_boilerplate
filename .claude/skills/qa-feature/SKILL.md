@@ -53,7 +53,7 @@ Take the AC checklist from the plan. Every line gets a row, and every row names 
 
 ### States
 
-- [ ] Loading, error, empty and content all implemented, each with its own key.
+- [ ] Loading, error, empty and content all implemented, each tagged with `TestId` so a flow can assert it.
 - [ ] Loading uses `skeletonizer`, not a bare centred spinner on first load.
 - [ ] No state can be reached where the user has no action available.
 
@@ -66,6 +66,7 @@ Take the AC checklist from the plan. Every line gets a row, and every row names 
 ### Accessibility
 
 - [ ] Every interactive widget has a `Semantics` label sourced from `LocaleKeys`.
+- [ ] `inspect_screen` shows a non-empty `rid` for every id the flows use — a bare `Key` is invisible to Maestro.
 - [ ] Touch targets ≥ 44×44 pt.
 - [ ] Screen reader can traverse the screen in a sensible order.
 - [ ] Text scales to 200% without clipping or overlap.
@@ -94,7 +95,7 @@ Take the AC checklist from the plan. Every line gets a row, and every row names 
 
 ```bash
 melos run verify        # lint + analyze + format + test
-melos run maestro       # all flows, on a booted device
+melos run maestro       # all flows, on a booted device with the dev build installed
 ```
 
 Both green, and the AC table has a proof for every row. Anything red or missing is reported as a finding, not waved through.
