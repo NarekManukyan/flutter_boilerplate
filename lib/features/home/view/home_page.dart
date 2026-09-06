@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../../../core/ui/geist_motion.dart';
 import '../../../gen/locale_keys.g.dart';
 import '../../../injectable.dart';
+import 'home_keys.dart';
 import 'home_page_state.dart';
 
 enum _TodoFilter { all, active, done }
@@ -69,17 +70,17 @@ class _HomePageContent extends HookWidget {
           final store = state.store;
 
           if (store.isLoading && store.todos.isEmpty) {
-            return const _TodoSkeletonList();
+            return const _TodoSkeletonList(key: HomeKeys.skeletonList);
           }
           if (store.error != null) {
-            return _ErrorState(onRetry: state.init);
+            return _ErrorState(key: HomeKeys.errorState, onRetry: state.init);
           }
 
           final total = store.todos.length;
           final done = store.todos.where((t) => t.completed).length;
 
           if (total == 0) {
-            return const _EmptyState();
+            return const _EmptyState(key: HomeKeys.emptyState);
           }
 
           final filtered = store.todos.where((t) {
@@ -94,6 +95,7 @@ class _HomePageContent extends HookWidget {
           }).toList();
 
           return RefreshIndicator(
+            key: HomeKeys.todoList,
             color: g.ink,
             backgroundColor: g.surface,
             onRefresh: state.init,
@@ -120,7 +122,10 @@ class _HomePageContent extends HookWidget {
                 if (filtered.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
-                    child: _FilterEmptyState(filter: filter.value),
+                    child: _FilterEmptyState(
+                      key: HomeKeys.filterEmptyState,
+                      filter: filter.value,
+                    ),
                   )
                 else
                   SliverPadding(
@@ -152,6 +157,7 @@ class _HomePageContent extends HookWidget {
         },
       ),
       floatingActionButton: _NewTodoFab(
+        key: HomeKeys.addTodoFab,
         visible: fabVisible.value,
         onPressed: state.onAddTodoPressed,
       ),
@@ -191,11 +197,12 @@ class _TopNav extends StatelessWidget {
               const Spacer(),
               _GhostIconButton(
                 icon: Icons.celebration_outlined,
-                tooltip: 'Challenge joined preview',
+                tooltip: LocaleKeys.homePage_challengePreview.tr(),
                 onPressed: onChallenge,
               ),
               const Gap(kSpacing8px),
               _GhostIconButton(
+                key: HomeKeys.logoutButton,
                 icon: Icons.logout_rounded,
                 tooltip: LocaleKeys.homePage_logout.tr(),
                 onPressed: onLogout,
@@ -229,6 +236,7 @@ class _BrandMark extends StatelessWidget {
 
 class _GhostIconButton extends StatelessWidget {
   const _GhostIconButton({
+    super.key,
     required this.icon,
     required this.onPressed,
     this.tooltip,
@@ -298,8 +306,8 @@ class _Hero extends StatelessWidget {
             ),
             child: Text(
               remaining == 0
-                  ? 'All done.'
-                  : '$remaining ${remaining == 1 ? 'task' : 'tasks'} to go.',
+                  ? LocaleKeys.homePage_allDone.tr()
+                  : LocaleKeys.homePage_remainingTasks.plural(remaining),
               key: ValueKey(remaining == 0),
               style: GeistTextStyles.displayM.copyWith(color: g.ink),
             ),
@@ -319,14 +327,12 @@ class _Hero extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const Text(' of '),
-                Text('$total'),
-                const Text(' completed · '),
-                AnimatedCount(
-                  value: pct,
-                  style: GeistTextStyles.bodyM.copyWith(color: g.muted),
+                const Gap(kSpacing4px),
+                Text(
+                  LocaleKeys.homePage_progressSummary.tr(
+                    namedArgs: {'total': '$total', 'pct': '$pct'},
+                  ),
                 ),
-                const Text('%'),
               ],
             ),
           ),
@@ -431,21 +437,24 @@ class _FilterBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _FilterChip(
-            label: 'All',
+            key: HomeKeys.filterAll,
+            label: LocaleKeys.homePage_filterAll.tr(),
             count: total,
             selected: current == _TodoFilter.all,
             onTap: () => onChanged(_TodoFilter.all),
           ),
           const Gap(kSpacing6px),
           _FilterChip(
-            label: 'Active',
+            key: HomeKeys.filterActive,
+            label: LocaleKeys.homePage_filterActive.tr(),
             count: active,
             selected: current == _TodoFilter.active,
             onTap: () => onChanged(_TodoFilter.active),
           ),
           const Gap(kSpacing6px),
           _FilterChip(
-            label: 'Done',
+            key: HomeKeys.filterDone,
+            label: LocaleKeys.homePage_filterDone.tr(),
             count: done,
             selected: current == _TodoFilter.done,
             onTap: () => onChanged(_TodoFilter.done),
@@ -458,6 +467,7 @@ class _FilterBar extends StatelessWidget {
 
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
+    super.key,
     required this.label,
     required this.count,
     required this.selected,
@@ -633,7 +643,11 @@ class _AnimatedCheckbox extends StatelessWidget {
 }
 
 class _NewTodoFab extends StatelessWidget {
-  const _NewTodoFab({required this.visible, required this.onPressed});
+  const _NewTodoFab({
+    required this.visible,
+    required this.onPressed,
+    super.key,
+  });
 
   final bool visible;
   final VoidCallback onPressed;
@@ -670,7 +684,7 @@ class _NewTodoFab extends StatelessWidget {
                 Icon(Icons.add_rounded, color: g.surface, size: 16),
                 const Gap(kSpacing6px),
                 Text(
-                  'New todo',
+                  LocaleKeys.keywords_newTodo.tr(),
                   style: GeistTextStyles.button.copyWith(color: g.surface),
                 ),
               ],
@@ -683,7 +697,7 @@ class _NewTodoFab extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -712,7 +726,7 @@ class _EmptyState extends StatelessWidget {
               ),
               const Gap(kSpacing8px),
               Text(
-                'Tap the + button to add your first task.',
+                LocaleKeys.homePage_emptySubtitle.tr(),
                 textAlign: TextAlign.center,
                 style: GeistTextStyles.bodyM.copyWith(color: g.muted),
               ),
@@ -725,7 +739,7 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _FilterEmptyState extends StatelessWidget {
-  const _FilterEmptyState({required this.filter});
+  const _FilterEmptyState({required this.filter, super.key});
 
   final _TodoFilter filter;
 
@@ -733,9 +747,9 @@ class _FilterEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final g = context.geist;
     final msg = switch (filter) {
-      _TodoFilter.active => 'No active tasks. Enjoy the break.',
-      _TodoFilter.done => 'Nothing completed yet.',
-      _TodoFilter.all => 'Nothing here.',
+      _TodoFilter.active => LocaleKeys.homePage_filterEmptyActive.tr(),
+      _TodoFilter.done => LocaleKeys.homePage_filterEmptyDone.tr(),
+      _TodoFilter.all => LocaleKeys.homePage_filterEmptyAll.tr(),
     };
     return FadeSlideIn(
       child: Padding(
@@ -753,7 +767,7 @@ class _FilterEmptyState extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry});
+  const _ErrorState({required this.onRetry, super.key});
 
   final Future<void> Function() onRetry;
 
@@ -776,6 +790,7 @@ class _ErrorState extends StatelessWidget {
               ),
               const Gap(kSpacing16px),
               PressScale(
+                key: HomeKeys.errorRetry,
                 haptic: false,
                 // ignore: unnecessary_lambdas
                 onPressed: () {
@@ -794,7 +809,7 @@ class _ErrorState extends StatelessWidget {
                       Icon(Icons.refresh_rounded, size: 16, color: g.surface),
                       const Gap(kSpacing6px),
                       Text(
-                        'Retry',
+                        LocaleKeys.keywords_retry.tr(),
                         style: GeistTextStyles.button.copyWith(
                           color: g.surface,
                         ),
@@ -812,7 +827,7 @@ class _ErrorState extends StatelessWidget {
 }
 
 class _TodoSkeletonList extends HookWidget {
-  const _TodoSkeletonList();
+  const _TodoSkeletonList({super.key});
 
   @override
   Widget build(BuildContext context) {

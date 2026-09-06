@@ -1,0 +1,15 @@
+# Cold launch from a clean slate. Every flow starts here — a flow that depends
+# on the previous flow's state passes locally and fails in CI.
+appId: com.example.flutterBoilerplate
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    permissions:
+      notifications: allow
+      all: unset
+
+- extendedWaitUntil:
+    visible:
+      id: "home_todo_list"
+    timeout: 15000

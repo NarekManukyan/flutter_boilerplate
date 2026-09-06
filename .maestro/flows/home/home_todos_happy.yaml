@@ -1,0 +1,36 @@
+# AC: a signed-in user lands on Home and sees their todos.
+appId: com.example.flutterBoilerplate
+name: "Home — todo list loads (happy)"
+tags:
+  - happy
+  - home
+---
+- runFlow: ../../common/launch.yaml
+
+- assertVisible:
+    id: "home_todo_list"
+- assertNotVisible:
+    id: "home_skeleton_list"
+- assertNotVisible:
+    id: "home_error_state"
+- assertNotVisible:
+    id: "home_empty_state"
+
+- assertVisible: "Buy groceries"
+- assertVisible: "Read a book"
+
+# The filter bar narrows the list without refetching.
+- tapOn:
+    id: "home_filter_done"
+- assertVisible: "Read a book"
+- assertNotVisible: "Buy groceries"
+
+- tapOn:
+    id: "home_filter_active"
+- assertVisible: "Buy groceries"
+- assertNotVisible: "Read a book"
+
+- tapOn:
+    id: "home_filter_all"
+- assertVisible: "Buy groceries"
+- assertVisible: "Read a book"

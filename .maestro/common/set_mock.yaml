@@ -1,0 +1,36 @@
+# Switches the dev mock interceptor to ${SCENARIO} at run time.
+#
+# The scenario is a static in the app process, so it must be set AFTER launch —
+# `clearState: true` restarts the process and resets it to `normal`.
+#
+# The command is typed into the add-todo field and swallowed by
+# MockTodosInterceptor.handleCommand. It is rejected as a Dio `cancel`, so the
+# modal shows its generic error before we dismiss it — expected, not a defect.
+#
+# Scenarios: normal | empty | serverError | slow | reset
+appId: com.example.flutterBoilerplate
+---
+- tapOn:
+    id: "home_add_todo_fab"
+    label: "Open the add-todo sheet"
+
+- tapOn:
+    id: "add_todo_title_field"
+- inputText: "/mock ${SCENARIO}"
+- hideKeyboard:
+    optional: true
+
+- tapOn:
+    id: "add_todo_submit"
+    label: "Apply the mock scenario"
+
+- extendedWaitUntil:
+    visible:
+      id: "add_todo_error"
+    timeout: 5000
+
+- tapOn:
+    id: "add_todo_cancel"
+    label: "Dismiss the sheet"
+
+- waitForAnimationToEnd

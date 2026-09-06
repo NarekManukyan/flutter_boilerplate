@@ -11,6 +11,7 @@ import '../../../../../core/ui/geist_motion.dart';
 import '../../../../../gen/locale_keys.g.dart';
 import '../../../../../injectable.dart';
 import '../mobx/add_todo_modal_state.dart';
+import 'add_todo_modal_keys.dart';
 
 const _kMaxLength = 80;
 
@@ -53,7 +54,7 @@ class _AddTodoModalContent extends HookWidget {
               children: [
                 FadeSlideIn(
                   child: Text(
-                    'NEW TASK',
+                    LocaleKeys.addTodoModal_eyebrow.tr(),
                     style: GeistTextStyles.monoLabel.copyWith(color: g.subtle),
                   ),
                 ),
@@ -69,7 +70,7 @@ class _AddTodoModalContent extends HookWidget {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 80),
                   child: Text(
-                    'Keep it short. You can always edit later.',
+                    LocaleKeys.addTodoModal_subtitle.tr(),
                     style: GeistTextStyles.bodyS.copyWith(color: g.muted),
                   ),
                 ),
@@ -87,6 +88,20 @@ class _AddTodoModalContent extends HookWidget {
                 ),
                 const Gap(kSpacing6px),
                 _CounterRow(length: trimmedLen, max: _kMaxLength),
+                Observer(
+                  builder: (_) => state.hasError
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: kSpacing6px),
+                          child: Text(
+                            LocaleKeys.addTodoModal_error.tr(),
+                            key: AddTodoModalKeys.errorText,
+                            style: GeistTextStyles.bodyS.copyWith(
+                              color: g.danger,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
                 const Gap(kSpacing16px),
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 160),
@@ -94,6 +109,7 @@ class _AddTodoModalContent extends HookWidget {
                     builder: (_) {
                       final isLoading = state.loadingState.isLoading;
                       return _PrimaryButton(
+                        key: AddTodoModalKeys.submit,
                         isLoading: isLoading,
                         label: LocaleKeys.addTodoModal_add.tr(),
                         onPressed: hasText && !isLoading
@@ -110,6 +126,7 @@ class _AddTodoModalContent extends HookWidget {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 200),
                   child: _GhostButton(
+                    key: AddTodoModalKeys.cancel,
                     label: LocaleKeys.addTodoModal_cancel.tr(),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -139,7 +156,7 @@ class _CounterRow extends StatelessWidget {
       child: AnimatedDefaultTextStyle(
         duration: GeistDuration.fast,
         style: GeistTextStyles.monoCounter.copyWith(color: color),
-        child: Text('$length / $max'),
+        child: Text('$length / $max', key: AddTodoModalKeys.counter),
       ),
     );
   }
@@ -177,6 +194,7 @@ class _TitleField extends HookWidget {
             : [g.shadowElevation],
       ),
       child: TextField(
+        key: AddTodoModalKeys.titleField,
         controller: controller,
         focusNode: focus,
         autofocus: true,
@@ -207,6 +225,7 @@ class _TitleField extends HookWidget {
 
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({
+    super.key,
     required this.isLoading,
     required this.label,
     required this.onPressed,
@@ -268,7 +287,7 @@ class _PrimaryButton extends StatelessWidget {
 }
 
 class _GhostButton extends StatelessWidget {
-  const _GhostButton({required this.label, required this.onPressed});
+  const _GhostButton({required this.label, required this.onPressed, super.key});
 
   final String label;
   final VoidCallback onPressed;

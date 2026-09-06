@@ -15,10 +15,7 @@ abstract class _HomeStoreBase with Store {
   final DioService _dioService;
   final AuthStore _authStore;
 
-  _HomeStoreBase(
-    this._dioService,
-    this._authStore,
-  );
+  _HomeStoreBase(this._dioService, this._authStore);
 
   @readonly
   ObservableList<TodoDto> _todos = ObservableList();

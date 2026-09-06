@@ -1,0 +1,56 @@
+# Edge cases for the add-todo sheet: empty input, maximum length, and a rapid
+# double-tap on the primary action.
+appId: com.example.flutterBoilerplate
+name: "Home — add todo input edges (edge)"
+tags:
+  - edge
+  - home
+---
+- runFlow: ../../common/launch.yaml
+
+- tapOn:
+    id: "home_add_todo_fab"
+
+# 1. Empty title — submit must be inert, and nothing may be created.
+- assertVisible:
+    id: "add_todo_submit"
+- tapOn:
+    id: "add_todo_submit"
+- assertVisible:
+    id: "add_todo_title_field"
+- assertNotVisible:
+    id: "home_todo_list"
+
+# 2. Maximum length — the field caps at 80 characters, the counter reflects it.
+- tapOn:
+    id: "add_todo_title_field"
+- inputText: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbb"
+- hideKeyboard:
+    optional: true
+- assertVisible:
+    id: "add_todo_counter"
+- assertVisible: "80 / 80"
+
+- eraseText
+- tapOn:
+    id: "add_todo_title_field"
+- inputText: "Double tap guard"
+- hideKeyboard:
+    optional: true
+
+# 3. Rapid double-tap must create exactly one todo, not two.
+- tapOn:
+    id: "add_todo_submit"
+    repeat: 2
+    delay: 80
+
+- extendedWaitUntil:
+    visible: "Double tap guard"
+    timeout: 8000
+
+- assertVisible:
+    text: "Double tap guard"
+    index: 0
+- assertNotVisible:
+    text: "Double tap guard"
+    index: 1

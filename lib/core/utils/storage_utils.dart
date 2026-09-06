@@ -1,3 +1,8 @@
+// This is a boilerplate helper set: the typed get/set pairs are deliberately
+// complete so a new project can use them without re-deriving them, even
+// though this template only calls a few of them.
+// ignore_for_file: unused_element
+
 import 'dart:async';
 import 'dart:convert';
 

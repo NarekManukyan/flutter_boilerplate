@@ -1,0 +1,60 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [master, main]
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint · Analyze · Format · Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap
+        run: |
+          flutter pub get
+          melos run deps
+
+      - name: Codegen
+        run: melos run build
+
+      # AGENTS.md is the single source; CLAUDE.md, GEMINI.md,
+      # copilot-instructions.md and the cursor rule are generated from it
+      # (ADR-0017). A hand edit to a generated copy fails here rather than
+      # being silently overwritten later.
+      - name: Agent instruction files are in sync
+        run: ./tool/sync_agents.sh --check
+
+      - name: Format check
+        run: dart format --output none --set-exit-if-changed lib test packages
+
+      - name: Analyze
+        run: melos run analyze
+
+      # Unit + widget tiers of ADR-0015. The E2E tier runs in maestro.yml.
+      - name: Test
+        run: flutter test --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          if-no-files-found: warn

@@ -1,0 +1,90 @@
+name: Maestro E2E
+
+on:
+  pull_request:
+  schedule:
+    # Full suite nightly; PRs only run the happy tag (see the tags step below).
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Maestro tags to include (comma-separated)'
+        required: false
+        default: ''
+
+concurrency:
+  group: maestro-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E on iOS Simulator
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap
+        run: |
+          flutter pub get
+          melos run deps
+          melos run build
+
+      # PRs run the happy tag only — the full trio takes too long to gate every
+      # push. Nightly and manual runs execute everything (ADR-0015).
+      - name: Choose tags
+        id: tags
+        run: |
+          if [ -n "${{ github.event.inputs.tags }}" ]; then
+            echo "args=--include-tags ${{ github.event.inputs.tags }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "args=--include-tags happy" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Boot simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j \
+            | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next(dev['udid'] for k,v in d.items() if 'iOS' in k for dev in v if 'iPhone' in dev['name']))")
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Build dev app for simulator
+        run: flutter build ios --simulator --debug -t lib/main_dev.dart
+
+      - name: Install app
+        run: xcrun simctl install "$SIM_UDID" build/ios/iphonesimulator/Runner.app
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Run flows
+        run: |
+          maestro test .maestro/flows \
+            ${{ steps.tags.outputs.args }} \
+            --exclude-tags quarantine \
+            --format junit \
+            --output maestro-report.xml
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-report
+          path: |
+            maestro-report.xml
+            ~/.maestro/tests/**
+          if-no-files-found: warn

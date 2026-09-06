@@ -31,11 +31,14 @@ abstract class _TodoDetailsPageStateBase with Store {
     _error = null;
     try {
       final todos = await _dioService.todosProvider.getTodos();
-      _todo = todos.firstWhere((t) => t.id == id);
+      final matches = todos.where((t) => t.id == id);
+      if (matches.isEmpty) {
+        _error = 'not_found';
+      } else {
+        _todo = matches.first;
+      }
     } on DioException catch (e) {
       _error = e.message;
-    } on StateError {
-      _error = 'not_found';
     } finally {
       _isLoading = false;
     }

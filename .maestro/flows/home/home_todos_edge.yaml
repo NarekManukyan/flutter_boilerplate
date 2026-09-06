@@ -1,0 +1,57 @@
+# Edge cases for the todo list: empty result, and the filtered-empty state that
+# is distinct from it. Both must be distinguishable from loading and from error.
+appId: com.example.flutterBoilerplate
+name: "Home — empty results (edge)"
+tags:
+  - edge
+  - home
+---
+- runFlow: ../../common/launch.yaml
+
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "empty"
+
+- swipe:
+    from:
+      id: "home_todo_list"
+    direction: DOWN
+    duration: 400
+
+- extendedWaitUntil:
+    visible:
+      id: "home_empty_state"
+    timeout: 10000
+
+# Empty is its own state — not the spinner, not the error, not a bare list.
+- assertNotVisible:
+    id: "home_skeleton_list"
+- assertNotVisible:
+    id: "home_error_state"
+- assertNotVisible:
+    id: "home_todo_list"
+
+# The primary action is still reachable from the empty state.
+- assertVisible:
+    id: "home_add_todo_fab"
+
+# Back to data: the filtered-empty state is a different surface from the
+# no-data empty state.
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "reset"
+
+- tapOn:
+    id: "home_add_todo_fab"
+- tapOn:
+    id: "add_todo_title_field"
+- inputText: "Only an active task"
+- hideKeyboard:
+    optional: true
+- tapOn:
+    id: "add_todo_submit"
+- extendedWaitUntil:
+    visible: "Only an active task"
+    timeout: 8000

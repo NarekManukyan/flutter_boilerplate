@@ -1,0 +1,40 @@
+# AC: when POST /todos fails the sheet stays open and says so — a silent no-op
+# leaves the user tapping a button that appears to do nothing.
+appId: com.example.flutterBoilerplate
+name: "Home — add todo server error (failure)"
+tags:
+  - failure
+  - home
+---
+- runFlow: ../../common/launch.yaml
+
+- runFlow:
+    file: ../../common/set_mock.yaml
+    env:
+      SCENARIO: "serverError"
+
+- tapOn:
+    id: "home_add_todo_fab"
+- tapOn:
+    id: "add_todo_title_field"
+- inputText: "Will not be created"
+- hideKeyboard:
+    optional: true
+
+- tapOn:
+    id: "add_todo_submit"
+
+- extendedWaitUntil:
+    visible:
+      id: "add_todo_error"
+    timeout: 10000
+
+# The sheet stays open with the input intact, and no phantom todo was added.
+- assertVisible:
+    id: "add_todo_title_field"
+- assertVisible: "Will not be created"
+
+- tapOn:
+    id: "add_todo_cancel"
+- assertNotVisible:
+    id: "add_todo_submit"
