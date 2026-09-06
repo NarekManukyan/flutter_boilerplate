@@ -30,10 +30,7 @@ abstract class _AppUpdateModalStateBase with Store {
   }
 
   void onOpenStoreLink() {
-    launchUrl(
-      Uri.parse(_appStoreLink),
-      mode: LaunchMode.externalApplication,
-    );
+    launchUrl(Uri.parse(_appStoreLink), mode: LaunchMode.externalApplication);
   }
 
   Future<void> onNotNow() => _appNavigator.pop();

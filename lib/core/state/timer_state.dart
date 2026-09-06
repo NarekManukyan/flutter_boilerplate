@@ -28,17 +28,14 @@ abstract class _TimerState with Store {
 
   @action
   void startTimer() {
-    _timer = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) {
-        if (_startTime != null) {
-          _secondsLeft = _startTime!.difference(DateTime.now()).inSeconds;
-        }
-        if (_secondsLeft == 0) {
-          cancelTimer();
-        }
-      },
-    );
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_startTime != null) {
+        _secondsLeft = _startTime!.difference(DateTime.now()).inSeconds;
+      }
+      if (_secondsLeft == 0) {
+        cancelTimer();
+      }
+    });
   }
 
   @action

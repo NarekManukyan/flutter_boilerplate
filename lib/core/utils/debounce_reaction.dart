@@ -44,10 +44,7 @@ ReactionDisposer debounceReaction<T>(
     onError: onError,
   );
 
-  return DebounceReactionDisposer(
-    reactionDisposer.reaction,
-    debounceHandler,
-  );
+  return DebounceReactionDisposer(reactionDisposer.reaction, debounceHandler);
 }
 
 class DebounceReactionDisposer extends ReactionDisposer {

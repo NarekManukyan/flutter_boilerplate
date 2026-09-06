@@ -15,10 +15,7 @@ class AppUpdateService {
   final FlavorService _flavorService;
   final AppNavigator _appNavigator;
 
-  AppUpdateService(
-    this._flavorService,
-    this._appNavigator,
-  );
+  AppUpdateService(this._flavorService, this._appNavigator);
 
   final country =
       WidgetsBinding.instance.platformDispatcher.locale.countryCode ?? 'us';

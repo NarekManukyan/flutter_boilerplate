@@ -8,7 +8,6 @@ extension SpreadMethod on List {
 
     return expand((element) {
       return <T>[element, generator(index++)];
-    }).toList()
-      ..removeLast();
+    }).toList()..removeLast();
   }
 }

@@ -70,8 +70,7 @@ class _BackgroundGlow extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  context.backgroundAccentOrangeLighter
-                      .withValues(alpha: 0.55),
+                  context.backgroundAccentOrangeLighter.withValues(alpha: 0.55),
                   context.backgroundSurface.withValues(alpha: 0),
                 ],
               ),

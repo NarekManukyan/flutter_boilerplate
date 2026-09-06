@@ -1,4 +1,3 @@
-
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 
@@ -24,7 +23,5 @@ void clearDataRecursively(Map<String, dynamic> map) {
       clearDataRecursively(value);
     }
   }
-  map.removeWhere(
-    (key, value) => key == 'runtimeType',
-  );
+  map.removeWhere((key, value) => key == 'runtimeType');
 }

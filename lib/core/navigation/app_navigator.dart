@@ -120,20 +120,14 @@ class AppNavigator {
     bool useRootNavigator = true,
   }) async {}
 
-  void showErrorMessage({
-    required String title,
-    required String message,
-  }) {
+  void showErrorMessage({required String title, required String message}) {
     final context = _router.navigatorKey.currentContext;
     if (context == null) {
       throw Exception('Context is null');
     }
   }
 
-  void showSuccessMessage({
-    required String title,
-    required String message,
-  }) {
+  void showSuccessMessage({required String title, required String message}) {
     final context = _router.navigatorKey.currentContext;
     if (context == null) {
       throw Exception('Context is null');

@@ -25,10 +25,7 @@ class UiUtils {
     return '$fNameTrim $lNameTrim'.trim();
   }
 
-  static String getInitialSymbol({
-    required String email,
-    String? name,
-  }) {
+  static String getInitialSymbol({required String email, String? name}) {
     if (name == null && email.isEmpty) {
       return 'U';
     }

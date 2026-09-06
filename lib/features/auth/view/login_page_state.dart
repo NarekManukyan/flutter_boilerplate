@@ -16,10 +16,7 @@ abstract class _LoginPageStateBase with Store {
   final AppNavigator _appNavigator;
   final LoginUseCase _loginUseCase;
 
-  _LoginPageStateBase(
-    this._appNavigator,
-    this._loginUseCase,
-  );
+  _LoginPageStateBase(this._appNavigator, this._loginUseCase);
 
   final TextEditingController emailController = TextEditingController();
   final LoadingState loadingState = LoadingState();

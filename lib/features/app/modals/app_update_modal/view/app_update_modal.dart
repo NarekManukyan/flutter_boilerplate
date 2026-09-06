@@ -22,11 +22,9 @@ class AppUpdateModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Provider<AppUpdateModalState>(
-      create: (_) => getIt<AppUpdateModalState>()
-        ..init(
-          updateType: updateType,
-          appStoreLink: appStoreLink,
-        ),
+      create: (_) =>
+          getIt<AppUpdateModalState>()
+            ..init(updateType: updateType, appStoreLink: appStoreLink),
       child: const _AppUpdateModalContent(),
     );
   }
@@ -46,10 +44,7 @@ class _AppUpdateModalContent extends StatelessWidget {
         children: [
           const ModalTopLine(),
           const Gap(kSpacing16px),
-          const Icon(
-            Icons.update,
-            size: 102,
-          ),
+          const Icon(Icons.update, size: 102),
           const Gap(24),
           Text(
             state.updateType.titleTranslationKey.tr(),
@@ -59,8 +54,9 @@ class _AppUpdateModalContent extends StatelessWidget {
           const Gap(12),
           Text(
             state.updateType.subtitleTranslationKey.tr(),
-            style:
-                context.paragraphLRegular.setColor(context.textNeutralDarker),
+            style: context.paragraphLRegular.setColor(
+              context.textNeutralDarker,
+            ),
             textAlign: TextAlign.center,
           ),
           const Gap(32),
@@ -89,11 +85,7 @@ class _AppUpdateModalContent extends StatelessWidget {
             const Gap(16),
           ],
         ],
-      ).paddingOnly(
-        left: 24,
-        right: 24,
-        bottom: context.bottomSecurePadding,
-      ),
+      ).paddingOnly(left: 24, right: 24, bottom: context.bottomSecurePadding),
     );
   }
 }

@@ -19,11 +19,7 @@ sealed class FlavorService {
   bool get isProduction;
 }
 
-@Singleton(
-  env: ['DEVELOPMENT'],
-  as: FlavorService,
-  order: -1,
-)
+@Singleton(env: ['DEVELOPMENT'], as: FlavorService, order: -1)
 class FlavorDev implements FlavorService {
   late final FlavorType _flavor = FlavorType.DEVELOPMENT;
   late final Config _config = Config.fromJson(developmentEnv);
@@ -41,11 +37,7 @@ class FlavorDev implements FlavorService {
   bool get isProduction => false;
 }
 
-@Singleton(
-  env: ['PROD'],
-  as: FlavorService,
-  order: -1,
-)
+@Singleton(env: ['PROD'], as: FlavorService, order: -1)
 class FlavorProd implements FlavorService {
   final FlavorType _flavor = FlavorType.PROD;
   final Config _config = Config.fromJson(productionEnv);

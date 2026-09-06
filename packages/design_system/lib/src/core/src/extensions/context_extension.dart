@@ -17,10 +17,8 @@ extension BuildContextExtensions on BuildContext {
 
   double get bottomPadding => media.padding.bottom;
 
-  double get bottomSecurePadding => math.max(
-        media.viewInsets.bottom,
-        math.max(bottomPadding, 16),
-      );
+  double get bottomSecurePadding =>
+      math.max(media.viewInsets.bottom, math.max(bottomPadding, 16));
 
   bool get isDarkMode => media.platformBrightness == Brightness.dark;
 }

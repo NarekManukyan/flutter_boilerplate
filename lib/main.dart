@@ -31,27 +31,20 @@ Future<void> run({FlavorType env = FlavorType.DEVELOPMENT}) async {
     return;
   }
 
-  await SentryFlutter.init(
-    (options) {
-      options
-        ..environment = env.toString()
-        ..dsn = getIt<FlavorService>().config.sentryDsn
-        ..tracesSampleRate = 1.0
-        ..addIntegration(LoggingIntegration())
-        ..attachScreenshot = true;
-    },
-    appRunner: _runApp,
-  );
+  await SentryFlutter.init((options) {
+    options
+      ..environment = env.toString()
+      ..dsn = getIt<FlavorService>().config.sentryDsn
+      ..tracesSampleRate = 1.0
+      ..addIntegration(LoggingIntegration())
+      ..attachScreenshot = true;
+  }, appRunner: _runApp);
 }
 
 void _runApp() {
   runApp(
     EasyLocalization(
-      supportedLocales: SupportedLocals.values
-          .map(
-            (e) => e.getLocal,
-          )
-          .toList(),
+      supportedLocales: SupportedLocals.values.map((e) => e.getLocal).toList(),
       startLocale: SupportedLocals.EN.getLocal,
       fallbackLocale: SupportedLocals.EN.getLocal,
       path: 'assets/translations',

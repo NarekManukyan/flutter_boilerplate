@@ -30,24 +30,21 @@ class CustomAppBar extends HookWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appBarBottom = useMemoized(
-      () {
-        if (bottom != null) {
-          return PreferredSize(
-            preferredSize: Size.fromHeight(toolbarHeight),
-            child: bottom!,
-          );
-        }
+    final appBarBottom = useMemoized(() {
+      if (bottom != null) {
+        return PreferredSize(
+          preferredSize: Size.fromHeight(toolbarHeight),
+          child: bottom!,
+        );
+      }
 
-        if (hasDivider) {
-          return PreferredSize(
-            preferredSize: Size.fromHeight(toolbarHeight),
-            child: const Divider(),
-          );
-        }
-      },
-      [bottom, context.isDarkMode],
-    );
+      if (hasDivider) {
+        return PreferredSize(
+          preferredSize: Size.fromHeight(toolbarHeight),
+          child: const Divider(),
+        );
+      }
+    }, [bottom, context.isDarkMode]);
 
     return AppBar(
       backgroundColor: backgroundColor ?? context.backgroundSurface,
@@ -58,8 +55,9 @@ class CustomAppBar extends HookWidget implements PreferredSizeWidget {
       bottom: appBarBottom,
       toolbarHeight: toolbarHeight,
       flexibleSpace: FlexibleSpaceBar(
-        background:
-            ColoredBox(color: backgroundColor ?? context.backgroundSurface),
+        background: ColoredBox(
+          color: backgroundColor ?? context.backgroundSurface,
+        ),
       ),
       title: title == null
           ? null
@@ -68,11 +66,7 @@ class CustomAppBar extends HookWidget implements PreferredSizeWidget {
               child: title!,
             ),
       actions: [
-        Row(
-          children: [
-            ...actions,
-          ],
-        ),
+        Row(children: [...actions]),
       ],
     );
   }
