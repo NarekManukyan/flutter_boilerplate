@@ -130,7 +130,11 @@ melos:
 
     build:
       description: Run codegen for the app and both packages
+      # `translations` must run here, not only on demand: lib/gen/*.g.dart is
+      # gitignored, so a clean checkout has no LocaleKeys and will not analyze
+      # until easy_localization has generated them.
       run: |
+        melos run translations && \
         dart run build_runner build -d && \
         melos exec -c 1 -- "dart run build_runner build -d"
 
@@ -203,7 +207,12 @@ melos:
 
     translations:
       description: Generate translation keys
-      run: dart run easy_localization:generate -f keys -O lib/gen -o locale_keys.g.dart -S assets/translations -s en-US.json -u true
+      # easy_localization's generator does not emit dart-format-clean output, so
+      # format it here. Otherwise `format:check` fails on a file nobody edited,
+      # on any machine that regenerated it.
+      run: |
+        dart run easy_localization:generate -f keys -O lib/gen -o locale_keys.g.dart -S assets/translations -s en-US.json -u true && \
+        dart format lib/gen/locale_keys.g.dart
 
     # Workspace Management
     bootstrap:
