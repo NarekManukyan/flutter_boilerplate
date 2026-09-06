@@ -46,6 +46,8 @@ The playbook has the rest, including when to split work across parallel agents (
 
 ## Commands
 
+This repo does not commit `ios/` or `android/` — every app generated from it runs `flutter create --platforms=ios,android --org com.yourcompany .` with its own identity first. Everything except building or running on a device works without them, so do not treat their absence as a broken checkout.
+
 ```bash
 flutter run -t lib/main_dev.dart     # dev flavor
 flutter run -t lib/main_prod.dart    # prod flavor

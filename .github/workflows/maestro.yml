@@ -25,16 +25,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # `.gitignore` excludes android/ and ios/, and neither has ever been
-      # tracked, so a clean checkout has no iOS project to build. Rather than
-      # failing every PR red on a condition the branch cannot fix, say so once
-      # and stop. Commit ios/ (or generate it here) to turn this job on.
+      # This boilerplate deliberately does not commit ios/ or android/ — every
+      # app generated from it runs `flutter create` with its own org and
+      # signing identity (see README, "No committed ios/ or android/"). So this
+      # job always skips here, and runs unchanged in a generated app where
+      # ios/ is committed. The flows themselves are verified locally with
+      # `melos run maestro`.
       - name: Is there an iOS project to build?
         id: ios
         run: |
           if [ -z "$(git ls-files ios | head -1)" ]; then
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=E2E skipped::ios/ is gitignored and untracked, so there is no Xcode project in a clean checkout. Maestro flows run locally (melos run maestro) but cannot run here until ios/ is committed."
+            echo "::notice title=E2E skipped by design::No committed ios/ — this repo is a boilerplate and each app generates its own platform folders. Run the flows locally with 'melos run maestro'. This job runs automatically in an app that commits ios/."
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi

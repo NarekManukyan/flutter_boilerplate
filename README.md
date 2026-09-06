@@ -64,6 +64,16 @@ This will:
 
 **Step 4:**
 
+Generate the platform folders for your app:
+
+```bash
+flutter create --platforms=ios,android --org com.yourcompany .
+```
+
+See [No committed `ios/` or `android/`](#no-committed-ios-or-android) for why this step exists.
+
+**Step 5:**
+
 For development, use the development workflow:
 
 ```bash
@@ -73,6 +83,20 @@ melos run dev
 This will:
 - Get dependencies for all packages
 - Generate code for all packages
+
+## No committed `ios/` or `android/`
+
+`.gitignore` excludes both, on purpose. They are not missing.
+
+A platform folder is where the app's identity lives: bundle id and application id, signing certificates, provisioning profiles, team ids, Firebase plists, entitlements, push certificates. None of that is shared between the projects that start from this boilerplate, so committing one would hand every new app the same identity and a merge conflict on the first build. `flutter create` regenerates both folders from your own values in seconds, which is why they are yours to make rather than ours to ship.
+
+What follows from that:
+
+**Run `flutter create` before your first build.** Nothing in `lib/` depends on the platform folders, so `melos bootstrap`, `melos run verify` and the unit and widget tests all work without them. Only building or running the app on a device needs them.
+
+**Set the bundle id in the Maestro flows.** `.maestro/common/*.yaml` carry an `appId`. Point it at whatever `--org` you used, or the flows will look for an app that is not installed.
+
+**The E2E job in CI skips itself here.** `.github/workflows/maestro.yml` checks whether `ios/` is tracked and stops with a notice if it is not, rather than failing on a condition the branch cannot fix. In this repo it always skips. In an app generated from this boilerplate, where `ios/` is committed, the same job runs the flows with no changes. The flows are verified either way, locally, with `melos run maestro` against a booted simulator.
 
 ## Monorepo Management with Melos
 
