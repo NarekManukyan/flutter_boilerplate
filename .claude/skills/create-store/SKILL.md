@@ -92,8 +92,39 @@ bool get canSubmit => !_isLoading && _title.isNotEmpty;
 ## Actions
 
 - Every mutation of an observable happens inside `@action`. A write outside an action silently fails to batch and can trip MobX's strict mode.
+- `@action` covers async methods too — MobX handles the await boundaries. For a write in a callback that is not inside an action, wrap it in `runInAction`.
 - Async actions set the loading flag first and clear it in `finally` — never only on the success path, or an error leaves a permanent spinner.
 - Reset the error at the start of a retry-able action, otherwise a stale error survives the next success.
+
+## Reactions — and disposing them
+
+Side effects that should fire when an observable changes belong in a reaction, not in `build()`:
+
+| | Use for |
+|---|---|
+| `reaction` | a side effect on a specific observable changing — navigate, refetch, log |
+| `autorun` | a computation that should re-run whenever anything it reads changes |
+| `when` | wait once for a condition to become true, then run |
+| `debounceReaction` (`lib/core/utils/`) | a reaction that should settle first — a search query |
+
+**Every reaction returns a `ReactionDisposer`, and every disposer must be called.** Store them on the class and dispose in `dispose()`; a leaked reaction keeps firing against a dead screen and holds its whole object graph alive.
+
+```dart
+final _disposers = <ReactionDisposer>[];
+
+void init() {
+  _disposers.add(
+    reaction((_) => _query, _search),
+  );
+}
+
+void dispose() {
+  for (final d in _disposers) {
+    d();
+  }
+  _disposers.clear();
+}
+```
 
 ## Error handling
 

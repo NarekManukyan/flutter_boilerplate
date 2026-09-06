@@ -85,7 +85,10 @@ Read order:
    "Playbooks" table in `AGENTS.md`. These are plain Markdown, not Claude-only.
 3. **`docs/adr/`** — why a rule exists, and what was rejected.
 4. The other `.cursor/rules/*.mdc` files — language- and library-level detail
-   (effective_dart, mocktail, mobx, firebase…) that `AGENTS.md` does not repeat.
+   only: effective_dart, clean-code, dart_3_updates, flutter_errors, mocktail,
+   code review, and firebase. Architecture, MobX, navigation, the API layer,
+   use cases, the design system, localization and testing are NOT here — they
+   moved to the playbooks, so there is one source per rule instead of two.
 
 Never edit this file; edit `AGENTS.md` and run `melos run sync-agents`.
 EOF

@@ -88,6 +88,7 @@ class _HomePageContent extends HookWidget {
 - **Never pass state as a widget parameter.** Descendants call `context.read<HomePageState>()`. Pass plain data and callbacks down, never the state object.
 - **Never `context.router`.** Navigation goes through `AppNavigator` in the state class.
 - **`HookWidget`** whenever the widget needs a controller, effect, or local UI state. `StatelessWidget` for pure presentation. `StatefulWidget` only for APIs hooks cannot express.
+- **Hooks are for local widget state and lifecycle only.** Business logic, anything shared between widgets, and anything that outlives the screen belong in the state class or a store — never in a `useState`.
 - **`Observer` scoped tight.** Wrap the smallest subtree that reads observables — not the whole `Scaffold`. A page-wide `Observer` rebuilds the app bar on every list change.
 - **Design-system tokens only** — `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. No raw `Color`, `TextStyle(…)`, or `BoxShadow` stacks ([ADR-0013](../../../docs/adr/0013-design-system-tokens-only.md)).
 - **Every string via `LocaleKeys`** ([ADR-0012](../../../docs/adr/0012-mandatory-localization.md)).

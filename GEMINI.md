@@ -22,26 +22,24 @@ Flutter mobile boilerplate: layered clean architecture, MobX state management, R
 
 Full rationale: [ADR-0016](docs/adr/0016-plan-first-delivery-workflow.md). Playbook: [`plan-feature`](.claude/skills/plan-feature/SKILL.md). Command: `/build-feature`.
 
-1. **Read the task in full** — Jira description, *every* acceptance criterion, comments, attachments, linked issues. Not just the summary.
-2. **Restate the AC** as a checklist of verifiable outcomes. Ambiguities become open questions you raise — never guesses you bury.
-3. **Analyze the codebase** — what already exists, what is reused, what is new, what the blast radius is. Read code; do not assume.
-4. **Write the plan** — file-level: created / modified, governing ADR, playbook to use, and the test + Maestro flow that will prove each AC line.
-5. **Size it.** Ask the user whether to split across parallel agents **only if** the work is both *large* (>3 independent surfaces, or beyond one session) **and** *separable* (disjoint file sets, sharing only existing contracts). Otherwise build it in this session and do not ask. When splitting, land shared contracts — DTOs, providers, routes, tokens — first.
-6. **Get approval, then build.** The plan is the spec. State deviations; do not make them silently.
-7. **Exit through the QA gate** — see Testing below. Every AC line maps to a test or a flow.
+**No code for a new feature until a plan is approved.** Read the ticket in full — *every* acceptance criterion, plus comments and linked issues — restate the AC as verifiable outcomes, analyse the codebase, write a file-level plan mapping each AC line to the test that will prove it, get it approved, build, then exit through the QA gate.
+
+The playbook has the rest, including when to split work across parallel agents (only when it is both large and separable — otherwise do not ask).
 
 ## Playbooks — open before you build
 
 | Building… | Playbook | Governed by |
 |---|---|---|
 | A whole feature module | [`create-feature`](.claude/skills/create-feature/SKILL.md) | ADR-0001, 0005, 0006 |
-| A page + its state | [`create-page`](.claude/skills/create-page/SKILL.md) | ADR-0009, 0010, 0008 |
+| A page + its state | [`create-page`](.claude/skills/create-page/SKILL.md) | ADR-0009, 0010 |
+| A route, guard, modal or dialog | [`add-route`](.claude/skills/add-route/SKILL.md) | ADR-0008 |
 | A MobX store | [`create-store`](.claude/skills/create-store/SKILL.md) | ADR-0002, 0006, 0007 |
 | A use case | [`create-use-case`](.claude/skills/create-use-case/SKILL.md) | ADR-0003, 0004 |
 | A DTO | [`create-dto`](.claude/skills/create-dto/SKILL.md) | ADR-0011 |
 | A Retrofit API provider | [`create-api-provider`](.claude/skills/create-api-provider/SKILL.md) | ADR-0011 |
 | A UI string | [`add-localization`](.claude/skills/add-localization/SKILL.md) | ADR-0012 |
 | A colour / text style / radius / duration | [`add-design-token`](.claude/skills/add-design-token/SKILL.md) | ADR-0013 |
+| A design-system component | [`create-ds-component`](.claude/skills/create-ds-component/SKILL.md) | ADR-0013, 0014 |
 | Unit + widget tests | [`write-tests`](.claude/skills/write-tests/SKILL.md) | ADR-0015 |
 | A Maestro E2E flow | [`write-maestro-flow`](.claude/skills/write-maestro-flow/SKILL.md) | ADR-0015 |
 | The QA pass on a finished feature | [`qa-feature`](.claude/skills/qa-feature/SKILL.md) | ADR-0015 |
@@ -90,8 +88,6 @@ UI → State → Store → DioService → API Provider
 
 **State vs Store:** needs API access → Store (`features/*/mobx/`). Does not → State (`features/*/view/`).
 
-**Entry flow:** `main_{flavor}.dart` → `main.dart:run(FlavorType)` → binding + portrait lock + `EasyLocalization.ensureInitialized()` + `registerGetIt(env)` → Sentry (release only) → `MyApp` renders `MaterialApp.router` with `AppNavigator.config`, wrapped in `ConnectionWrapperPage` + `OverlaySupport.global`.
-
 ## Project Structure
 
 ```
@@ -106,13 +102,9 @@ lib/
     models/  modals/  components/
   gen/                     GENERATED — never edit
 packages/
-  api/lib/src/
-    providers/{resource}_provider/
-      {resource}_api_provider.dart      @RestApi abstract class + _Paths
-      models/src/*_dto.dart             freezed DTOs for this resource
-      {resource}_provider.dart          barrel — exported from lib/api.dart
-    models/                             cross-resource models (ListResponseDto…)
-  design_system/lib/       src/ (theme, components, colors, typography), gen/
+  api/lib/src/            providers/{resource}_provider/ — one dir per resource,
+                          each with its own DTOs and barrel
+  design_system/lib/      src/ (theme, components, colors, typography), gen/
 assets/translations/       en-US.json …
 test/                      unit + widget, mirrors lib/
 .maestro/flows/{feature}/  E2E: {feature}_{happy|failure|edge}.yaml
@@ -188,16 +180,9 @@ A feature is done when all three tiers exist:
 
 Run the E2E suite against `.maestro` (the workspace root), not `.maestro/flows` — the directory runner does not recurse.
 
-Conventions: always `group()` named after the class under test; test names start with `should`; Arrange-Act-Assert; prefer real objects > fake > mock. Before writing a test, ask *"can this fail if the real code is broken?"* — if not, it is testing the mock.
-
 ## Before every PR
 
-```bash
-melos run verify      # lint + analyze + format + test
-melos run maestro     # needs a booted device
-```
-
-Then check the QA gate with [`qa-feature`](.claude/skills/qa-feature/SKILL.md): every AC line maps to a passing test or flow, and happy / failure / edge all exist.
+`melos run verify`, then `melos run maestro` (needs a booted device with the dev build installed), then the [`qa-feature`](.claude/skills/qa-feature/SKILL.md) gate: every AC line maps to a passing test or flow, and happy / failure / edge all exist.
 
 ## Quick Navigation
 
