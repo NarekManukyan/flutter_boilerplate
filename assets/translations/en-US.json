@@ -6,7 +6,9 @@
         "save": "Save",
         "retry": "Retry",
         "updateNow": "Update now",
-        "updateLater": "I’ll update later"
+        "updateLater": "I’ll update later",
+        "newTodo": "New todo",
+        "or": "or"
     },
     "enums": {
         "appVersionTranslationsTitle": {
@@ -32,19 +34,42 @@
         "title": "Todos",
         "empty": "No todos yet",
         "errorLoading": "Could not load todos",
-        "logout": "Log out"
+        "logout": "Log out",
+        "emptySubtitle": "Tap the + button to add your first task.",
+        "allDone": "All done.",
+        "remainingTasks": {
+            "one": "{} task to go.",
+            "other": "{} tasks to go."
+        },
+        "progressSummary": "of {total} completed · {pct}%",
+        "filterAll": "All",
+        "filterActive": "Active",
+        "filterDone": "Done",
+        "filterEmptyAll": "Nothing here.",
+        "filterEmptyActive": "No active tasks. Enjoy the break.",
+        "filterEmptyDone": "Nothing completed yet.",
+        "challengePreview": "Challenge joined preview",
+        "addTodoA11y": "Add a new todo",
+        "retryA11y": "Retry loading todos"
     },
     "addTodoModal": {
         "title": "New todo",
         "titleHint": "What to do?",
         "add": "Add",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "error": "Could not add the todo. Try again.",
+        "eyebrow": "NEW TASK",
+        "subtitle": "Keep it short. You can always edit later."
     },
     "todoDetailsPage": {
         "title": "Todo details",
         "toggleCompleted": "Toggle completed",
         "loading": "Loading…",
-        "error": "Could not load todo"
+        "error": "Could not load todo",
+        "metaId": "ID",
+        "metaStatus": "STATUS",
+        "statusCompleted": "Completed",
+        "statusPending": "Pending"
     },
     "challengeJoinedPage": {
         "title": "Don't stop at just one!",
@@ -56,5 +81,10 @@
         "tipWorkOutTitle": "Work out",
         "tipWorkOutParticipants": "{} participants",
         "joinChallengeButton": "Join challenge"
+    },
+    "connectionPage": {
+        "title": "No internet",
+        "subtitle": "Please check your internet connection",
+        "goToSettings": "Go to settings"
     }
 }

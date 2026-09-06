@@ -91,9 +91,9 @@ class _LoginPageContent extends HookWidget {
                     ),
                   ),
                   const Gap(kSpacing32px),
-                  const FadeSlideIn(
-                    delay: Duration(milliseconds: 220),
-                    child: _Divider(label: 'or'),
+                  FadeSlideIn(
+                    delay: const Duration(milliseconds: 220),
+                    child: _Divider(label: LocaleKeys.keywords_or.tr()),
                   ),
                   const Gap(kSpacing24px),
                   FadeSlideIn(

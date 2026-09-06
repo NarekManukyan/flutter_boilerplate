@@ -2,6 +2,31 @@
 
 A boilerplate project created in flutter using MobX.
 
+## Working in this repo — with or without an AI agent
+
+| File | What it is |
+|---|---|
+| [`AGENTS.md`](AGENTS.md) | **Single source of truth.** Architecture rules, delivery workflow, naming, file boundaries, testing contract. Read by Codex, Cursor, Zed, Amp and Jules natively. |
+| [`.claude/skills/`](.claude/skills/) | **Playbooks** — step-by-step guides for building one kind of thing (a DTO, a store, a page, a Maestro flow). Plain Markdown any agent can read; Claude Code registers them as invocable skills. Open the one you need; do not read them all. |
+| [`docs/adr/`](docs/adr/README.md) | **Why** each rule exists, and what was rejected. |
+| [`DESIGN.md`](DESIGN.md) | Visual system — palette, type, motion, component states, dark mode, accessibility, and the per-feature design-spec template. |
+
+`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` and `.cursor/rules/000-agents.mdc` are **generated** from `AGENTS.md` — edit `AGENTS.md`, then run `melos run sync-agents`. CI fails on drift.
+
+### The delivery loop
+
+Every feature follows [ADR-0016](docs/adr/0016-plan-first-delivery-workflow.md): read the Jira acceptance criteria in full → restate them as a verifiable checklist → analyse the codebase → write a file-level plan mapping every AC line to a test → get approval → build → exit through the QA gate.
+
+A feature is done when all three test tiers exist ([ADR-0015](docs/adr/0015-mandatory-test-coverage-and-qa-gate.md)):
+
+| Tier | Where |
+|---|---|
+| Unit | `test/features/{feature}/` |
+| Widget | `test/features/{feature}/view/` |
+| E2E (Maestro) | `.maestro/flows/{feature}/` — **happy, failure and edge** |
+
+In Claude Code: `/build-feature <JIRA-KEY>` runs the whole loop, `/qa-feature <feature>` runs the gate.
+
 ## Getting Started
 
 The Boilerplate contains the minimal implementation required to create a new library or project. The repository code is preloaded with some basic components like basic app architecture, app theme, constants and required dependencies to create a new project. By using boilerplate code as standard initializer, we can have same patterns in all the projects that will inherit it. This will also help in reducing setup & development time by allowing you to use same code pattern and avoid re-writing from scratch.
@@ -87,10 +112,19 @@ dart pub global activate melos
 - **`melos run clean`** - Clean all packages
 
 #### Code Quality
-- **`melos run analyze`** - Analyze all packages for issues
-- **`melos run test`** - Run tests for all packages
-- **`melos run format`** - Format code in all packages
-- **`melos run lint`** - Apply linting fixes to all packages
+- **`melos run verify`** - Everything CI runs except E2E: lint, analyze, format check, tests, agent-file drift. **Run before every PR.**
+- **`melos run analyze`** - Analyze the app and both packages
+- **`melos run format`** / **`melos run format:check`** - Format, or fail on unformatted code
+- **`melos run lint`** - Apply mechanical lint fixes
+
+#### Testing — ADR-0015
+- **`melos run test`** - Unit + widget tests
+- **`melos run test:coverage`** - Tests with lcov output
+- **`melos run maestro`** - Every Maestro E2E flow (needs a booted device with the app installed)
+- **`melos run maestro:happy`** - Happy-path flows only — the PR gate
+
+#### Agent instructions — ADR-0017
+- **`melos run sync-agents`** - Regenerate `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` and the Cursor rule from `AGENTS.md`
 
 #### Asset Generation
 - **`melos run assets`** - Generate assets and translations
