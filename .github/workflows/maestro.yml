@@ -25,15 +25,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # `.gitignore` excludes android/ and ios/, and neither has ever been
+      # tracked, so a clean checkout has no iOS project to build. Rather than
+      # failing every PR red on a condition the branch cannot fix, say so once
+      # and stop. Commit ios/ (or generate it here) to turn this job on.
+      - name: Is there an iOS project to build?
+        id: ios
+        run: |
+          if [ -z "$(git ls-files ios | head -1)" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=E2E skipped::ios/ is gitignored and untracked, so there is no Xcode project in a clean checkout. Maestro flows run locally (melos run maestro) but cannot run here until ios/ is committed."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: subosito/flutter-action@v2
+        if: steps.ios.outputs.present == 'true'
         with:
           channel: stable
           cache: true
 
       - name: Install melos
+        if: steps.ios.outputs.present == 'true'
         run: dart pub global activate melos
 
       - name: Bootstrap
+        if: steps.ios.outputs.present == 'true'
         run: |
           flutter pub get
           melos run deps
@@ -42,6 +59,7 @@ jobs:
       # PRs run the happy tag only — the full trio takes too long to gate every
       # push. Nightly and manual runs execute everything (ADR-0015).
       - name: Choose tags
+        if: steps.ios.outputs.present == 'true'
         id: tags
         run: |
           if [ -n "${{ github.event.inputs.tags }}" ]; then
@@ -53,6 +71,7 @@ jobs:
           fi
 
       - name: Boot simulator
+        if: steps.ios.outputs.present == 'true'
         run: |
           UDID=$(xcrun simctl list devices available -j \
             | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next(dev['udid'] for k,v in d.items() if 'iOS' in k for dev in v if 'iPhone' in dev['name']))")
@@ -61,17 +80,21 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
 
       - name: Build dev app for simulator
+        if: steps.ios.outputs.present == 'true'
         run: flutter build ios --simulator --debug -t lib/main_dev.dart
 
       - name: Install app
+        if: steps.ios.outputs.present == 'true'
         run: xcrun simctl install "$SIM_UDID" build/ios/iphonesimulator/Runner.app
 
       - name: Install Maestro
+        if: steps.ios.outputs.present == 'true'
         run: |
           curl -fsSL https://get.maestro.mobile.dev | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
       - name: Run flows
+        if: steps.ios.outputs.present == 'true'
         run: |
           maestro test .maestro \
             ${{ steps.tags.outputs.args }} \
@@ -80,7 +103,7 @@ jobs:
             --output maestro-report.xml
 
       - name: Upload report
-        if: always()
+        if: always() && steps.ios.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: maestro-report
