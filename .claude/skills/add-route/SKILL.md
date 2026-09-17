@@ -31,17 +31,16 @@ class AppRouter extends RootStackRouter {
       initial: true,
       path: '/',
       page: SplashRoute.page,
-      guards: [_authGuard],
-      meta: const {'description': 'Splash screen, entry point of the app'},
+      // No guard: SplashPageState decides between home and login.
     ),
-    AutoRoute(
-      page: LoginRoute.page,
-      path: '/login-page',
-      meta: const {'description': 'Login page for user authentication'},
-    ),
+    AutoRoute(path: '/login', page: LoginRoute.page),
+    AutoRoute(path: '/home', page: HomeRoute.page, guards: [_authGuard]),
+    // Illustrative: nested routes. The template has none.
     AutoRoute(
       path: '/dashboard',
       page: DashboardRoute.page,
+      guards: [_authGuard],
+      meta: const {'description': 'Signed-in dashboard with its tabs'},
       children: [
         AutoRoute(path: 'agenda', page: AgendaRoute.page),
         AutoRoute(path: 'meetings', page: MeetingsListRoute.page),
@@ -51,9 +50,12 @@ class AppRouter extends RootStackRouter {
 }
 ```
 
+The real router is [`lib/core/navigation/app_router.dart`](../../../lib/core/navigation/app_router.dart); it also has `/todos/:id` and `/challenges/joined`, both guarded.
+
 - `replaceInRouteName: 'Page,Route'` is why `LoginPage` generates `LoginRoute`. Always use the generated class, never a string.
-- **Paths are kebab-case** and describe the page: `/login-page`, `/sign-up-with-email`. Children use relative paths.
-- `meta: {'description': …}` on every route — it is what makes the router readable a year later.
+- **Paths are kebab-case** and describe the page: `/login`, `/sign-up-with-email`. Children use relative paths.
+- Give a new route `meta: {'description': …}`; it is what makes the router readable a year later. The template's own routes do not carry one yet.
+- **The initial route is not guarded.** A guard on `/` let a signed-in user through to the splash page and left them there. `SplashPageState.init` reads the token and replaces the stack with Home or Login.
 
 ## Parameters
 
@@ -95,29 +97,38 @@ Pages call the state method. If a navigation decision has real logic in it, extr
 | `popUntilRouteWithName(name)` | pop back to a named route |
 | `replace(route)` | replace the current route |
 | `pushAndPopAll(route)` | replace the whole stack — use after login and logout |
-| `showModal({builder})` | modal bottom sheet |
-| `showAlertDialog({content})` | alert dialog |
-| `showAppDialog({title, content, actions})` | adaptive dialog |
+| `navigatePath(path)` | navigate by path string (deep-link style) |
+| `canPop()` | whether the router can pop |
+| `showModal({builder, …})` | modal bottom sheet |
+| `showScaffoldMessage(widget)` | bottom overlay notification, used by `IssueTrackingService` |
+| `showFullScreenLoading()` / `hideFullScreenLoading()` | blocking spinner dialog, and pop it |
+| `openPhoneSettings()` | the app's page in system settings |
+
+`showAppDialog`, `showErrorMessage` and `showSuccessMessage` also exist, but their bodies are empty: calling them shows nothing. Implement one before a state relies on it.
 
 ## Guards
 
-`@injectable`, extend `AutoRouteGuard`, live in `lib/core/guards/`, and are listed on the route they protect.
+Guards extend `AutoRouteGuard`, live in `lib/core/guards/`, and are listed on the route they protect. They are not registered in DI: `AppNavigator` constructs each one with its dependencies and passes it to `AppRouter` (`AppRouter(authGuard: AuthGuard(authStore))`), so a new guard is a new `AppRouter` constructor parameter too.
 
 ```dart
-@injectable
 class AuthGuard extends AutoRouteGuard {
-  final AuthStore _authStore;
+  AuthGuard(this._authStore);
 
-  const AuthGuard(this._authStore);
+  final AuthStore _authStore;
 
   @override
   Future<void> onNavigation(
     NavigationResolver resolver,
     StackRouter router,
   ) async {
-    if (!_authStore.isLoggedIn) {
-      return resolver.redirectUntil<void>(const LoginRoute());
+    // Reads the stored token, which sets isAuthed on a cold start.
+    await _authStore.getAccessToken();
+
+    if (!_authStore.isAuthed) {
+      resolver.redirectUntil(const LoginRoute());
+      return;
     }
+
     resolver.next();
   }
 }
@@ -133,18 +144,18 @@ Reached through `AppNavigator`, not `showModalBottomSheet` directly, so the stat
 await _appNavigator.showModal(builder: (_) => const AddTodoModal());
 ```
 
-A modal with its own store or state is a feature module with `view/` + `mobx/`, not a loose widget ([`create-feature`](../create-feature/SKILL.md)).
+A modal with its own state is not a feature ([ADR-0005](../../../docs/adr/0005-flat-feature-tree.md)): it has no route. It lives inside the feature that opens it, at `lib/features/{feature}/modals/{modal}/`, with `view/` for the widget, `mobx/` for its state and `use_cases/` when it has one, as `home/modals/add_todo_modal/` does ([`create-feature`](../create-feature/SKILL.md#directory-shape)). Its widget is a page root: `Provider(create: (_) => getIt<AddTodoModalState>())`.
 
 ## E2E
 
-`clearState: true` in a Maestro flow clears the auth token, so a guarded route sends the app back to login. Flows start from the shared `common/start_home.yaml` subflow rather than assuming a signed-in state ([`write-maestro-flow`](../write-maestro-flow/SKILL.md)).
+`clearState: true` in a Maestro flow clears the auth token, so splash sends the app to login and a guarded route redirects there. Flows start from the shared `common/start_home.yaml` subflow rather than assuming a signed-in state ([`write-maestro-flow`](../write-maestro-flow/SKILL.md)).
 
 ## Checklist
 
 - [ ] `@RoutePage()` on the page, `melos run build` run
-- [ ] `AutoRoute` entry added with a kebab-case path and a `meta` description
+- [ ] `AutoRoute` entry added with a kebab-case path and a `meta` description; no guard on the initial route
 - [ ] Generated `{Page}Route` class used, never a path string
 - [ ] Parameters are ids, not objects a deep link could not rebuild
 - [ ] Navigation only from a state class via `AppNavigator`; no `context.router` anywhere
-- [ ] Guards are `@injectable`, in `lib/core/guards/`, and every path calls `next()` or `redirectUntil()`
+- [ ] Guards live in `lib/core/guards/`, are constructed by `AppNavigator` with their dependencies, and every path calls `next()` or `redirectUntil()`
 - [ ] Deep link into the route works from a cold start

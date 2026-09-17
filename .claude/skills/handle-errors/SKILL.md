@@ -7,6 +7,8 @@ description: Write a try/catch the house way — which IssueTrackingService meth
 
 Governed by [ADR-0020](../../../docs/adr/0020-error-handling-and-issue-tracking.md). Service: `lib/core/services/issue_tracking_service.dart`.
 
+Concepts behind this playbook: [`error-handling-guidelines`](../../../docs/error-handling-guidelines.md).
+
 **No service in this repo yet?** Create it before writing the first `catch`. Port the reference implementation and its test from the boilerplate — [`issue_tracking_service.dart`](https://github.com/NarekManukyan/flutter_boilerplate/blob/master/lib/core/services/issue_tracking_service.dart), [`error_notice.dart`](https://github.com/NarekManukyan/flutter_boilerplate/blob/master/lib/core/ui/error_notice.dart), [`issue_tracking_service_test.dart`](https://github.com/NarekManukyan/flutter_boilerplate/blob/master/test/core/services/issue_tracking_service_test.dart) — and adapt three things to the app: how it shows a notice (its navigator / overlay API), its design tokens, and `ignoredStatusCodes` (whatever its interceptors already handle globally). Keep the three method names and the filtering rules.
 
 ## The golden rule
@@ -23,6 +25,8 @@ Does anything on screen already tell the user this failed?
 └─ The user is not waiting on it (background) ────→ trackSilentError    (no notice)
 ```
 
+Illustrative: `HomePageState.onLogoutPressed` has no `try` today, and no code in the template calls `trackIssue` yet.
+
 ```dart
 // A state action. Nothing on screen reports a failed sign-out, so the service
 // shows a notice.
@@ -36,14 +40,15 @@ try {
   );
 }
 
-// A store action. The page renders `error` as its own error state.
-} on DioException catch (e, stackTrace) {
+// A store action (HomeStore.loadTodos). The page renders `error` as its own
+// error state.
+} catch (e, stackTrace) {
   _issueTrackingService.trackHandledError(
     e,
     stackTrace: stackTrace,
     handlingContext: 'load_todos',
   );
-  _error = e.message;
+  _error = e is DioException ? e.message : e.toString();
 }
 
 // Background, best effort.
@@ -68,10 +73,11 @@ Pass a `message:` to `trackIssue` only when you have something better than the g
 
 ## What to catch
 
-Catch what you can handle, and let the rest through.
+**An API boundary catches everything.**
 
-- **A rollback or a state restore runs on any failure.** Use a `catch` with no `on` clause: `catch (e, stackTrace)` when this `catch` tracks, `catch (_)` when it only restores and rethrows. Between the optimistic change and the restore, more than the request can throw: a response that fails to parse, a `StateError`. If only `DioException` restores, anything else leaves the screen wrong.
-- **`on DioException catch (e, stackTrace)`** is for a request whose only expected failure is the request itself, with nothing to undo: a load that sets `error`, a use case that returns `null`.
+- **A request** — a store's load, a use case that returns `null` — catches with `catch (e, stackTrace)`, no `on` clause. The generated Retrofit client rethrows a response that fails `fromJson` (a `TypeError`) unchanged; `on DioException` would let it skip the error UI.
+- **A rollback or a state restore runs on any failure.** Also no `on` clause: `catch (e, stackTrace)` when this `catch` tracks, `catch (_)` when it only restores and rethrows. Between the optimistic change and the restore, more than the request can throw. If only `DioException` restores, anything else leaves the screen wrong.
+- **`on DioException`** is only for branching on the Dio error type or status code while letting everything else propagate, such as a use case that treats a `404` on delete as done and rethrows the rest.
 
 ## What you do not handle at the call site
 
@@ -79,7 +85,7 @@ The service filters these, so do not special-case them:
 
 - offline and timeouts — never reported, and by default no notice, because for a load the connection page covers it. A rollback is the exception: see [Optimistic changes](#optimistic-changes-notify-on-rollback);
 - cancelled requests — nothing;
-- `401` — nothing (`AuthInterceptor` logs the user out). Add other codes your app handles globally to `IssueTrackingService.ignoredStatusCodes`;
+- `401` — nothing (`AuthInterceptor` clears the session, and the app returns to login). Add other codes your app handles globally to `IssueTrackingService.ignoredStatusCodes`;
 - no navigator context yet — reported, no notice.
 
 Only branch on `DioExceptionType` / status code at the call site when **your UI** does something different for it (a "not found" empty state, a retry button for timeouts).
@@ -101,7 +107,7 @@ Future<TodoDto?> call(String title) async {
     return await _dioService.todosProvider.createTodo(
       todoCreateDto: TodoCreateRequestDto(title: title),
     );
-  } on DioException catch (e, stackTrace) {
+  } catch (e, stackTrace) {
     _issueTrackingService.trackHandledError(
       e,
       stackTrace: stackTrace,
@@ -112,13 +118,13 @@ Future<TodoDto?> call(String title) async {
 }
 
 // 3. Domain exception — the caller must react to one specific failure.
-} on DioException catch (e, stackTrace) {
+} catch (e, stackTrace) {
   _issueTrackingService.trackHandledError(
     e,
     stackTrace: stackTrace,
     handlingContext: 'create_todo',
   );
-  if (e.response?.statusCode == HttpStatus.conflict) {
+  if (e is DioException && e.response?.statusCode == HttpStatus.conflict) {
     throw const TodoAlreadyExistsException();
   }
   return null;
@@ -314,6 +320,7 @@ The store half is tested on its own: after a failed request the row is back at i
 - ❌ Empty `catch`, or `catch (_) { return null; }` without tracking.
 - ❌ Tracking **and** rethrowing in the same `catch` → reported twice.
 - ❌ `trackIssue` from a store whose page already renders the error → two messages.
+- ❌ `on DioException` at an API boundary → a response that fails `fromJson` skips the error UI.
 - ❌ A rollback in `on DioException catch` → any other failure leaves the optimistic change in place.
 - ❌ A rollback path without `notifyOnConnectivityError: true` → an offline or timed-out change silently reappears.
 - ❌ A shared store calling `trackIssue` for a failure it rolled back → the store decides UI for every screen that uses it. Restore and rethrow.
@@ -326,7 +333,7 @@ The store half is tested on its own: after a failed request the row is back at i
 - [ ] Every `catch` tracks or rethrows — never both, never neither
 - [ ] Method matches who shows the error (issue / handled / silent)
 - [ ] Every call passes its operation name: `context:` on `trackIssue` / `trackSilentError`, `handlingContext:` on `trackHandledError`
-- [ ] Rollbacks and restores catch everything (no `on` clause); `on DioException` only where there is nothing to undo
+- [ ] API boundaries, rollbacks and restores catch everything (no `on` clause); `on DioException` only to branch on the Dio error type
 - [ ] A store with no error observable for the failure restores and rethrows; the calling state tracks
 - [ ] A rollback's `trackIssue` passes a `LocaleKeys` `message` and `notifyOnConnectivityError: true`
 - [ ] Loading flags reset in `finally`; init flags reset on failure

@@ -42,7 +42,7 @@ Text('Continue with email')
 Text(LocaleKeys.loginPage_continueWithEmail.tr())
 ```
 
-The bootstrap path in [`lib/main.dart`](../../lib/main.dart) calls `EasyLocalization.ensureInitialized()` before `runApp`, and [`lib/app.dart`](../../lib/app.dart) wires the `EasyLocalization` widget into the app root.
+The bootstrap path in [`lib/main.dart`](../../lib/main.dart) calls `EasyLocalization.ensureInitialized()` before `runApp`, and its `_runApp()` wraps `MyApp` in the `EasyLocalization` widget. [`lib/app.dart`](../../lib/app.dart) passes the locale and delegates to `MaterialApp.router`.
 
 ### Scope
 

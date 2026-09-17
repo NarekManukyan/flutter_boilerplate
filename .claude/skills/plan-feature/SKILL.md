@@ -7,6 +7,8 @@ description: Turn a Jira ticket or written task into an approved implementation 
 
 Governed by [ADR-0016](../../../docs/adr/0016-plan-first-delivery-workflow.md). Nothing is written to `lib/` until the plan is approved.
 
+Concepts behind this playbook: [`architecture`](../../../docs/architecture.md), [`project-structure`](../../../docs/project-structure.md).
+
 ## Step 1 — Ingest the task in full
 
 If a Jira key or URL is given, fetch the issue with the Atlassian MCP tools (`getJiraIssue`, then `getJiraIssueRemoteIssueLinks` for linked work). Read **all** of:

@@ -33,11 +33,13 @@ Chosen option: **Three-tier mandatory coverage with an explicit QA gate**.
 
 ### The three tiers
 
-| Tier | Location | Covers | Seam faked |
-|---|---|---|---|
-| Unit | `test/features/{feature}/` | Stores, states, use cases, services, extensions | `DioService`, services, `AppNavigator` |
-| Widget | `test/features/{feature}/view/` | Page renders each state; widgets emit correct callbacks | State class (real object, fake collaborators) |
-| E2E (Maestro) | `.maestro/flows/{feature}/` | The user journey on a booted device against the mock interceptor | Network via `MockTodosInterceptor` / flavor mocks |
+| Tier | Covers | Seam faked |
+|---|---|---|
+| Unit (`test()`) | Stores, states, use cases, services, extensions | `DioService`, services, `AppNavigator` |
+| Widget (`testWidgets()`) | Page renders each state; widgets emit correct callbacks | The page state |
+| E2E (Maestro) | The user journey on a booted device against the mock interceptor | Network via `MockTodosInterceptor` / flavor mocks |
+
+A tier is defined by what the test exercises, not by its folder. Unit and widget tests both live under `test/`, each mirroring the path of the file it covers, so a page state's unit test sits in `view/` next to its page's widget test. Flows live in `.maestro/flows/{feature}/`.
 
 A feature is not done until all three exist. "All three" means at least one flow per tier, not exhaustive permutation.
 

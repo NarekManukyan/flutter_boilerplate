@@ -7,6 +7,8 @@ description: Add a platform channel between Dart and native iOS (Swift) / Androi
 
 Governed by [ADR-0007](../../../docs/adr/0007-di-scopes-and-constructor-injection.md) (DI), [ADR-0020](../../../docs/adr/0020-error-handling-and-issue-tracking.md) (errors), [ADR-0015](../../../docs/adr/0015-mandatory-test-coverage-and-qa-gate.md) (tests).
 
+Concepts behind this playbook: [`security-guidelines`](../../../docs/security-guidelines.md).
+
 **Check pub.dev first.** A maintained plugin is tested on both platforms and kept current with OS changes; a hand-written channel is yours to maintain forever. Write one when no plugin covers the capability, or when the native code is the app's own.
 
 **Work that spans Dart, iOS and Android goes through the [`mobile-orchestrator`](../../agents/mobile-orchestrator.md) agent.** It fixes the contract below before anyone edits, runs the Flutter, iOS and Android agents in parallel against it, and checks afterwards that every name matches on all three sides.

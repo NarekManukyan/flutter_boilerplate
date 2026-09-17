@@ -32,7 +32,7 @@ Chosen option: **Taxonomy + consumer-based colocation**.
 
 | Type | Injects | Does | Example |
 |---|---|---|---|
-| **API** | `DioService`, `IssueTrackingService` | Wraps one API call, handles `DioException`, returns a domain-friendly result (a DTO, `null`, a bool or a sealed result) | [`CreateTodoUseCase`](../../lib/features/home/modals/add_todo_modal/use_cases/create_todo_use_case.dart) |
+| **API** | `DioService`, `IssueTrackingService` | Wraps one API call, catches its failures (everything, not only `DioException`), returns a domain-friendly result (a DTO, `null`, a bool or a sealed result) | [`CreateTodoUseCase`](../../lib/features/home/modals/add_todo_modal/use_cases/create_todo_use_case.dart) |
 | **Navigation** | `AppNavigator` (+ optional services for conditions) | Wraps `AppNavigator` calls: modals, routes, guards | [`ShowAddTodoModalUseCase`](../../lib/features/home/view/use_cases/show_add_todo_modal_use_case.dart) |
 | **Service coordination** | 2+ services | Orchestrates a multi-service operation (e.g. HTTP + analytics + issue tracking) | — |
 | **State delegation** | Often nothing | Conditional flow, guard logic, or a pure transform of data the caller passes in (e.g. returning an updated list) | — |
@@ -53,7 +53,7 @@ Use cases are always `@injectable`, never `@singleton` or `@lazySingleton` ([ADR
 | Multiple layers within one feature | `lib/features/{feature}/core/use_cases/` |
 | Multiple features | `lib/core/use_cases/` |
 
-Promotion rule: gains a consumer in a different layer of the same feature → promote one level. Gains a consumer in a different feature → promote to [`lib/core/use_cases/`](../../lib/core/use_cases). Today's only cross-feature UC is [`OpenTodoDetailsUseCase`](../../lib/core/use_cases/open_todo_details_use_case.dart).
+Promotion rule: gains a consumer in a different layer of the same feature → promote one level. Gains a consumer in a different feature → promote to [`lib/core/use_cases/`](../../lib/core/use_cases). [`OpenTodoDetailsUseCase`](../../lib/core/use_cases/open_todo_details_use_case.dart) sits there to illustrate the path, but it is not a real cross-feature case: its only consumer is `HomePageState`, so by these rules it would live in `lib/features/home/view/use_cases/`.
 
 ### Extract vs keep inline
 

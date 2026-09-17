@@ -55,7 +55,7 @@ Future<void> deleteTodo(@Path('id') String id);
 
 Illustrative: the real `TodosApiProvider` has no delete endpoint. Path parameters are positional, so a caller writes `deleteTodo(id)`. A path shared by several methods is named for the resource (`todoById`), not for one verb. Every path string lives in the provider's private `_Paths` class.
 
-Each endpoint gets a request-shape test: the real provider over a `Dio` with a fake `HttpClientAdapter` that records the request, asserting method and path. The generated code is not written by hand, but the annotations are, and a store test that mocks the provider cannot catch a wrong one. See [`create-api-provider`](../../.claude/skills/create-api-provider/SKILL.md#test-the-request-shape).
+Each endpoint gets a request-shape test: the real provider over a `Dio` with a fake `HttpClientAdapter` that records the request, asserting method and path. The generated code is not written by hand, but the annotations are, and a store test that mocks the provider cannot catch a wrong one. `packages/api` has no tests yet: the first provider test creates `packages/api/test/` and adds `test` to its `dev_dependencies`. See [`create-api-provider`](../../.claude/skills/create-api-provider/SKILL.md#test-the-request-shape).
 
 ### Where DTOs live
 

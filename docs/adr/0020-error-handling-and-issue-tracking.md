@@ -49,12 +49,12 @@ Every method requires an operation name: `context` on `trackIssue` and `trackSil
 
 ```dart
 // ❌ the failure disappears
-} on DioException {
+} catch (_) {
   return null;
 }
 
 // ✅ the caller shows the failure, so it is tracked as handled
-} on DioException catch (e, stackTrace) {
+} catch (e, stackTrace) {
   _issueTrackingService.trackHandledError(
     e,
     stackTrace: stackTrace,
@@ -66,13 +66,15 @@ Every method requires an operation name: `context` on `trackIssue` and `trackSil
 
 Track exactly once. The layer that catches and does not rethrow is the layer that tracks. A layer that rethrows does not also track, or the same failure is reported twice.
 
+**An API boundary catches everything.** A store's request or an API use case uses `catch (e, stackTrace)` with no `on` clause: the generated Retrofit client rethrows a response that fails `fromJson` unchanged, and `on DioException` would let it skip the error UI. `on DioException` is only for branching on the Dio error type while letting everything else propagate.
+
 ### What the service filters
 
 These rules live in the service, so call sites never repeat them:
 
 - **Connectivity errors** (connection, send and receive timeouts, connection errors) are never reported. By default they show no notice either. That holds for a load: the connection page already tells the user the device is offline. It does not hold for an optimistic change the app undid. A deleted row that comes back after a timeout has no connection page to explain it, and a timeout can happen while the device is online. A rollback path passes `notifyOnConnectivityError: true`, so the notice shows for offline and timeout errors too. They are still not reported.
 - **Cancellations** (`DioExceptionType.cancel`) are neither reported nor shown.
-- **Status codes something else owns** (`IssueTrackingService.ignoredStatusCodes`, `401` by default, which `AuthInterceptor` turns into a logout) are neither reported nor shown.
+- **Status codes something else owns** (`IssueTrackingService.ignoredStatusCodes`, `401` by default, on which `AuthInterceptor` clears the session) are neither reported nor shown.
 - **Thrown values that are not an `Error` or `Exception`** are logged in debug and not reported.
 - **Notice text** is the caller's `message`, else the generic `LocaleKeys.errors_generic` in production, else the raw `error.toString()` in development. The stack trace is never shown.
 - **No context, no notice.** An error before the navigator exists is still reported.
@@ -137,7 +139,7 @@ Future<void> onTodoDismissed(String id) async {
 
 - The calling state uses `trackIssue` when nothing else on screen reports the failure, or `trackHandledError` when it shows its own error UI. Either way the failure is tracked once, and the shared store never decides UI.
 - A store whose page already renders its `error` observable does not rethrow. It restores, sets `error` and tracks with `trackHandledError`.
-- The restore sits in a `catch` with no `on` clause, so it runs whatever failed. `on DioException` is for a request whose only expected failure is the request itself, with nothing to undo.
+- The restore sits in a `catch` with no `on` clause, so it runs whatever failed.
 
 ### Allowed without tracking
 
@@ -187,7 +189,7 @@ Future<void> onTodoDismissed(String id) async {
 
 <ai_context_rules>
 - **Autonomy level:** Full
-- **Architecture constraints:** Every `catch` in `lib/` rethrows or calls `trackIssue` / `trackHandledError` / `trackSilentError` before returning, never both. Choose the method by who shows the error: the service (`trackIssue`), the caller (`trackHandledError`), nobody (`trackSilentError`). Every call passes its operation name (`context:` or `handlingContext:`). A rollback of an optimistic change passes `notifyOnConnectivityError: true` to `trackIssue`. A shared store with no error observable restores its state and rethrows; the calling state tracks. Never call Sentry outside `IssueTrackingService`. Never attach request headers or bodies to a report.
+- **Architecture constraints:** Every `catch` in `lib/` rethrows or calls `trackIssue` / `trackHandledError` / `trackSilentError` before returning, never both. Choose the method by who shows the error: the service (`trackIssue`), the caller (`trackHandledError`), nobody (`trackSilentError`). Every call passes its operation name (`context:` or `handlingContext:`). An API boundary catches everything, never only `on DioException`. A rollback of an optimistic change passes `notifyOnConnectivityError: true` to `trackIssue`. A shared store with no error observable restores its state and rethrows; the calling state tracks. Never call Sentry outside `IssueTrackingService`. Never attach request headers or bodies to a report.
 - **File paths affected:** `lib/**/*_store.dart`, `lib/**/*_state.dart`, `lib/**/*_use_case.dart`, `lib/core/services/**`
 - **Verification command:** `flutter test test/core/services/issue_tracking_service_test.dart`
 </ai_context_rules>

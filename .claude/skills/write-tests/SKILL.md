@@ -7,6 +7,8 @@ description: Write unit and widget tests — the testing pyramid, where each lay
 
 Governed by [ADR-0015](../../../docs/adr/0015-mandatory-test-coverage-and-qa-gate.md). Unit and widget tests are two of the three mandatory tiers; the third is [`write-maestro-flow`](../write-maestro-flow/SKILL.md).
 
+Concepts behind this playbook: [`state-management-guide`](../../../docs/state-management-guide.md).
+
 ## The pyramid
 
 **Many unit tests, fewer widget tests, few E2E flows.**
@@ -21,21 +23,22 @@ Push each check down to the cheapest tier that can catch the bug. An edge case i
 
 ## Where tests live
 
-`test/` mirrors `lib/`.
+`test/` mirrors `lib/`: a test sits at its source file's path. The tier is set by what the test exercises (`test()` or `testWidgets()`), not by the folder, so a page state's unit test and its page's widget test sit side by side in `view/`.
 
 ```
 test/
   features/{feature}/
     mobx/{feature}_store_test.dart
-    view/{feature}_page_state_test.dart
-    view/{feature}_page_test.dart          widget test
-    use_cases/{name}_use_case_test.dart
-  core/…                                    services, platform channels, utils
-  helpers/                                  shared fakes + pump helpers (pump_app.dart, fixture.dart)
-  fixtures/                                 JSON and other data files, grouped by feature
-packages/api/test/
-  providers/{resource}_provider/{resource}_api_provider_test.dart   request shape
+    view/{feature}_page_state_test.dart                unit
+    view/{feature}_page_test.dart                      widget
+    view/use_cases/{name}_use_case_test.dart           next to its source
+    modals/{modal}/mobx/{modal}_state_test.dart
+    modals/{modal}/use_cases/{name}_use_case_test.dart
+  core/…                                    services (interceptors/ too), platform channels, utils
+  helpers/pump_app.dart                     the widget-test harness
 ```
+
+Created with their first use, since none exist yet: `test/helpers/fixture.dart` and `test/fixtures/` (see [Fixtures](#fixtures)), and `packages/api/test/providers/{resource}_provider/{resource}_api_provider_test.dart` for request-shape tests.
 
 ## Test the seam below the unit
 
@@ -225,7 +228,7 @@ Always dispose the reaction, or it leaks into the next test. (A test file that i
 
 ## Fixtures
 
-Realistic API payloads live as files under `test/fixtures/`, grouped by feature (`test/fixtures/todos/todo.json`), not as long string literals inside tests. Load them with a small helper, added once at `test/helpers/fixture.dart`:
+Realistic API payloads live as files under `test/fixtures/`, grouped by feature (`test/fixtures/todos/todo.json`), not as long string literals inside tests. The template has no fixtures yet: add the folder and this helper, at `test/helpers/fixture.dart`, with the first one:
 
 ```dart
 import 'dart:convert';
@@ -258,13 +261,10 @@ import '../../../helpers/pump_app.dart';
 void main() {
   setUpAll(initLocalizationForTests);
 
-  late _MockHomeStore store;
   late _MockHomePageState state;
 
   setUp(() {
-    store = _MockHomeStore();
     state = _MockHomePageState();
-    when(() => state.store).thenReturn(store);
     when(state.init).thenAnswer((_) async {});
     getIt.registerFactory<HomePageState>(() => state);
   });
@@ -272,9 +272,14 @@ void main() {
   tearDown(getIt.reset);
 
   testWidgets('should show the empty state when there are no todos', (tester) async {
-    when(() => store.todos).thenReturn(ObservableList.of([]));
-    when(() => store.isLoading).thenReturn(false);
-    when(() => store.error).thenReturn(null);
+    // Stub every getter the page reads from its state. The real test does
+    // this once in a `_stubState` helper.
+    when(() => state.todos).thenReturn(ObservableList.of([]));
+    when(() => state.visibleTodos).thenReturn([]);
+    when(() => state.doneCount).thenReturn(0);
+    when(() => state.filter).thenReturn(TodoFilter.all);
+    when(() => state.isLoading).thenReturn(false);
+    when(() => state.error).thenReturn(null);
 
     await tester.pumpApp(const HomePage());
 
@@ -299,9 +304,9 @@ A list whose rows can be removed or inserted gets this test ([`create-page`](../
 
 testWidgets('should keep the rows below a removed todo mounted', (tester) async {
   final todos = ObservableList.of([_todo('1'), _todo('2'), _todo('3')]);
-  when(() => store.todos).thenReturn(todos);
-  when(() => store.isLoading).thenReturn(false);
-  when(() => store.error).thenReturn(null);
+  when(() => state.todos).thenReturn(todos);
+  when(() => state.visibleTodos).thenReturn(todos);
+  // ... the other getters, stubbed as above ...
   await tester.pumpApp(const HomePage());
 
   final survivor = tester.element(find.byKey(const ValueKey('3')));
@@ -314,7 +319,7 @@ testWidgets('should keep the rows below a removed todo mounted', (tester) async 
 ```
 
 - Without `findItemIndexCallback` / `findChildIndexCallback`, row `'3'` is rebuilt from scratch and `same` fails. That is the defect this catches: rows below a removed one lose their state and replay their entry animation.
-- The test changes the data the way the store would, then asserts what the page did with it. Mutate the `ObservableList` inside `runInAction`: the page observes it, and MobX rejects a write outside an action.
+- The test changes the data the way the store would, then asserts what the page did with it. Mutate the `ObservableList` inside `runInAction`, as the store would inside an action. A write outside one is not rejected, but it is not batched with the writes around it ([`state-management-guide`](../../../docs/state-management-guide.md#a-write-outside-an-action)).
 
 ### Overriding the page state
 
@@ -389,7 +394,7 @@ melos run test:coverage                          # lcov
 - [ ] Store/use-case tests cover success, failure, and empty
 - [ ] Failure tests assert loading was cleared **and** verify the tracking method and `context` / `handlingContext` (plus `message` for `trackIssue`)
 - [ ] `verifyNever` on `trackIssue` lists every named argument
-- [ ] Large payloads come from `test/fixtures/`, loaded with the fixture helper
+- [ ] Large payloads come from `test/fixtures/`, loaded with the fixture helper (added with the first fixture)
 - [ ] Widget tests find by key, never by displayed text; cover loading / error / empty / content
 - [ ] Removable or insertable rows: the survivor's `Element` is `same` before and after a removal
 - [ ] New API endpoint: request-shape test over a fake `HttpClientAdapter`

@@ -7,6 +7,8 @@ description: Build a MobX store — @readonly observables, @action mutations, Di
 
 Governed by [ADR-0002](../../../docs/adr/0002-state-vs-store-separation.md) (state vs store), [ADR-0006](../../../docs/adr/0006-feature-owned-singletons.md) (feature-owned), [ADR-0007](../../../docs/adr/0007-di-scopes-and-constructor-injection.md) (DI scopes), [ADR-0020](../../../docs/adr/0020-error-handling-and-issue-tracking.md) (error tracking).
 
+Concepts behind this playbook: [`state-management-guide`](../../../docs/state-management-guide.md).
+
 ## Store or state?
 
 | Question | Store (`*_store.dart`) | State (`*_state.dart`) |
@@ -59,9 +61,6 @@ abstract class _HomeStoreBase with Store {
   @readonly
   String? _error;
 
-  @computed
-  bool get hasTodos => _todos.isNotEmpty;
-
   @action
   Future<void> loadTodos() async {
     _isLoading = true;
@@ -69,14 +68,16 @@ abstract class _HomeStoreBase with Store {
     try {
       final result = await _dioService.todosProvider.getTodos();
       _todos = ObservableList.of(result);
-    } on DioException catch (e, stackTrace) {
-      // The page renders [error] as its error state, so this is handled.
+    } catch (e, stackTrace) {
+      // Everything, not only DioException: the generated Retrofit client
+      // rethrows a response that fails fromJson unchanged. The page renders
+      // [error] as its error state, so this is handled.
       _issueTrackingService.trackHandledError(
         e,
         stackTrace: stackTrace,
         handlingContext: 'load_todos',
       );
-      _error = e.message;
+      _error = e is DioException ? e.message : e.toString();
     } finally {
       _isLoading = false;
     }
@@ -84,7 +85,7 @@ abstract class _HomeStoreBase with Store {
 }
 ```
 
-Working example: [`lib/features/home/mobx/home_store.dart`](../../../lib/features/home/mobx/home_store.dart).
+Working example: [`lib/features/home/mobx/home_store.dart`](../../../lib/features/home/mobx/home_store.dart), which also has `addTodo`, `replaceTodo` and `logout`.
 
 ## `@readonly` — never write a redundant getter
 
@@ -106,7 +107,7 @@ bool get canSubmit => !_isLoading && _title.isNotEmpty;
 
 ## Actions
 
-- Every mutation of an observable happens inside `@action`. A write outside an action silently fails to batch and can trip MobX's strict mode.
+- Every mutation of an observable happens inside `@action`. A write outside one is not rejected: MobX wraps each stray write to a generated field or observable collection in its own action. But it is not batched, so each write notifies on its own and an observer can see a half-updated store ([`state-management-guide`](../../../docs/state-management-guide.md#a-write-outside-an-action)).
 - `@action` covers async methods too — MobX handles the await boundaries. For a write in a callback that is not inside an action, wrap it in `runInAction`.
 - Async actions set the loading flag first and clear it in `finally` — never only on the success path, or an error leaves a permanent spinner.
 - Reset the error at the start of a retry-able action, otherwise a stale error survives the next success.
@@ -173,10 +174,11 @@ Either way the store owns its observables. A use case returns a result or throws
 
 Every `catch` tracks or rethrows, never both ([ADR-0020](../../../docs/adr/0020-error-handling-and-issue-tracking.md)). Inject `IssueTrackingService` through the constructor; never call Sentry or a global. The full decision tree is in [`handle-errors`](../handle-errors/SKILL.md).
 
-**What to catch.** Catch what you can handle.
+**What to catch.** The API boundary catches everything.
 
-- A request with nothing to undo (a load, a page) catches `on DioException catch (e, stackTrace)`: the request is the only expected failure.
-- A rollback or state restore must run on any failure, so its `catch` has no `on` clause. More than the request can throw between the change and the restore.
+- A request (a load, a page) catches with `catch (e, stackTrace)`, no `on` clause. The generated Retrofit client rethrows a response that fails `fromJson` unchanged, and that must reach the error state too. Set `error` from `e is DioException ? e.message : e.toString()`.
+- A rollback or state restore must run on any failure, so its `catch` has no `on` clause either. More than the request can throw between the change and the restore.
+- `on DioException` is only for branching on the Dio error type (a `404`, a timeout) while letting everything else propagate.
 
 **Who tracks.**
 
@@ -294,7 +296,7 @@ abstract class _TodoListStoreBase with Store {
       _page = nextPage;
       _hasMore =
           response.meta?.hasNextPage ?? response.data.length == _pageSize;
-    } on DioException catch (e, stackTrace) {
+    } catch (e, stackTrace) {
       // The list renders [error] (a footer with a retry), so this is handled.
       _issueTrackingService.trackHandledError(
         e,
@@ -302,7 +304,7 @@ abstract class _TodoListStoreBase with Store {
         handlingContext: 'load_todos_page',
       );
       if (generation == _generation) {
-        _error = e.message;
+        _error = e is DioException ? e.message : e.toString();
       }
     } finally {
       if (generation == _generation) {
@@ -372,7 +374,8 @@ void setStatusFilter(TodoStatusFilter value) => _statusFilter = value;
 ```
 
 - **Use `@computed` for expensive derived collections** — filtered, sorted, grouped. While an `Observer` or reaction reads it, the result is cached and recomputed only when `_todos`, `_query` or `_statusFilter` changes, not on every rebuild. Never filter inside `build()`.
-- The filter enum is a feature model: `lib/features/{feature}/models/`.
+- The filter enum is a feature model: `lib/features/{feature}/models/`, as `TodoFilter` is in `lib/features/home/models/todo_filter.dart`.
+- A filter only one screen uses can sit on the page state instead of the store. `HomePageState` holds `@readonly TodoFilter _filter` and a `@computed visibleTodos` over `HomeStore.todos`.
 - A query that goes to the **server** is not a `@computed`: debounce it with `debounceReaction` on `_query` (see Reactions) and load the results into the store.
 
 ## Cross-store access
@@ -389,7 +392,7 @@ A store may inject another store. It must not inject a page state, and it must n
 - [ ] Collections are `ObservableList` / `ObservableMap`; DTOs replaced, never mutated
 - [ ] Inline `DioService` call only for the store's own request applied to its own observables; otherwise an API use case
 - [ ] Every `catch` tracks or rethrows: `trackHandledError` + `error` when the page renders it; restore then rethrow when there is no error observable
-- [ ] Rollbacks and restores catch every failure (no `on` clause); `on DioException` only where nothing needs undoing
+- [ ] Requests, rollbacks and restores catch every failure (no `on` clause); `on DioException` only to branch on the Dio error type
 - [ ] A `@singleton` that owns resources registers `@Singleton(dispose: …)` (not `@disposeMethod`), visible in `injectable.config.dart`
 - [ ] No screen state disposes an app-wide store; subscriptions assigned after an `await` are nullable, not `late`
 - [ ] Pagination: re-entry guard, page advanced only on success, refresh resets and drops late pages

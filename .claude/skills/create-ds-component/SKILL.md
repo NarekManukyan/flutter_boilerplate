@@ -7,6 +7,8 @@ description: Build a reusable component inside packages/design_system — direct
 
 Governed by [ADR-0014](../../../docs/adr/0014-melos-package-split.md) (package boundary) and [ADR-0013](../../../docs/adr/0013-design-system-tokens-only.md) (tokens only). Visual spec: [`DESIGN.md`](../../../DESIGN.md).
 
+Concepts behind this playbook: [`performance-guide`](../../../docs/performance-guide.md).
+
 ## Does it belong here?
 
 | Widget | Home |

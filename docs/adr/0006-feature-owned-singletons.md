@@ -51,7 +51,7 @@ A store used by many features still lives under the feature it most naturally be
 |---|---|
 | Store, any DI scope | `lib/features/{owning_feature}/mobx/` |
 | Reusable state class | The owning feature's `view/` or `mobx/`, never a shared directory |
-| Feature-agnostic state primitive (`LoadingState`, `TimerState`) | [`lib/core/state/`](../../lib/core/state) — a small observable building block composed *into* screen states, with no feature logic and no dependencies. A class that knows about a feature is not a primitive and belongs to that feature. |
+| Feature-agnostic state primitive (`LoadingState`) | [`lib/core/state/`](../../lib/core/state) — a small observable building block composed *into* screen states, with no feature logic and no dependencies. A class that knows about a feature is not a primitive and belongs to that feature. |
 | Reusable widget | [`lib/core/ui/`](../../lib/core/ui) |
 | Reusable model | `lib/core/models/` or the owning feature's `models/` |
 | Cross-feature use case | [`lib/core/use_cases/`](../../lib/core/use_cases), per [ADR-0004](0004-use-case-taxonomy-and-colocation.md) |

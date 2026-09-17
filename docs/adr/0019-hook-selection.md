@@ -37,7 +37,7 @@ Chosen option: **Prefer `useValueNotifier` over `useState` whenever the state sh
 
 The main reason is rebuild scope. When only part of the widget depends on the value, `useValueNotifier` rebuilds that part and nothing else, which is exactly what the Home FAB above needed.
 
-`useState` is **not** banned. It is correct when the value genuinely should rebuild the whole widget, for example a filter that changes everything the widget renders.
+`useState` is **not** banned. It is correct when the value genuinely should rebuild the whole widget, for example a filter that changes everything a small widget renders. A filter that a derived list depends on belongs in MobX instead: the Home filter is `@readonly` on `HomePageState`, next to the `@computed visibleTodos` it drives.
 
 ### Which tool
 
@@ -160,10 +160,12 @@ ValueChanged<T> useDebouncedCallback<T>(
 ```
 
 ```dart
-// lib/core/constants/debounce_constants.dart — behaviour timing, not a GeistDuration motion token
-
-/// How long typing must pause before a search runs.
-const kSearchDebounce = Duration(milliseconds: 300);
+// lib/core/constants/timing_constants.dart — behaviour timing, not a GeistDuration
+// motion token. Illustrative: TimingConstants exists, searchDebounce does not.
+abstract final class TimingConstants {
+  /// How long typing must pause before a search runs.
+  static const searchDebounce = Duration(milliseconds: 300);
+}
 ```
 
 ```dart
@@ -176,7 +178,7 @@ class TodoSearchField extends HookWidget {
   Widget build(BuildContext context) {
     final onChanged = useDebouncedCallback(
       onQueryChanged,
-      delay: kSearchDebounce,
+      delay: TimingConstants.searchDebounce,
     );
     return TextField(onChanged: onChanged);
   }

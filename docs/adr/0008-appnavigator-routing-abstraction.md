@@ -39,7 +39,7 @@ Hard rules:
 - Widgets **never** navigate through the context. That means no `context.router`, no `Navigator.of(context)` and no `Navigator.pop(context)`. The rule also covers throwaway places, such as a close button, a back arrow or a dialog's cancel action.
 - Pages call methods on their state class; the state class calls `AppNavigator`, directly or through a navigation use case.
 - A reusable widget with no state class of its own takes a callback (`VoidCallback onBack`) when it needs to navigate. Whoever owns a state class decides where the callback goes; the widget never calls the router.
-- `AppNavigator.config` (a `RouterConfig<UrlState>`) is consumed once by `MaterialApp.router` in [`lib/app.dart`](../../lib/app.dart).
+- `AppNavigator.config` (a `RouterConfig<UrlState>`) is consumed only by `MaterialApp.router` in [`lib/app.dart`](../../lib/app.dart), which is keyed on `dependencyGeneration` so a DI reset mounts the new navigator's router.
 
 ```dart
 // ❌ Forbidden in a widget, including one-line cases

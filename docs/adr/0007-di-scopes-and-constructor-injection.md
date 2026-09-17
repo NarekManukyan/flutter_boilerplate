@@ -31,21 +31,21 @@ Chosen option: **Constructor injection, three injectable scopes (`@injectable`, 
 
 - **`@injectable` is the default.** Use it for State classes, feature-scoped stores, use cases and stateless services such as [`IssueTrackingService`](../../lib/core/services/issue_tracking_service.dart). Every resolution returns a new instance, so a caller must not expect to share state with anything else that resolved the same type. State that has to be shared belongs in a `@singleton` store.
 - **`@singleton`** is for app-wide stores (`AuthStore`, `HomeStore`, `NotificationsStore`, `ConnectivityStore`) and for long-lived services that must exist from startup: [`AppNavigator`](../../lib/core/navigation/app_navigator.dart) and [`FlavorService`](../../lib/core/services/flavor_service.dart). They are created when `configureDependencies` runs.
-- **`@lazySingleton`** is for expensive long-lived services that are created on first use. Current example: [`DioService`](../../lib/core/services/dio_service.dart), which builds its `Dio` clients and interceptor chain in its constructor. It is not a safer default than `@singleton`. Use it only when eager construction would do work that nothing needs yet.
+- **`@lazySingleton`** is for expensive long-lived services that are created on first use. Current example: [`DioService`](../../lib/core/services/dio_service.dart), which builds its `Dio` clients and interceptor chain in its constructor. The eager `@singleton HomeStore` depends on it, though, so today it is built during `configureDependencies` anyway: a singleton that depends on a lazy singleton makes it eager. It is not a safer default than `@singleton`. Use it only when eager construction would do work that nothing needs yet.
 - **Use cases are never singletons.** A use case performs one operation ([ADR-0004](0004-use-case-taxonomy-and-colocation.md)). As a singleton it turns into a place to keep state that no store owns.
 
 ### Where `getIt` may be called
 
 `getIt` is resolved in exactly two places:
 
-1. **App bootstrap.** `main()` initialization ([`lib/main.dart`](../../lib/main.dart) reads `FlavorService` to configure Sentry), router setup and app-level flags in the app root ([`lib/app.dart`](../../lib/app.dart) reads `AppNavigator.config` and the debug-banner flag), splash, and the DI bootstrap itself in [`lib/injectable.dart`](../../lib/injectable.dart).
-2. **`Provider(create: (_) => getIt<MyState>())` at page roots.** A modal or dialog that owns a state class counts as a page root. See [ADR-0009](0009-provider-based-state-access.md).
+1. **App bootstrap.** `main()` initialization ([`lib/main.dart`](../../lib/main.dart) reads `FlavorService` to configure Sentry), router setup and app-level flags in the app root ([`lib/app.dart`](../../lib/app.dart) reads `AppNavigator.config` and the debug-banner flag), and the DI bootstrap itself in [`lib/injectable.dart`](../../lib/injectable.dart).
+2. **`Provider(create: (_) => getIt<MyState>())` at page roots.** A modal or dialog that owns a state class counts as a page root, and so do `SplashPage` and the app-level `ConnectionWrapperPage`. See [ADR-0009](0009-provider-based-state-access.md).
 
-Everywhere else, dependencies arrive through the constructor. Never call `getIt<>()` inside a class. This includes objects the container does not build, such as Dio interceptors and route guards. They receive their dependencies from whoever constructs them: `DioService` passes `AuthStore` and `AppNavigator` into `AuthInterceptor`, and `AppNavigator` passes `AuthStore` into `AuthGuard`.
+Everywhere else, dependencies arrive through the constructor. Never call `getIt<>()` inside a class. This includes objects the container does not build, such as Dio interceptors and route guards. They receive their dependencies from whoever constructs them: `DioService` passes `AuthStore` and the API base URL into `AuthInterceptor`, and `AppNavigator` passes `AuthStore` into `AuthGuard`.
 
 ### Flavors
 
-Flavor-specific bindings declare their environment by `FlavorType` name, for example `@Singleton(env: ['DEVELOPMENT'], as: FlavorService)` on `FlavorDev`. Bootstrap is [`configureDependencies(FlavorType)`](../../lib/injectable.dart), which passes the flavor name as the injectable `environment`. [`resetDependencies()`](../../lib/injectable.dart) tears down GetIt and re-registers under the current flavor. `AuthStore.clearSession()` calls it on logout so that every singleton starts fresh.
+Flavor-specific bindings declare their environment by `FlavorType` name, for example `@Singleton(env: ['DEVELOPMENT'], as: FlavorService)` on `FlavorDev`. Bootstrap is [`configureDependencies(FlavorType)`](../../lib/injectable.dart), which passes the flavor name as the injectable `environment`. [`resetDependencies()`](../../lib/injectable.dart) tears down GetIt, re-registers under the current flavor and bumps `dependencyGeneration`. `AuthStore.clearSession()` calls it on logout and on a `401` so that every singleton starts fresh. `MyApp` keys `MaterialApp.router` on `dependencyGeneration`, so the new `AppNavigator`'s router is mounted and every page root below it resolves from the new container.
 
 ### Consequences
 

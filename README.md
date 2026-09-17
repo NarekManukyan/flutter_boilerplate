@@ -9,6 +9,7 @@ A Flutter starter for mobile apps: layered architecture, MobX state management, 
 | [`AGENTS.md`](AGENTS.md) | **Single source of truth.** Architecture rules, delivery workflow, naming, file boundaries, testing contract. Read by Codex, Cursor, Zed, Amp and Jules natively. |
 | [`.claude/skills/`](.claude/skills/) | **Playbooks** — step-by-step guides for building one kind of thing (a DTO, a store, a page, a Maestro flow). Plain Markdown any agent can read; Claude Code registers them as invocable skills. Open the one you need; do not read them all. |
 | [`docs/adr/`](docs/adr/README.md) | **Why** each rule exists, and what was rejected. |
+| [`docs/*.md`](docs/architecture.md) | **Guides** — how the pieces fit: [architecture](docs/architecture.md), [project structure](docs/project-structure.md), [state management](docs/state-management-guide.md), [use cases](docs/use_cases_guide.md), [error handling](docs/error-handling-guidelines.md), [security](docs/security-guidelines.md), [performance](docs/performance-guide.md). Start with architecture on your first day. |
 | [`DESIGN.md`](DESIGN.md) | Visual system — palette, type, motion, component states, dark mode, accessibility, and the per-feature design-spec template. |
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | Symptom → cause → fix for setup, codegen, runtime, test, device and Maestro problems. |
 
@@ -20,11 +21,13 @@ Every feature follows [ADR-0016](docs/adr/0016-plan-first-delivery-workflow.md):
 
 A feature is done when all three test tiers exist ([ADR-0015](docs/adr/0015-mandatory-test-coverage-and-qa-gate.md)):
 
-| Tier | Where |
+| Tier | What it is |
 |---|---|
-| Unit | `test/features/{feature}/` |
-| Widget | `test/features/{feature}/view/` |
-| E2E (Maestro) | `.maestro/flows/{feature}/` — **happy, failure and edge** |
+| Unit | a plain `test()` of a store, state, use case or service |
+| Widget | a `testWidgets()` that pumps a page and checks each branch |
+| E2E (Maestro) | a flow in `.maestro/flows/{feature}/` — **happy, failure and edge** |
+
+Unit and widget tests both sit at their source file's path under `test/`, so a page state's test and its page's widget test share `view/`.
 
 In Claude Code: `/build-feature <JIRA-KEY>` runs the whole loop, `/qa-feature <feature>` runs the gate.
 
@@ -256,7 +259,7 @@ The version and build number come from `version:` in `pubspec.yaml` (`1.2.0+42`)
 - [ ] `melos run verify` passes on a clean tree (`melos run rebuild` first)
 - [ ] `melos run maestro` passes on an iOS and an Android dev build
 - [ ] Version and build number bumped; the build number is higher than the last upload
-- [ ] `lib/core/configs/environments/production/production.json` holds production values: API URL, Sentry DSN, bundle id, third-party keys
+- [ ] `lib/core/configs/environments/production/production.json` holds production values: API URL, Sentry DSN, bundle id and public client identifiers (OAuth client ids, reCAPTCHA site keys). Never secrets: the file is compiled into the app ([security guide](docs/security-guidelines.md#secrets-and-config-masvs-code))
 - [ ] Built from `lib/main_prod.dart`; the mock interceptor is dev-only, and nothing logs request headers or bodies in production
 - [ ] Signing configured for both platforms
 - [ ] The release build installed on a physical iPhone and Android device, and the main journeys smoke-tested
@@ -294,10 +297,11 @@ packages/
   api/                 Retrofit providers + freezed DTOs, one directory per resource
   design_system/       GeistTheme tokens, components, generated assets
 assets/translations/   en-US.json
-test/                  unit + widget tests, mirrors lib/
+test/                  unit + widget tests, each at its source file's path
 .maestro/              E2E flows: flows/{feature}/{feature}_{happy|failure|edge}.yaml
 tool/                  sync_agents.sh, run_maestro.sh, git-hooks/
-docs/                  adr/, troubleshooting.md
+docs/                  guides (architecture, project structure, state, use cases, errors,
+                       security, performance, troubleshooting), adr/, plans/ (created by the first plan)
 ```
 
 - Features are peers: a feature never contains a `features/` folder ([ADR-0005](docs/adr/0005-flat-feature-tree.md)).
@@ -321,13 +325,19 @@ class AppRouter extends RootStackRouter {
       initial: true,
       path: '/',
       page: SplashRoute.page,
-      guards: [_authGuard],
+      // No guard: SplashPageState decides between home and login.
     ),
     AutoRoute(path: '/login', page: LoginRoute.page),
     AutoRoute(path: '/home', page: HomeRoute.page, guards: [_authGuard]),
     AutoRoute(
       path: '/todos/:id',
       page: TodoDetailsRoute.page,
+      guards: [_authGuard],
+    ),
+    AutoRoute(
+      path: '/challenges/joined',
+      page: ChallengeJoinedRoute.page,
+      fullscreenDialog: true,
       guards: [_authGuard],
     ),
   ];
@@ -351,7 +361,7 @@ class AppNavigator {
 }
 ```
 
-`app.dart` hands `getIt<AppNavigator>().config` to `MaterialApp.router`. Page states and navigation use cases inject `AppNavigator` and call it; pages never use `context.router` or `Navigator` ([ADR-0008](docs/adr/0008-appnavigator-routing-abstraction.md)):
+`app.dart` hands `getIt<AppNavigator>().config` to `MaterialApp.router`, keyed on `dependencyGeneration` so that the DI reset on logout mounts the new navigator's router. Page states and navigation use cases inject `AppNavigator` and call it; pages never use `context.router` or `Navigator` ([ADR-0008](docs/adr/0008-appnavigator-routing-abstraction.md)):
 
 ```dart
 @action
@@ -401,7 +411,8 @@ In VS Code, open **Settings**, search for `files.exclude`, and add:
 - Error tracking through `IssueTrackingService` and Sentry
 - Design system package with Geist tokens, light and dark themes, generated assets (`packages/design_system`)
 - Localization with easy_localization and generated `LocaleKeys`
-- Connectivity handling and an app-update prompt
+- Connectivity handling: an offline screen laid over the app, which keeps its routes mounted
+- Available but not wired: an app-update prompt (`AppUpdateService.checkAppVersion()`) and a notifications store (`NotificationsStore.init()`, with its Firebase calls commented out). Nothing calls either yet
 - Unit, widget and Maestro E2E tests, with a shared widget-test harness
 - Melos workspace scripts, a pre-commit hook, CI workflows, and agent playbooks and ADRs
 

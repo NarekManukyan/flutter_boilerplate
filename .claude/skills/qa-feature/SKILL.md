@@ -34,7 +34,7 @@ Take the AC checklist from the plan. Every line gets a row, and every row names 
 - [ ] **Server 4xx** (validation, conflict) → the specific message, not the generic one.
 - [ ] **Expired / missing auth** → refresh or redirect to login; never an infinite retry loop.
 - [ ] **Network dropped mid-request** → no crash, no permanent spinner, clear recovery.
-- [ ] **Timeout** → the 32s Dio timeout is handled, not left to hang.
+- [ ] **Timeout** → the Dio timeouts (15 s connect, 30 s send and receive) end in the error state, not a hang.
 - [ ] No raw `DioException`, stack trace, or English-only fallback string reaches the user.
 
 ### Edge

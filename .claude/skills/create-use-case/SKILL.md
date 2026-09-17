@@ -7,6 +7,8 @@ description: Build a *_use_case.dart — what a use case may inject (services, n
 
 Governed by [ADR-0001](../../../docs/adr/0001-layered-architecture.md) (access matrix), [ADR-0003](../../../docs/adr/0003-no-use-case-to-use-case-dependencies.md) (no UC → UC), [ADR-0004](../../../docs/adr/0004-use-case-taxonomy-and-colocation.md) (taxonomy + colocation), [ADR-0020](../../../docs/adr/0020-error-handling-and-issue-tracking.md) (errors).
 
+Concepts behind this playbook: [`use_cases_guide`](../../../docs/use_cases_guide.md).
+
 A use case encapsulates **one** business operation: an `@injectable` class with one public method, `call()`, invoked with call syntax. It is short-lived and stateless — it performs the operation and is done.
 
 ```dart
@@ -22,7 +24,9 @@ class CreateTodoUseCase {
       return await _dioService.todosProvider.createTodo(
         todoCreateDto: TodoCreateRequestDto(title: title),
       );
-    } on DioException catch (e, stackTrace) {
+    } catch (e, stackTrace) {
+      // Everything, not only DioException: a response that fails fromJson
+      // throws from the generated client too.
       _issueTrackingService.trackHandledError(
         e,
         stackTrace: stackTrace,
@@ -37,7 +41,7 @@ class CreateTodoUseCase {
 final todo = await _createTodoUseCase(title);
 ```
 
-- Named as a verb phrase: `CreateTodoUseCase`, `FetchTodosUseCase`, `ShowAddTodoModalUseCase`.
+- Named as a verb phrase: `CreateTodoUseCase`, `FetchTodoUseCase`, `ShowAddTodoModalUseCase`.
 - **Always `@injectable`, never `@singleton`.** It holds no state worth sharing.
 - Constructor injection only — never `getIt<>()` inside.
 
@@ -81,7 +85,8 @@ class ShowAddTodoModalUseCase {
 class ReplaceTodoUseCase {
   List<TodoDto> call(List<TodoDto> todos, TodoDto updated) {
     return [
-      for (final todo in todos) todo.id == updated.id ? updated : todo,
+      for (final todo in todos)
+        if (todo.id == updated.id) updated else todo,
     ];
   }
 }
@@ -146,7 +151,8 @@ Return domain-friendly types, not raw responses. Prefer `Future` over `Stream` �
 
 Catch at the use-case boundary and **track before returning** — the full rules and the five patterns (return null, return empty, throw a domain exception, guard with callbacks, rethrow) are in [`handle-errors`](../handle-errors/SKILL.md). The short version:
 
-- `DioException` never leaks to a state class unless the pattern is a deliberate rethrow.
+- An API use case catches everything (`catch (e, stackTrace)`), not only `DioException`: the generated Retrofit client rethrows a response that fails `fromJson` unchanged. `on DioException` is only for branching on the Dio error type while the rest propagates, as `DeleteTodoUseCase` below does.
+- No failure leaks to a state class unless the pattern is a deliberate rethrow.
 - A use case whose failure value the caller renders uses `trackHandledError`.
 - Never swallow silently. Never track and rethrow in the same `catch`.
 

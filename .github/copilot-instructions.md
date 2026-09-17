@@ -4,12 +4,13 @@
 
 Instructions for any coding agent working in this repo (Claude Code, Codex, Cursor, Copilot, Gemini, Zed, Amp…). This file is the **single source** — tool-specific files are generated from it, see [ADR-0017](../docs/adr/0017-single-source-agent-instructions.md).
 
-Three layers, read in this order:
+Four layers, read in this order:
 
 | Layer | Answers | Where | Loaded |
 |---|---|---|---|
 | **This file** | *what* the rules are | `AGENTS.md` | always |
 | **Playbooks** | *how* to build a thing | `.claude/skills/{name}/SKILL.md` | on demand — open before you build |
+| **Guides** | *how the pieces fit* — concepts that span layers | `docs/*.md` | on demand — when work or a bug crosses stores, states and widgets, or you are new to the codebase |
 | **ADRs** | *why* the rule exists | `docs/adr/` | when you need to argue with a rule |
 
 **Before writing code for a new feature, follow the delivery workflow below. Before building any artifact in the playbook index, open its playbook first.**
@@ -25,6 +26,21 @@ Full rationale: [ADR-0016](../docs/adr/0016-plan-first-delivery-workflow.md). Pl
 **No code for a new feature until a plan is approved.** Read the ticket in full — *every* acceptance criterion, plus comments and linked issues — restate the AC as verifiable outcomes, analyse the codebase, write a file-level plan mapping each AC line to the test that will prove it, get it approved, build, then exit through the QA gate.
 
 The playbook has the rest, including when to split work across parallel agents (only when it is both large and separable — otherwise do not ask).
+
+## Guides — read when
+
+| Read | When |
+|---|---|
+| [`architecture.md`](../docs/architecture.md) | Planning a feature that spans layers; tracing a request end to end; "where is the rule for X?" |
+| [`project-structure.md`](../docs/project-structure.md) | Deciding where a new file goes; finding existing code |
+| [`state-management-guide.md`](../docs/state-management-guide.md) | Store vs state vs hook state; `Observer` not rebuilding; reactions, disposal and store lifetimes |
+| [`use_cases_guide.md`](../docs/use_cases_guide.md) | Whether logic deserves a use case, which type, and where it lives |
+| [`error-handling-guidelines.md`](../docs/error-handling-guidelines.md) | Any `catch`, rollback or error UI; who shows the error and who tracks it |
+| [`security-guidelines.md`](../docs/security-guidelines.md) | Auth, token storage, networking, logging, deep links, WebViews, platform channels, config and secrets, release builds |
+| [`performance-guide.md`](../docs/performance-guide.md) | Long lists, animations, images, heavy parsing, startup; investigating jank, memory or app size |
+| [`troubleshooting.md`](../docs/troubleshooting.md) | Something is broken: setup, codegen, tests, devices, Maestro |
+
+Guides explain; they do not override. When a guide and an ADR or playbook disagree, the ADR and playbook win — and the guide is a bug to fix.
 
 ## Agents
 
@@ -115,22 +131,24 @@ A use case consumes services, not stores: the caller passes store data in and ap
 ```
 lib/
   core/                    configs, constants, extensions, guards, navigation,
-                           services (Flavor, Dio, interceptors, social auth),
+                           services (Flavor, Dio, interceptors, issue tracking),
+                           state (reusable MobX primitives such as LoadingState),
                            ui (cross-feature widgets), use_cases, utils;
                            added when needed: exceptions, hooks, platform_channels
   features/{feature}/
     view/                  pages, states, widgets  (+ view/use_cases/)
     mobx/                  stores                  (+ mobx/use_cases/)
     core/use_cases/        use cases shared across layers of this feature
-    models/  modals/  components/  constants/  overlays/
+    modals/{modal}/        view/, mobx/ (the modal's state), use_cases/
+    models/  components/  constants/  overlays/
                            (only when needed; no per-feature shared/)
   gen/                     GENERATED — never edit
 packages/
   api/lib/src/            providers/{resource}_provider/ — one dir per resource,
                           each with its own DTOs and barrel
-  design_system/lib/      src/ (theme, components, colors, typography), gen/
+  design_system/lib/      src/ (components, core, theme), gen/
 assets/translations/       en-US.json …
-test/                      unit + widget, mirrors lib/
+test/                      unit + widget; each test at its source file's path
 .maestro/flows/{feature}/  E2E: {feature}_{scenario}_{happy|failure|edge}.yaml
 docs/plans/                {TICKET}-{slug}.md — the approved plan, committed with the feature
 .maestro/common/           E2E subflows (launch, login, set_mock, go_offline/go_online); never under flows/
@@ -146,12 +164,15 @@ docs/adr/                  architecture decision records
 |---|---|---|---|---|
 | Page | `*_page.dart` | | DTO | `*_dto.dart` |
 | Page state | `*_page_state.dart` | | Service | `*_service.dart` |
+| Modal | `*_modal.dart` | | Modal state | `*_modal_state.dart` |
 | Store | `*_store.dart` | | API provider | `*_api_provider.dart` |
 | Use case | `*_use_case.dart` | | Test ids | `*_keys.dart` |
 | Model | `*_model.dart` | | Typed exception | `*_exception.dart` |
 | Utils | `*_utils.dart` | | Platform channel | `*_channel.dart` |
 | Constants | `*_constants.dart` | | Directories | `snake_case` |
 | Widget | `*_widget.dart` | | Maestro flow | `{feature}_{scenario}_{happy\|failure\|edge}.yaml` |
+
+The files already in `lib/core/constants/` predate the `*_constants.dart` suffix; new ones use it (`timing_constants.dart`).
 
 ## File Boundaries
 
@@ -193,10 +214,10 @@ These are the ones worth carrying in your head. Everything else is in a playbook
 - **No state as a widget parameter.** `Provider` at the page root, `context.read<T>()` below.
 - **No `Widget _buildX()` methods and no `BuildContext` parameters on helpers.** Extract a real widget class (`_Header` is fine). Framework `builder:` callbacks and `BuildContext` extensions are the only exceptions.
 - **No `getIt<>()` inside a class.** Constructor injection only — interceptors and route guards included. Allowed only at app bootstrap (`main`, the app root's router setup) and in `Provider(create:)`.
-- **Every `catch` rethrows or tracks.** `trackIssue` when nothing else shows the error, `trackHandledError` when the caller does, `trackSilentError` for background work. Never both track and rethrow.
+- **Every `catch` rethrows or tracks.** `trackIssue` when nothing else shows the error, `trackHandledError` when the caller does, `trackSilentError` for background work. Never both track and rethrow. An API boundary catches everything (`catch (e, stackTrace)`), because generated Retrofit code rethrows `fromJson` failures unchanged; `on DioException` only to branch on the error type.
 - **Use cases inject services only** — never a store, never another use case — and are always `@injectable`. Widgets never call them; states and stores do.
 - **No inline UI strings.** `LocaleKeys.key.tr()`, added to `assets/translations/en-US.json`, then `melos run translations`.
-- **No raw colours, `TextStyle(…)` composites, radii, durations or `BoxShadow` stacks in `lib/`.** Use `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. A value that differs between light and dark goes on the theme extension (`context.geist`) with **both values**; only values identical in every theme may be static constants. Non-visual timing (debounce, timeout, backoff) is a named `Duration` constant, never inline.
+- **No raw colours, `TextStyle(…)` composites, radii, durations or `BoxShadow` stacks in `lib/`.** Use `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. A value that differs between light and dark goes on the theme extension (`context.geist`) with **both values**; only values identical in every theme may be static constants. Non-visual timing (debounce, timeout, backoff) is a named `Duration` constant (`TimingConstants`), never inline.
 - **No redundant getter for `@readonly`** — it already generates the public getter. `@computed` is for derived state only.
 - **Relative imports inside `lib/`, single quotes, trailing commas on multiline args.** `analysis_options.yaml` promotes these to errors, along with `cascade_invocations`, `avoid_print`, `cancel_subscriptions`.
 - **Never edit generated files.** Change the annotation and run `melos run build`.
@@ -208,11 +229,13 @@ Rationale: [ADR-0015](../docs/adr/0015-mandatory-test-coverage-and-qa-gate.md). 
 
 A feature is done when all three tiers exist:
 
-| Tier | Where | Covers |
+| Tier | What it exercises | Covers |
 |---|---|---|
-| Unit | `test/features/{feature}/` | stores, states, use cases, services |
-| Widget | `test/features/{feature}/view/` | page renders each state; callbacks fire |
-| E2E | `.maestro/flows/{feature}/` | the journey on a device — **happy, failure, edge** |
+| Unit | plain `test()` | stores, states, use cases, services |
+| Widget | `testWidgets()` | page renders each state; callbacks fire |
+| E2E | a Maestro flow in `.maestro/flows/{feature}/` | the journey on a device — **happy, failure, edge** |
+
+Unit and widget tests both mirror their source file's path under `test/`, so a page state's unit test and its page's widget test sit together in `view/`.
 
 Run the E2E suite with `./tool/run_maestro.sh` (or `melos run maestro`): it runs the `.maestro` workspace root, passes `APP_ID`, and writes a JUnit report to `.maestro/output/`. Pointing Maestro at `.maestro/flows` finds no flows. Subflows live in `.maestro/common/` and must never match the `flows/*/*.yaml` glob. Every `go_offline` needs a `go_online` in the same flow, and both are Android-only.
 
@@ -225,10 +248,10 @@ Run the E2E suite with `./tool/run_maestro.sh` (or `melos run maestro`): it runs
 ## Quick Navigation
 
 - Pages & states → `lib/features/*/view/` · Stores → `lib/features/*/mobx/`
-- Use cases → `lib/features/*/{mobx,view,core}/use_cases/`, `lib/core/use_cases/`
-- Reusable UI → `lib/core/ui/` · Services → `lib/core/services/` · Navigation → `lib/core/navigation/`
+- Use cases → `lib/features/*/{mobx,view,core}/use_cases/`, `lib/features/*/modals/*/use_cases/`, `lib/core/use_cases/`
+- Reusable UI → `lib/core/ui/` · State primitives → `lib/core/state/` · Services → `lib/core/services/` · Navigation → `lib/core/navigation/`
 - Platform channels → `lib/core/platform_channels/` · Troubleshooting → [`docs/troubleshooting.md`](../docs/troubleshooting.md)
-- API providers → `packages/api/lib/src/providers/` · DTOs → `packages/api/lib/src/models/`
+- API providers → `packages/api/lib/src/providers/` · DTOs → `packages/api/lib/src/providers/{resource}_provider/models/`, shared ones in `packages/api/lib/src/models/`
 - Design tokens → `packages/design_system/lib/src/theme/src/geist_theme.dart` · Visual spec → [`DESIGN.md`](../DESIGN.md)
 - DI bootstrap → `lib/injectable.dart`, `lib/core/services/get_it.dart`
 - Entrypoints → `lib/main.dart`, `lib/main_dev.dart`, `lib/main_prod.dart`

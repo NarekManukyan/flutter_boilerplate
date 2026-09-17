@@ -7,6 +7,8 @@ description: Add a Retrofit @RestApi provider in packages/api — the _Paths con
 
 Governed by [ADR-0011](../../../docs/adr/0011-retrofit-typed-api-layer.md). Providers live in `packages/api`; app code reaches them only through `DioService`.
 
+Concepts behind this playbook: [`security-guidelines`](../../../docs/security-guidelines.md).
+
 ## Shape
 
 One provider per resource, at `packages/api/lib/src/providers/{resource}_provider/{resource}_api_provider.dart`.
@@ -82,7 +84,7 @@ T fromJson(Json json) {
 | Header | `@Header('X-Thing') String thing` |
 | Multipart | `@MultiPart()` on the method + `@Part() File file` |
 
-Auth headers are **not** declared here — `AuthInterceptor` adds them for every request.
+Auth headers are **not** declared here — `AuthInterceptor` adds them to every request whose host is the API host.
 
 ## Wire it up
 
@@ -188,10 +190,11 @@ Only stores and use cases touch `DioService`. States and widgets never do ([ADR-
 final result = await _dioService.todosProvider.getTodos();
 ```
 
-At that call site, catch what you can handle ([`handle-errors`](../handle-errors/SKILL.md#what-to-catch)):
+At that call site, catch everything ([`handle-errors`](../handle-errors/SKILL.md#what-to-catch)):
 
-- `on DioException catch (e, stackTrace)` when the request is the only expected failure and there is nothing to undo: track it, and turn it into observable state or a value the caller branches on.
-- A `catch` with no `on` clause when the call site restores state on failure (an optimistic change): the restore has to run whatever threw.
+- `catch (e, stackTrace)`, with no `on` clause: track it, and turn it into observable state or a value the caller branches on. The generated client rethrows a response that fails `fromJson` unchanged, so `on DioException` would miss it.
+- The same when the call site restores state on failure (an optimistic change): the restore has to run whatever threw.
+- `on DioException` only to branch on the error type or status code while the rest propagates.
 
 ## Interceptors
 
@@ -204,7 +207,7 @@ App-level concerns live in `lib/core/services/interceptors/`, not in `packages/a
 | `NoConnectionInterceptor` | no — add per app | Fails fast when the device is offline |
 | `MockTodosInterceptor` | yes, dev flavor only | Canned responses. Maestro flows run against it, so a new endpoint used by an E2E flow needs a mock branch here ([ADR-0015](../../../docs/adr/0015-mandatory-test-coverage-and-qa-gate.md)) |
 | `ApiInterceptor` | yes | Base URL from `FlavorService`, request-data clean-up |
-| `AuthInterceptor` | yes | Attaches the token; logs out on `401` |
+| `AuthInterceptor` | yes | Attaches the token to API-host requests; clears the session once on `401` |
 | `RetryInterceptor` | no — add per app | Retries idempotent requests with backoff |
 | `LogInterceptor` (Dio) | yes | Request/response logging — gate it by flavor, below |
 
@@ -217,7 +220,7 @@ Retry and no-connection are **added per app, when the app needs them**. The code
 - **No-connection first**, when the app adds it: an offline request is rejected before any other work, including the token read from storage. It goes in front of the mock on purpose — the dev build is what Maestro drives, and an offline flow (`.maestro/common/go_offline.yaml`) has to see the same offline failure a production build would, not a canned success.
 - **Mock next**, so it answers before the real chain shapes, signs or logs anything.
 - **Api, then auth**: the request is shaped, then signed.
-- **Retry after auth**: auth's `onError` handles a `401` (logout) before retry sees the error, and a retried request goes back through `dio.fetch`, so auth signs it again with the current token.
+- **Retry after auth**: auth's `onError` handles a `401` (clears the session) before retry sees the error, and a retried request goes back through `dio.fetch`, so auth signs it again with the current token.
 - **Log last**: it logs the request as it was actually sent, and every retry attempt.
 
 ### Dependencies come through the constructor
@@ -226,7 +229,7 @@ Interceptors are not built by the container. `DioService` constructs them and pa
 
 ### No-connection fail-fast
 
-Check connectivity before the request goes out and reject it with a typed exception, instead of letting it wait out the 32-second connect timeout.
+Check connectivity before the request goes out and reject it with a typed exception, instead of letting it wait out the 15-second connect timeout.
 
 ```dart
 // lib/core/exceptions/no_connection_exception.dart
@@ -272,7 +275,7 @@ class NoConnectionInterceptor extends Interceptor {
 }
 ```
 
-- The rejection is a `DioException` of type `connectionError`, so callers keep catching `DioException`. One that needs to tell offline apart checks `e.error is NoConnectionException`.
+- The rejection is a `DioException` of type `connectionError`, so it takes the same path as any other failed request. A caller that needs to tell offline apart checks `e is DioException && e.error is NoConnectionException`.
 - `IssueTrackingService` already treats `connectionError` as a connectivity error: no report and no notice, because the connection page tells the user ([ADR-0020](../../../docs/adr/0020-error-handling-and-issue-tracking.md)). Callers still call `trackHandledError`; the service drops it.
 
 ### Retry with backoff
@@ -373,30 +376,35 @@ class RetryInterceptor extends Interceptor {
 
 ### Environment-gated logging
 
-The log interceptor exists only outside production, and never logs the auth header:
+The log interceptor exists only outside production, and never logs headers. `DioService._logInterceptor()` builds it for both clients:
 
 ```dart
-if (!_flavorService.isProduction)
-  LogInterceptor(
-    requestHeader: false, // Authorization carries the bearer token
-    requestBody: true,
-    responseBody: true,
-    logPrint: (line) => log(line.toString(), name: 'BE'),
-  ),
+LogInterceptor _logInterceptor() => LogInterceptor(
+  requestHeader: false, // Authorization carries the bearer token
+  responseHeader: false, // Set-Cookie
+  requestBody: true,
+  responseBody: true,
+  logPrint: (res) => log(res.toString(), name: 'BE'),
+);
+
+// in initDio()
+if (!_flavorService.isProduction) _logInterceptor(),
 ```
 
 - **Production: no request or response logging at all.** Headers carry the bearer token and bodies carry user data, and device logs are readable by anything the user plugs the phone into. If production needs a breadcrumb, log the method, path and status code only.
-- Dio's `LogInterceptor` logs request headers **by default** (`requestHeader: true`). Turn it off even in dev: dev logs end up in screenshots, CI output and bug reports.
+- Dio's `LogInterceptor` logs request and response headers **by default**. Turn both off even in dev: dev logs end up in screenshots, CI output and bug reports.
 
 ### Wiring it together
 
 ```dart
-// lib/core/services/dio_service.dart — initDio()
+// lib/core/services/dio_service.dart — initDio(), with the two optional
+// interceptors added. The shipped chain is mock (dev) → api → auth → log.
 final options = BaseOptions(
   baseUrl: _flavorService.config.apiUrl,
   receiveDataWhenStatusError: true,
-  connectTimeout: const Duration(seconds: 32),
-  receiveTimeout: const Duration(seconds: 32),
+  connectTimeout: const Duration(seconds: 15),
+  sendTimeout: const Duration(seconds: 30),
+  receiveTimeout: const Duration(seconds: 30),
 );
 
 // Two statements, not one cascade: RetryInterceptor needs `dio`, which is not
@@ -407,19 +415,13 @@ dio.interceptors.addAll(<Interceptor>[
   NoConnectionInterceptor(_connectivityStore),
   if (_flavorService.isDev) MockTodosInterceptor(),
   ApiInterceptor(_flavorService),
-  AuthInterceptor(_authStore, _appNavigator),
+  AuthInterceptor(_authStore, apiBaseUrl: _flavorService.config.apiUrl),
   RetryInterceptor(dio),
-  if (!_flavorService.isProduction)
-    LogInterceptor(
-      requestHeader: false,
-      requestBody: true,
-      responseBody: true,
-      logPrint: (line) => log(line.toString(), name: 'BE'),
-    ),
+  if (!_flavorService.isProduction) _logInterceptor(),
 ]);
 ```
 
-`DioService` receives `ConnectivityStore` through its constructor like its other dependencies. Apply the same gating to any second `Dio` instance (`uploadImageDio`), and leave upload clients out of retry unless their bodies can be re-sent.
+`DioService` receives `ConnectivityStore` through its constructor like its other dependencies. Apply the same gating to any second `Dio` instance, as `uploadImageDio` already does (15 s connect, 120 s send, 30 s receive), and leave upload clients out of retry unless their bodies can be re-sent.
 
 ## Checklist
 

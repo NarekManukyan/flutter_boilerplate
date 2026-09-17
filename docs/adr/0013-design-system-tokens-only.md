@@ -48,7 +48,7 @@ A token is one of two kinds, and the kind decides where a new one goes.
 
 A value that differs between light and dark is always exposed through `context.geist` and never as a constant. A colour that is genuinely identical in both themes (a brand colour generated into the design system from `assets/colors/colors.xml`) is the one static colour case; a colour typed as a `Color(...)` constant in `lib/` never is.
 
-Non-visual timing is not a design token. A debounce window, a request timeout or a retry backoff is a named `Duration` constant in `lib/core/constants/` (or next to the one class that uses it), never an inline literal. Motion durations — anything that times an animation or transition — always come from `GeistDuration`. That is why `GeistTextStyles` carries no color: the style is static, and the color is applied from the theme.
+Non-visual timing is not a design token. A debounce window, a request timeout or a retry backoff is a named `Duration` constant in `TimingConstants` (`lib/core/constants/timing_constants.dart`, which holds `connectivityDebounce`) or next to the one class that uses it, never an inline literal. Motion durations — anything that times an animation or transition — always come from `GeistDuration`. That is why `GeistTextStyles` carries no color: the style is static, and the color is applied from the theme.
 
 ### Spacing
 

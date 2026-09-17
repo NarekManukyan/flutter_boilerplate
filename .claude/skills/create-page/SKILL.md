@@ -7,6 +7,8 @@ description: Build a page and its MobX page state — Provider root, context.rea
 
 Governed by [ADR-0009](../../../docs/adr/0009-provider-based-state-access.md) (Provider access), [ADR-0010](../../../docs/adr/0010-hookwidget-default.md) (HookWidget), [ADR-0018](../../../docs/adr/0018-widget-construction-discipline.md) (widget construction), [ADR-0019](../../../docs/adr/0019-hook-selection.md) (hook selection), [ADR-0008](../../../docs/adr/0008-appnavigator-routing-abstraction.md) (navigation), [ADR-0002](../../../docs/adr/0002-state-vs-store-separation.md) (state vs store).
 
+Concepts behind this playbook: [`state-management-guide`](../../../docs/state-management-guide.md), [`performance-guide`](../../../docs/performance-guide.md).
+
 ## The page state
 
 `@injectable`, MobX, lives at `lib/features/{feature}/view/{feature}_page_state.dart`. It **never** touches `DioService` — it calls stores and use cases.
@@ -28,7 +30,23 @@ abstract class _HomePageStateBase with Store {
     this._openTodoDetailsUseCase,
   );
 
-  HomeStore get store => _homeStore;
+  // The page reads the store through these, never the store itself
+  // (ADR-0001). MobX tracks through a plain getter.
+  List<TodoDto> get todos => _homeStore.todos;
+
+  bool get isLoading => _homeStore.isLoading;
+
+  String? get error => _homeStore.error;
+
+  @readonly
+  TodoFilter _filter = TodoFilter.all;
+
+  @computed
+  List<TodoDto> get visibleTodos =>
+      _homeStore.todos.where(_filter.matches).toList();
+
+  @action
+  void onFilterChanged(TodoFilter filter) => _filter = filter;
 
   Future<void> init() async => _homeStore.loadTodos();
 
@@ -45,6 +63,10 @@ abstract class _HomePageStateBase with Store {
 }
 ```
 
+Trimmed from [`home_page_state.dart`](../../../lib/features/home/view/home_page_state.dart), which also injects `ShowAddTodoModalUseCase` and has `@computed doneCount`.
+
+- **Never expose the store** (no `HomeStore get store`). The page reads what it renders through the state's getters, so it never depends on a store directly.
+- Screen-level UI state that derived data depends on, such as a filter, is a `@readonly` field with an `@action` handler on the state, not a `useState` in the page. What is derived from it is `@computed`, never computed in `build()`.
 - Handler names read as events: `onXPressed`, `onXTap`, `onXChanged`.
 - `init()` is called by the `Provider`, not by `build()`.
 - `dispose()` always exists — cancel reactions, dispose controllers.
@@ -102,11 +124,10 @@ An `Observer` over remote data renders four states. Skipping one is the most com
 ```dart
 Observer(
   builder: (_) {
-    final store = state.store;
-    if (store.isLoading && store.todos.isEmpty) return const _SkeletonList();
-    if (store.error != null) return _ErrorState(onRetry: state.init);
-    if (store.todos.isEmpty) return const _EmptyState();
-    return _TodoList(todos: store.todos);
+    if (state.isLoading && state.todos.isEmpty) return const _SkeletonList();
+    if (state.error != null) return _ErrorState(onRetry: state.init);
+    if (state.todos.isEmpty) return const _EmptyState();
+    return _TodoList(todos: state.visibleTodos);
   },
 )
 ```
@@ -257,7 +278,7 @@ Use the primitives in `lib/core/ui/geist_motion.dart` — `PressScale` for tap f
 ## Checklist
 
 - [ ] `Provider` root + `_Content` child; `getIt` only inside `create:`
-- [ ] State injected, never passed as a parameter
+- [ ] State injected, never passed as a parameter; the state exposes getters, never its store
 - [ ] No `context.router`; `AppNavigator` in the state
 - [ ] `Observer` scoped to the smallest reactive subtree
 - [ ] No `Widget _buildX()` methods; no `BuildContext` passed into helpers

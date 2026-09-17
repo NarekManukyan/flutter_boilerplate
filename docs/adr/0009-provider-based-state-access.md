@@ -61,7 +61,7 @@ Widgets use `context.read<T>()` and never `context.watch<T>()` for a state class
 
 ### Testing
 
-Widget tests override the provider with a mock state, and no DI swap is needed. A widget below the page root is pumped under `Provider<MyPageState>.value(value: mockState, child: ...)`. States must stay mockable that way: widgets use only the state's public members (actions, `@readonly` getters, `@computed` values), so `class _MockMyPageState extends Mock implements MyPageState` is a complete stand-in.
+Widget tests override the provider with a mock state, and no DI swap is needed. A widget below the page root is pumped under `Provider<MyPageState>.value(value: mockState, child: ...)`. States must stay mockable that way: widgets use only the state's public members (actions, `@readonly` getters, `@computed` values, plain getters that read a store, as `HomePageState.todos` does), so `class _MockMyPageState extends Mock implements MyPageState` is a complete stand-in.
 
 A test that pumps the whole page still goes through the `getIt` call at its root, so it registers the mock in `getIt`, as [`home_page_test.dart`](../../test/features/home/view/home_page_test.dart) does.
 

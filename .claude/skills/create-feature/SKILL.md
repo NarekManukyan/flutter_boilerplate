@@ -7,6 +7,8 @@ description: Scaffold a new feature module in lib/features/ with the correct dir
 
 Governed by [ADR-0001](../../../docs/adr/0001-layered-architecture.md) (layers), [ADR-0005](../../../docs/adr/0005-flat-feature-tree.md) (flat tree), [ADR-0006](../../../docs/adr/0006-feature-owned-singletons.md) (feature-owned stores).
 
+Concepts behind this playbook: [`architecture`](../../../docs/architecture.md), [`project-structure`](../../../docs/project-structure.md).
+
 ## Decide the location first
 
 Features are **peers** under a domain grouping. A feature must never contain a `features/` subdirectory.
@@ -17,7 +19,7 @@ Features are **peers** under a domain grouping. A feature must never contain a `
 ✅ lib/features/meetings/meeting_details/
 ```
 
-A pure view-layer sub-page with no store of its own may stay under the parent's `view/` (e.g. `meeting_details/view/share_meeting/`). The moment it gains its own store or state, promote it to a sibling.
+A pure view-layer sub-page with no store of its own may stay under the parent's `view/`, even with its own page state (e.g. `meeting_details/view/share_meeting/`; in this repo, `challenges/view/challenge_joined/`). The moment it gains its own store, promote it to a sibling ([ADR-0005](../../../docs/adr/0005-flat-feature-tree.md)).
 
 Never create anything under `lib/shared/` — it is deprecated.
 
@@ -49,8 +51,8 @@ Every folder below `view/` and `mobx/` is optional. There is **no per-feature `s
 Mirror it in tests and flows:
 
 ```
-test/features/{feature}/         unit tests (store, state, use cases)
-test/features/{feature}/view/    widget tests
+test/features/{feature}/...      each test at its source file's path: a store test in mobx/,
+                                 a page state's unit test next to the page's widget test in view/
 .maestro/flows/{feature}/        {feature}_happy.yaml | _failure.yaml | _edge.yaml
 ```
 
@@ -66,7 +68,7 @@ test/features/{feature}/view/    widget tests
 
 | Kind | Suffix | Example |
 |---|---|---|
-| Feature-local model | `*_model.dart` | `todo_filter_model.dart` |
+| Feature-local model | `*_model.dart`; an enum is named for its type | `todo_filter.dart` (the `TodoFilter` enum) |
 | Pure helpers | `*_utils.dart` | `date_range_utils.dart` |
 | Constants | `*_constants.dart` | `todos_constants.dart` |
 | Typed exception | `*_exception.dart` | `todo_already_exists_exception.dart` |

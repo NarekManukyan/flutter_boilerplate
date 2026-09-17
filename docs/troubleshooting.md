@@ -9,7 +9,7 @@ flutter doctor -v          # toolchain, Xcode, Android SDK, licenses
 melos run verify:quick     # does the code analyze and format cleanly?
 ```
 
-Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Packages and dependencies](#packages-and-dependencies) · [Tests](#tests) · [Performance](#performance) · [Devices](#devices) · [Maestro](#maestro) · [Asking for help](#asking-for-help)
+Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Packages and dependencies](#packages-and-dependencies) · [Analyzer and verify](#analyzer-and-verify) · [Tests](#tests) · [Performance](#performance) · [Devices](#devices) · [Maestro](#maestro) · [Asking for help](#asking-for-help)
 
 ---
 
@@ -27,6 +27,12 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
   ```
 
   Melos is also a dev dependency of the workspace, so `dart run melos <command>` works without a global install.
+
+### `flutter: command not found`
+
+- **Symptom:** the shell cannot find `flutter` or `dart`.
+- **Cause:** the Flutter SDK is not installed, or its `bin/` directory is not on `PATH`.
+- **Fix:** install the SDK, add its `bin/` to `PATH` in your shell profile, open a new terminal and run `flutter doctor`. `dart` ships inside the same `bin/`.
 
 ### `flutter doctor` reports problems
 
@@ -90,6 +96,22 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
 
   `melos run rebuild` does the deep version of this in one step.
 
+### The app still uses placeholder config
+
+- **Symptom:** requests go to `https://example.api.url`; a profile or release build sends nothing to Sentry; or, after you edited the config, the app fails at startup with *"type 'Null' is not a subtype of type 'String'"*.
+- **Cause:** the boilerplate ships placeholder values in `lib/core/configs/environments/development/development.json` and `…/production/production.json`. They are compiled in through `@JsonLiteral`, so an edit to the JSON does nothing until codegen runs again. Every field of `Config` is required, so a missing or renamed key fails `Config.fromJson`. Sentry is not initialised at all in debug builds (`lib/main.dart`).
+- **Fix:**
+  1. Fill in the flavor's JSON: `apiUrl`, `sentryDsn` and the other keys `Config` declares.
+  2. Regenerate and restart the app; a hot reload does not pick up the new values:
+
+     ```bash
+     melos run build:app
+     ```
+
+  3. To check error reporting, run a profile or release build: `flutter run --profile -t lib/main_dev.dart`.
+
+  Where real keys and secrets should live is covered in [`security-guidelines.md`](security-guidelines.md).
+
 ---
 
 ## Codegen
@@ -119,6 +141,12 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
 
   A missing `part 'x.g.dart';` directive also stops a file from being generated — check the file declares it.
 
+### `LocaleKeys.x` is not defined
+
+- **Symptom:** *"The getter 'homePage_x' isn't defined for the type 'LocaleKeys'"*, or the key path shows on screen instead of the text.
+- **Cause:** the key is missing from `assets/translations/en-US.json`, or the keys were not regenerated after the edit. A key's name is its JSON path joined with `_`: `homePage.errorLoading` becomes `LocaleKeys.homePage_errorLoading`.
+- **Fix:** add the key to `en-US.json`, run `melos run translations`, and read it with `LocaleKeys.homePage_x.tr()` ([ADR-0012](adr/0012-mandatory-localization.md)). If the raw key shows only in a widget test, see [A widget test finds nothing](#a-widget-test-finds-nothing-or-times-out).
+
 ### Injectable generation or resolution fails
 
 - **Symptom:** at build time, `injectable.config.dart` does not contain a class you annotated. At runtime, *"GetIt: Object/factory with type X is not registered inside GetIt"*, or a stack overflow while resolving a type.
@@ -139,7 +167,7 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
 - **Cause and fix — check in this order:**
   1. **An `Observer` wraps the widget that reads the value**, and the read happens inside its `builder`. A value read in `build()` outside the `Observer`, or passed into a child as a plain parameter, is not tracked.
   2. **The field is `@observable` or `@readonly`.** A plain field is not reactive. After adding the annotation, run `melos run build`.
-  3. **The mutation happens inside an `@action`** (or `runInAction`). A write outside an action is not batched and can be rejected in strict mode.
+  3. **The mutation happens inside an `@action`** (or `runInAction`). A stray write still notifies, because MobX wraps it in an action of its own, but it is not batched with the writes around it, so an observer can see a half-updated store ([`state-management-guide.md`](state-management-guide.md#a-write-outside-an-action)).
   4. **Collections are `ObservableList` / `ObservableMap`.** `addAll` on a plain `List` held in an observable changes the list, not the observable, so nothing rebuilds.
   5. **DTOs are replaced, not mutated.** Changing a field inside an element is invisible; assign `list[i] = item.copyWith(...)`.
 
@@ -153,7 +181,7 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
   2. **Check the base URL.** It comes from `FlavorService.config.apiUrl`, which is read from `lib/core/configs/environments/development/development.json` or `…/production/production.json`. Make sure you are running the flavor you think: `-t lib/main_dev.dart` or `-t lib/main_prod.dart`.
   3. **Check whether the dev mock answered.** In the dev flavor, `MockTodosInterceptor` answers `/todos` requests itself and the backend is never called. Its scenario may also be forcing errors: a build made with `--dart-define=MOCK_SCENARIO=serverError` always starts in it, and a `/mock serverError` command typed into the app stays active until `/mock reset` or an app restart.
   4. **Offline?** A connectivity error is not reported to Sentry and shows no notice, by design ([ADR-0020](adr/0020-error-handling-and-issue-tracking.md)); the connection page covers it.
-  5. **`401`?** `AuthInterceptor` logs the user out and returns to login.
+  5. **`401`?** `AuthInterceptor` clears the session: the stored token is removed, DI is reset, and the app goes back through splash to login.
 
 ### The app crashes on launch
 
@@ -205,6 +233,34 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
 
 ---
 
+## Analyzer and verify
+
+### Analyzer errors on imports, quotes or trailing commas
+
+- **Symptom:** `melos run analyze`, `melos run verify` or the pre-commit hook fails with `prefer_relative_imports`, `prefer_single_quotes`, `require_trailing_commas`, `cascade_invocations`, `avoid_print` or `cancel_subscriptions`.
+- **Cause:** `analysis_options.yaml` promotes these lints, and several others, from infos to errors. `verify` only checks; it never fixes.
+- **Fix:** let the tools fix what they can, then analyze again:
+
+  ```bash
+  melos run lint      # dart fix --apply
+  melos run format
+  melos run analyze
+  ```
+
+  `avoid_print` and `cancel_subscriptions` need a manual change: log with `developer.log`, and cancel the subscription in `dispose()`.
+
+### `melos run verify` fails on agent-file drift
+
+- **Symptom:** `verify`, or the `Verify` workflow in CI, fails at `./tool/sync_agents.sh --check`.
+- **Cause:** `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` or `.cursor/rules/000-agents.mdc` no longer matches what `AGENTS.md` generates. Either a generated file was edited by hand, or `AGENTS.md` changed without regenerating ([ADR-0017](adr/0017-single-source-agent-instructions.md)).
+- **Fix:** move any hand edit into `AGENTS.md` (the next sync overwrites the generated file), then regenerate and commit the result:
+
+  ```bash
+  melos run sync-agents
+  ```
+
+---
+
 ## Tests
 
 ### A test fails and you need detail
@@ -224,6 +280,34 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
 
   ```dart
   import 'package:mobx/mobx.dart' show ObservableList;
+  ```
+
+### `melos run test` skips a test, or cannot load it
+
+- **Symptom:** a new test never runs; or a test under `packages/*/test/` fails with *"Error: Not found: 'dart:ui'"* or *"Could not find package "test""*.
+- **Cause:**
+  - The test runner only picks up files that end in `_test.dart`.
+  - `melos run test` runs `flutter test` for the app, but `dart test` in each package that has a `test/` directory. `dart test` cannot load Flutter, so a widget test in `packages/design_system/test/` fails there.
+  - Neither package lists a test dependency yet: `test` for `packages/api`, `flutter_test` for `packages/design_system`.
+- **Fix:** name the file `*_test.dart`. Add the test dependency to that package's `dev_dependencies`. Run a Flutter package's tests with `flutter test`, and change the `test` script in `pubspec.yaml` to do the same once such tests exist:
+
+  ```bash
+  melos exec --scope=design_system -- "flutter test"
+  ```
+
+### A store or state test fails with *"Binding has not yet been initialized"*
+
+- **Symptom:** a plain `test()`, not a `testWidgets()`, throws *"Binding has not yet been initialized"*, or `.tr()` returns the key path instead of the text.
+- **Cause:** stores and states are plain Dart and normally need no Flutter binding ([ADR-0002](adr/0002-state-vs-store-separation.md)). Something the test constructs touches Flutter anyway. `AppUpdateService` reads `WidgetsBinding.instance` when it is created, `.tr()` needs translations loaded, and `StorageUtils` needs the `shared_preferences` channel.
+- **Fix:** first check whether the class under test should depend on that at all; a mocked collaborator often removes the need. If it should, set the binding up once for the file:
+
+  ```dart
+  void main() {
+    // Binding + shared_preferences mock + translations, for `.tr()`.
+    setUpAll(initLocalizationForTests); // test/helpers/pump_app.dart
+    // Or, when only the binding is needed:
+    // TestWidgetsFlutterBinding.ensureInitialized();
+  }
   ```
 
 ### A widget test finds nothing, or times out
@@ -314,6 +398,19 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
 
 ## Maestro
 
+### Maestro finds no flows
+
+- **Symptom:** `maestro test` runs nothing, or skips a flow you just added.
+- **Cause:** `.maestro/config.yaml` selects `flows/*/*.yaml`, and only the workspace root reads that file. Pointed at `.maestro/flows`, Maestro finds no config and no flows. A flow outside a feature folder, or nested one level deeper, does not match the glob. A flow tagged `quarantine` is excluded.
+- **Fix:** run the root, with `APP_ID`:
+
+  ```bash
+  melos run maestro                                       # tool/run_maestro.sh
+  maestro test .maestro -e APP_ID=com.example.flutterBoilerplate
+  ```
+
+  Put the flow at `.maestro/flows/{feature}/{feature}_{scenario}_{happy|failure|edge}.yaml`. To run one flow, pass its file path; a single-file run ignores `config.yaml`, quarantine included.
+
 ### Maestro cannot find an element by `id`
 
 - **Symptom:** `tapOn: { id: "…" }` or `assertVisible` fails although the widget is on screen.
@@ -351,7 +448,7 @@ Contents: [Setup](#setup) · [Codegen](#codegen) · [Runtime](#runtime) · [Pack
 
 ## Asking for help
 
-Try the fixes above first, then `flutter clean && flutter pub get` and `melos run build`. If the problem is still there, include:
+Try the fixes above first, then `flutter clean && flutter pub get` and `melos run build`. If the question is how the code is meant to fit together rather than why it is broken, see [`architecture.md`](architecture.md), [`project-structure.md`](project-structure.md) and [`state-management-guide.md`](state-management-guide.md). If the problem is still there, include:
 
 - **The exact error**, copied as text, starting from the first error rather than the last line.
 - **What you ran**, and whether it worked before (which commit or branch).
