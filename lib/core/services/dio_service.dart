@@ -46,24 +46,24 @@ class DioService {
         ApiInterceptor(_flavorService),
         AuthInterceptor(_authStore, _appNavigator),
         // CacheInterceptor(),
-        LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          logPrint: (res) {
-            log(res.toString(), name: 'BE');
-          },
-        ),
+        // Never in production: bodies carry user data, and the default
+        // header logging would print the bearer token and any cookies.
+        if (!_flavorService.isProduction) _logInterceptor(),
       ]);
 
     uploadImageDio = Dio(uploadDioOptions)
-      ..interceptors.addAll([
-        LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          logPrint: (res) {
-            log(res.toString(), name: 'BE');
-          },
-        ),
+      ..interceptors.addAll(<Interceptor>[
+        // Never in production: bodies carry user data, and the default
+        // header logging would print the bearer token and any cookies.
+        if (!_flavorService.isProduction) _logInterceptor(),
       ]);
   }
+
+  LogInterceptor _logInterceptor() => LogInterceptor(
+    requestHeader: false,
+    responseHeader: false,
+    requestBody: true,
+    responseBody: true,
+    logPrint: (res) => log(res.toString(), name: 'BE'),
+  );
 }

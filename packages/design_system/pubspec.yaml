@@ -1,5 +1,5 @@
 name: design_system
-description: Dart package to manage Design System for Krisp.
+description: Design system — theme tokens, typography and shared components.
 version: 0.0.1+1
 publish_to: none
 

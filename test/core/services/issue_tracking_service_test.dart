@@ -90,7 +90,10 @@ void main() {
 
   group('trackIssue', () {
     test('should show a generic notice in production', () {
-      service.trackIssue(_dio(DioExceptionType.badResponse, status: 500));
+      service.trackIssue(
+        _dio(DioExceptionType.badResponse, status: 500),
+        context: 'load_todos',
+      );
 
       expect(shownMessage(), isNot(contains('DioException')));
     });
@@ -99,27 +102,57 @@ void main() {
       IssueTrackingService(
         navigator,
         FlavorDev(),
-      ).trackIssue(StateError('broken invariant'));
+      ).trackIssue(StateError('broken invariant'), context: 'test');
 
       expect(shownMessage(), contains('broken invariant'));
     });
 
     test('should prefer the caller message', () {
-      service.trackIssue(Exception('x'), message: 'Could not save');
+      service.trackIssue(
+        Exception('x'),
+        message: 'Could not save',
+        context: 'save',
+      );
 
       expect(shownMessage(), 'Could not save');
     });
 
     test('should not show a notice for connectivity errors', () {
       // The connection page already says the device is offline.
-      service.trackIssue(_dio(DioExceptionType.connectionError));
+      service.trackIssue(
+        _dio(DioExceptionType.connectionError),
+        context: 'load_todos',
+      );
 
       verifyNever(() => navigator.showScaffoldMessage(any()));
     });
 
+    test('should notify on a connectivity error when a rollback asks', () {
+      // An optimistic delete that timed out while online came back silently;
+      // the connection page says nothing about that.
+      service.trackIssue(
+        _dio(DioExceptionType.receiveTimeout),
+        context: 'delete_todo',
+        message: 'Could not delete',
+        notifyOnConnectivityError: true,
+      );
+
+      expect(shownMessage(), 'Could not delete');
+      expect(
+        IssueTrackingService.shouldReport(
+          _dio(DioExceptionType.receiveTimeout),
+        ),
+        isFalse,
+        reason: 'still not a defect, so still not reported',
+      );
+    });
+
     test('should not show a notice for a 401', () {
       // AuthInterceptor logs the user out; a notice on top is noise.
-      service.trackIssue(_dio(DioExceptionType.badResponse, status: 401));
+      service.trackIssue(
+        _dio(DioExceptionType.badResponse, status: 401),
+        context: 'load_todos',
+      );
 
       verifyNever(() => navigator.showScaffoldMessage(any()));
     });
@@ -127,7 +160,10 @@ void main() {
     test('should not throw when there is no navigator context', () {
       when(() => navigator.context).thenReturn(null);
 
-      expect(() => service.trackIssue(Exception('early')), returnsNormally);
+      expect(
+        () => service.trackIssue(Exception('early'), context: 'startup'),
+        returnsNormally,
+      );
       verifyNever(() => navigator.showScaffoldMessage(any()));
     });
   });

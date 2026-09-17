@@ -64,7 +64,6 @@ dependencies:
   rxdart: ^0.28.0
   faker: ^2.2.0
   shared_preferences: ^2.5.5
-  file_picker: ^11.0.2
   path_provider: ^2.1.5
   url_launcher: ^6.3.2
   uuid: ^4.5.3
@@ -72,12 +71,10 @@ dependencies:
 
   # App update
   # For checking app updates
-  new_version_plus: ^1.0.1
+  upgrader: ^13.7.0
 
   # Authentication & social login
   # Apple and Google sign-in
-  sign_in_with_apple: ^7.0.1
-  google_sign_in: ^7.2.0
 
   # Analytics & error reporting
   # Sentry for error tracking
@@ -124,6 +121,12 @@ melos:
       description: Get dependencies for all packages
       run: melos exec -c 1 -- "dart pub get"
 
+    deps:check:
+      description: List outdated dependencies for the app and both packages (informational, never fails)
+      run: |
+        (flutter pub outdated || true) && \
+        (melos exec -c 1 -- "flutter pub outdated" || true)
+
     generate:
       description: Generate code for all packages
       run: melos run build
@@ -153,11 +156,31 @@ melos:
       description: Codegen for the app (lib/) only
       run: dart run build_runner build -d
 
+    watch:
+      description: Codegen for the app (lib/) in watch mode — rebuilds on every save
+      run: dart run build_runner watch -d
+
     clean:
       description: Clean codegen output for the app and both packages
       run: |
         dart run build_runner clean && \
         melos exec -c 1 -- "dart run build_runner clean"
+
+    clean:all:
+      description: Deep clean — build_runner caches (app + packages), lib/gen/*.g.dart, flutter clean
+      # build_runner runs before `flutter clean`, which deletes the .dart_tool/
+      # that build_runner needs.
+      run: |
+        dart run build_runner clean && \
+        melos exec -c 1 -- "dart run build_runner clean" && \
+        rm -f lib/gen/*.g.dart && \
+        flutter clean
+
+    rebuild:
+      description: clean:all, then bootstrap (deps + full codegen) from scratch
+      run: |
+        melos run clean:all && \
+        melos run bootstrap
 
     # Code Quality
     # NOTE: `melos exec` only reaches packages/api and packages/design_system —
@@ -180,13 +203,16 @@ melos:
       description: Run the app's tests with lcov coverage output
       run: flutter test --coverage
 
+    # tool/run_maestro.sh reads APP_ID (default com.example.flutterBoilerplate),
+    # DEVICE and OUT_DIR from the environment and passes extra arguments on to
+    # `maestro test`.
     maestro:
       description: Run every Maestro E2E flow — needs a booted device with the app installed
-      run: maestro test .maestro
+      run: ./tool/run_maestro.sh
 
     maestro:happy:
       description: Run only the happy-path Maestro flows (the PR gate)
-      run: maestro test .maestro --include-tags happy --exclude-tags quarantine
+      run: ./tool/run_maestro.sh --include-tags happy --exclude-tags quarantine
 
     format:
       description: Format the app and both packages
@@ -202,18 +228,29 @@ melos:
         dart fix --apply && \
         melos exec -c 1 -- "dart fix --apply"
 
+    # verify and verify:quick only check, they never modify files. To auto-fix
+    # first, run `melos run lint` and `melos run format`.
     verify:
-      description: Everything CI runs except E2E — lint, analyze, format, tests, agent-file drift
+      description: Everything CI checks except E2E, read-only — analyze, format check, tests, agent-file drift
       run: |
-        melos run lint && \
         melos run analyze && \
         melos run format:check && \
         melos run test && \
         ./tool/sync_agents.sh --check
 
+    verify:quick:
+      description: Fast read-only check — analyze + format check, no tests
+      run: |
+        melos run analyze && \
+        melos run format:check
+
     sync-agents:
       description: Regenerate CLAUDE.md / GEMINI.md / copilot-instructions / cursor rule from AGENTS.md
       run: ./tool/sync_agents.sh
+
+    hooks:install:
+      description: Use the repo's git hooks — pre-commit formats, fixes and analyzes the staged Dart files
+      run: git config core.hooksPath tool/git-hooks
 
     # Asset Generation
     assets:
@@ -238,6 +275,6 @@ melos:
     deploy-dev:
       description: Deploy to development environment (stops on error)
       run: |
-        cd ios
-        pod install --repo-update
+        cd ios && \
+        pod install --repo-update && \
         fastlane dev

@@ -92,6 +92,8 @@ void main() {
           any(),
           stackTrace: any(named: 'stackTrace'),
           message: any(named: 'message'),
+          context: any(named: 'context'),
+          notifyOnConnectivityError: any(named: 'notifyOnConnectivityError'),
         ),
       );
     });

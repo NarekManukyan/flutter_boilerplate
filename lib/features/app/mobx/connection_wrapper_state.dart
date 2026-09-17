@@ -13,9 +13,10 @@ class ConnectionWrapperState = _ConnectionWrapperStateBase
 
 abstract class _ConnectionWrapperStateBase with Store {
   final ConnectivityStore _connectivityStore;
+  late final ReactionDisposer _connectivityReaction;
 
   _ConnectionWrapperStateBase(this._connectivityStore) {
-    debounceReaction(
+    _connectivityReaction = debounceReaction(
       (_) => _connectivityStore.hasConnection,
       _onConnectivityChange,
       delay: 200,
@@ -39,7 +40,10 @@ abstract class _ConnectionWrapperStateBase with Store {
     };
   }
 
+  // Disposes only what this state created. ConnectivityStore is an app-wide
+  // singleton: disposing it here cancelled connectivity tracking for the rest
+  // of the session the first time this page unmounted.
   void dispose() {
-    _connectivityStore.dispose();
+    _connectivityReaction();
   }
 }

@@ -44,9 +44,25 @@ class IssueTrackingService {
   /// user out on a 401, so a notice or a report on top of that is noise.
   static const ignoredStatusCodes = <int>{401};
 
-  void trackIssue(Object error, {StackTrace? stackTrace, String? message}) {
-    _track(error, stackTrace, ErrorType.standard, null);
-    if (!shouldShowNotice(error, ErrorType.standard)) {
+  /// [notifyOnConnectivityError]: offline and timeout errors normally show no
+  /// notice, because the connection page already says the device is offline.
+  /// That reasoning holds for a failed load, not for an optimistic change the
+  /// app silently undid — a delete that comes back after a 30 s timeout while
+  /// online, say. Pass `true` from a rollback path so the user learns the
+  /// change did not stick. Connectivity errors are still not reported.
+  void trackIssue(
+    Object error, {
+    StackTrace? stackTrace,
+    String? message,
+    required String context,
+    bool notifyOnConnectivityError = false,
+  }) {
+    _track(error, stackTrace, ErrorType.standard, context);
+    if (!shouldShowNotice(
+      error,
+      ErrorType.standard,
+      notifyOnConnectivityError: notifyOnConnectivityError,
+    )) {
       return;
     }
     // A notice without a navigator context (an error during startup, or after
@@ -110,10 +126,14 @@ class IssueTrackingService {
   }
 
   @visibleForTesting
-  static bool shouldShowNotice(Object error, ErrorType type) {
+  static bool shouldShowNotice(
+    Object error,
+    ErrorType type, {
+    bool notifyOnConnectivityError = false,
+  }) {
     return type == ErrorType.standard &&
         !isCancellation(error) &&
-        !isConnectivityError(error) &&
+        (notifyOnConnectivityError || !isConnectivityError(error)) &&
         !hasIgnoredStatus(error);
   }
 

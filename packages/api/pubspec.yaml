@@ -1,5 +1,5 @@
 name: api
-description: Dart package to manage API calls for Krisp.
+description: Typed Retrofit API layer — providers and DTOs.
 version: 0.0.2
 publish_to: none
 

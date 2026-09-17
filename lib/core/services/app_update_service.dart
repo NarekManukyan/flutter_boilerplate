@@ -1,46 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
-import 'package:new_version_plus/new_version_plus.dart';
+import 'package:upgrader/upgrader.dart';
 
 import '../../features/app/modals/app_update_modal/view/app_update_modal.dart';
 import '../constants/app_update_type.dart';
 import '../navigation/app_navigator.dart';
 import '../utils/storage_utils.dart';
-import 'flavor_service.dart';
 import 'issue_tracking_service.dart';
 
 @injectable
 class AppUpdateService {
-  final FlavorService _flavorService;
   final AppNavigator _appNavigator;
   final IssueTrackingService _issueTrackingService;
 
-  AppUpdateService(
-    this._flavorService,
-    this._appNavigator,
-    this._issueTrackingService,
-  );
+  AppUpdateService(this._appNavigator, this._issueTrackingService);
 
   final country =
       WidgetsBinding.instance.platformDispatcher.locale.countryCode ?? 'us';
 
-  late final _newVersionPlus = NewVersionPlus(
-    androidId: _flavorService.config.bundleID,
-    iOSId: _flavorService.config.bundleID,
-    androidPlayStoreCountry: country,
-    iOSAppStoreCountry: country,
-  );
-
   Future<void> checkAppVersion() async {
+    // Only the store lookup is used, not upgrader's own alert, so the instance
+    // is created per check and disposed: initialize() registers an app
+    // lifecycle observer that would otherwise outlive the check.
+    final upgrader = Upgrader(countryCode: country, checkOnResume: false);
     try {
-      final res = await _newVersionPlus.getVersionStatus();
+      await upgrader.initialize();
+      final info = upgrader.state.versionInfo;
+      final localeVersion =
+          info?.installedVersion?.toString() ??
+          upgrader.state.packageInfo?.version;
+      final storeVersion = info?.appStoreVersion?.toString();
+      final appStoreLink = info?.appStoreListingURL;
 
-      if (res == null) {
+      if (localeVersion == null ||
+          storeVersion == null ||
+          appStoreLink == null) {
         return;
       }
-
-      final localeVersion = res.localVersion;
-      final storeVersion = res.storeVersion;
 
       final skippedUpdateVersion = await StorageUtils.getSkippedAppVersion();
       final updateType = _getUpdateType(
@@ -54,14 +50,12 @@ class AppUpdateService {
       }
 
       await _appNavigator.showModal(
-        builder: (_) => AppUpdateModal(
-          updateType: updateType,
-          appStoreLink: res.appStoreLink,
-        ),
+        builder: (_) =>
+            AppUpdateModal(updateType: updateType, appStoreLink: appStoreLink),
         enableDrag: updateType == AppUpdateType.MINOR,
       );
 
-      await StorageUtils.setSkippedAppVersion(res.storeVersion);
+      await StorageUtils.setSkippedAppVersion(storeVersion);
     } on Exception catch (error, stackTrace) {
       // A store lookup that fails leaves the user on their current version;
       // they are not waiting on it, so it is reported without a notice.
@@ -70,6 +64,8 @@ class AppUpdateService {
         stackTrace: stackTrace,
         context: 'check_app_version',
       );
+    } finally {
+      upgrader.dispose();
     }
   }
 
