@@ -1,12 +1,15 @@
 import 'package:dio/dio.dart';
-import 'package:get_it/get_it.dart';
 
 import '../flavor_service.dart';
 
 class ApiInterceptor extends Interceptor {
+  ApiInterceptor(this._flavorService);
+
+  final FlavorService _flavorService;
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    options.baseUrl = GetIt.I<FlavorService>().config.apiUrl;
+    options.baseUrl = _flavorService.config.apiUrl;
 
     if (options.data is Map) {
       clearDataRecursively(options.data);

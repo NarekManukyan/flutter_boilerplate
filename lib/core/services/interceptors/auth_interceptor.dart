@@ -3,11 +3,15 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 import '../../../features/auth/mobx/auth_store.dart';
-import '../../../injectable.dart';
 import '../../navigation/app_navigator.dart';
 import '../../utils/storage_utils.dart';
 
 class AuthInterceptor extends Interceptor {
+  AuthInterceptor(this._authStore, this._appNavigator);
+
+  final AuthStore _authStore;
+  final AppNavigator _appNavigator;
+
   @override
   Future<void> onRequest(
     RequestOptions options,
@@ -34,8 +38,8 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
-      getIt<AuthStore>().logout();
-      getIt<AppNavigator>().pushAndPopAll(const LoginRoute());
+      _authStore.logout();
+      _appNavigator.pushAndPopAll(const LoginRoute());
     }
     return handler.next(err);
   }

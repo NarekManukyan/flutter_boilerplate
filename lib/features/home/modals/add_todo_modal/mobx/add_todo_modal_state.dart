@@ -48,6 +48,8 @@ abstract class _AddTodoModalStateBase with Store {
     }
   }
 
+  Future<void> onCancelPressed() => _appNavigator.pop();
+
   void dispose() {
     titleController.dispose();
   }

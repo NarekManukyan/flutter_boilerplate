@@ -126,7 +126,7 @@ class _AddTodoModalContent extends HookWidget {
                   delay: const Duration(milliseconds: 200),
                   child: _GhostButton(
                     label: LocaleKeys.addTodoModal_cancel.tr(),
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: state.onCancelPressed,
                   ).withTestId(AddTodoModalKeys.cancel),
                 ),
                 Gap(context.bottomSecurePadding + kSpacing8px),

@@ -129,14 +129,29 @@ melos:
       run: melos run build
 
     build:
-      description: Run codegen for the app and both packages
+      description: Codegen for everything, in dependency order (ADR-0014)
       # `translations` must run here, not only on demand: lib/gen/*.g.dart is
       # gitignored, so a clean checkout has no LocaleKeys and will not analyze
       # until easy_localization has generated them.
+      # Order matters: the app's generators resolve types from both packages,
+      # so their generated code has to exist before the app's build runs.
       run: |
         melos run translations && \
-        dart run build_runner build -d && \
-        melos exec -c 1 -- "dart run build_runner build -d"
+        melos run build:api && \
+        melos run build:design_system && \
+        melos run build:app
+
+    build:api:
+      description: Codegen for packages/api only
+      run: melos exec -c 1 --scope=api -- "dart run build_runner build -d"
+
+    build:design_system:
+      description: Codegen for packages/design_system only
+      run: melos exec -c 1 --scope=design_system -- "dart run build_runner build -d"
+
+    build:app:
+      description: Codegen for the app (lib/) only
+      run: dart run build_runner build -d
 
     clean:
       description: Clean codegen output for the app and both packages

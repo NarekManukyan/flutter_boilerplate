@@ -86,5 +86,9 @@
         "title": "No internet",
         "subtitle": "Please check your internet connection",
         "goToSettings": "Go to settings"
+    },
+    "errors": {
+        "generic": "Something went wrong. Try again.",
+        "noticeA11y": "Error"
     }
 }

@@ -8,14 +8,19 @@ import 'package:injectable/injectable.dart';
 import 'package:open_settings_plus/core/open_settings_plus.dart';
 import 'package:overlay_support/overlay_support.dart';
 
+import '../../features/auth/mobx/auth_store.dart';
+import '../guards/auth_guard.dart';
 import 'app_router.dart';
 
 export 'app_router.dart';
 
-final _router = AppRouter();
-
 @singleton
 class AppNavigator {
+  AppNavigator(AuthStore authStore)
+    : _router = AppRouter(authGuard: AuthGuard(authStore));
+
+  final AppRouter _router;
+
   RouterConfig<UrlState> get config => _router.config();
 
   BuildContext? get context => _router.navigatorKey.currentContext;

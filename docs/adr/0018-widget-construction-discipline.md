@@ -79,7 +79,7 @@ Helpers receive plain data. If a helper needs the navigator, scaffold, or overla
 
 ### Allowed exceptions
 
-- **Framework builder callbacks** whose signature the framework fixes: `ListView.builder`, `GridView.builder`, `PageView.builder`, `Builder`, `LayoutBuilder`, `OrientationBuilder`, `FutureBuilder`, `StreamBuilder`, `ValueListenableBuilder`, the `builder:` of `showDialog` / `showModalBottomSheet` / `showMenu`, `PageRouteBuilder`, and AutoRoute page builders.
+- **Framework builder callbacks** whose signature the framework fixes: `ListView.builder`, `GridView.builder`, `PageView.builder`, `Builder`, `LayoutBuilder`, `OrientationBuilder`, `FutureBuilder`, `StreamBuilder`, `ValueListenableBuilder`, the `builder:` of `showDialog` / `showModalBottomSheet` / `showMenu`, `MaterialPageRoute(builder: ...)`, `PageRouteBuilder`, and AutoRoute page builders.
 - **Extension methods on `BuildContext`** such as `context.geist`, `context.read<T>()` and `context.tr`. These extend the context type rather than propagating it.
 - **Hooks** that read context internally, since hooks only run during build.
 

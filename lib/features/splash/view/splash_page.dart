@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:design_system/design_system.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 
 import '../../../gen/locale_keys.g.dart';
 
@@ -27,7 +28,7 @@ class _SplashPageContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const LoadingWidget(isLoading: true),
-            const SizedBox(height: kSpacing16px),
+            const Gap(kSpacing16px),
             Text(
               LocaleKeys.splashPage_loading.tr(),
               style: context.labelLMedium.setColor(context.textNeutral),

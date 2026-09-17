@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:design_system/design_system.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../gen/locale_keys.g.dart';
@@ -39,11 +40,11 @@ class _ChallengeJoinedContent extends StatelessWidget {
             child: Column(
               children: [
                 _TopBar(onClose: state.onClosePressed),
-                const SizedBox(height: kSpacing24px),
+                const Gap(kSpacing24px),
                 const _Headline(),
                 const Expanded(child: ChallengeJoinedTipsStack()),
                 _JoinButton(onPressed: state.onJoinChallengePressed),
-                const SizedBox(height: kSpacing16px),
+                const Gap(kSpacing16px),
               ],
             ),
           ),
@@ -129,7 +130,7 @@ class _Headline extends StatelessWidget {
             textAlign: TextAlign.center,
             style: context.headerH2.setColor(context.textNeutralDarker),
           ),
-          const SizedBox(height: kSpacing8px),
+          const Gap(kSpacing8px),
           Text(
             LocaleKeys.challengeJoinedPage_subtitle.tr(),
             textAlign: TextAlign.center,

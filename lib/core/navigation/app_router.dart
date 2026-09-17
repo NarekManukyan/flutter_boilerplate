@@ -7,26 +7,30 @@ export 'app_router.gr.dart';
 
 @AutoRouterConfig(replaceInRouteName: 'Page,Route')
 class AppRouter extends RootStackRouter {
+  AppRouter({required AuthGuard authGuard}) : _authGuard = authGuard;
+
+  final AuthGuard _authGuard;
+
   @override
-  final List<AutoRoute> routes = [
+  late final List<AutoRoute> routes = [
     AutoRoute(
       initial: true,
       path: '/',
       page: SplashRoute.page,
-      guards: const [AuthGuard()],
+      guards: [_authGuard],
     ),
     AutoRoute(path: '/login', page: LoginRoute.page),
-    AutoRoute(path: '/home', page: HomeRoute.page, guards: const [AuthGuard()]),
+    AutoRoute(path: '/home', page: HomeRoute.page, guards: [_authGuard]),
     AutoRoute(
       path: '/todos/:id',
       page: TodoDetailsRoute.page,
-      guards: const [AuthGuard()],
+      guards: [_authGuard],
     ),
     AutoRoute(
       path: '/challenges/joined',
       page: ChallengeJoinedRoute.page,
       fullscreenDialog: true,
-      guards: const [AuthGuard()],
+      guards: [_authGuard],
     ),
   ];
 }

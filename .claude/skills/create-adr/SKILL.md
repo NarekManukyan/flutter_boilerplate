@@ -26,8 +26,11 @@ Next free number, zero-padded, kebab slug: `0018-short-decision-title.md`. Numbe
 
 - **Proposed** — under discussion. Do not enforce it yet.
 - **Accepted** — describes how the codebase works now. This is the normal status here: an ADR is written when the rule is real, not aspirational.
+- **Rejected** — considered and turned down. Keep the file so the same proposal is not argued again from scratch.
 - **Deprecated** — no longer applies, nothing replaced it.
-- **Superseded by ADR-XXXX** — replaced. Edit the old ADR's status; do not delete it. The new one links back.
+- **Superseded by ADR-NNNN** — replaced. Set the old ADR's status to `Superseded by ADR-NNNN`; do not delete it. The new one links back.
+
+Metadata is a bullet list under the title: `Status`, `Date`, `Deciders`. `Consulted` (people whose opinion was asked for) and `Informed` (people kept up to date) are optional; delete the bullets you do not use.
 
 ## The part that matters: alternatives
 
@@ -44,7 +47,23 @@ For each option, give real "Good" and "Bad" bullets. The chosen option gets `Bad
 
 ## Consequences, honestly
 
-`### Consequences` under the decision outcome carries both directions. The "Bad" bullets are what make the ADR worth reading in a year — they are the cost the team knowingly accepted, and the reason someone might revisit it.
+`### Consequences` under the decision outcome carries both directions. The "Bad" bullets are what make the ADR worth reading in a year — they are the cost the team knowingly accepted, and the reason someone might revisit it. Use a "Neutral" bullet for a side effect that is neither good nor bad but that a reader should know about (for example, a directory that now exists in every feature).
+
+## Confirmation
+
+`### Confirmation` says how the team knows the decision is implemented and still upheld: a lint rule, a CI check (a step in `melos run verify`), a review checklist item, or a test. Name the mechanism concretely. "Reviewers check it" is acceptable only when you also say what they look for, such as an import of `DioService` in a `*_state.dart` file. A rule nothing can check drifts, and the Confirmation section is where that becomes visible.
+
+## AI Implementation Guidelines
+
+The last section holds an `<ai_context_rules>` block for coding agents. Fill in all four fields, or delete the whole section when the decision needs no agent-specific handling.
+
+- **Autonomy level**
+  - `Full`: the agent applies the rule without asking.
+  - `Guardrailed (human review required)`: the agent may implement, and a human reviews before merge.
+  - `Human-in-the-loop`: the agent proposes, and a human decides before any code is written.
+- **Architecture constraints**: the hard limits, phrased as do / never pairs the agent can check a diff against.
+- **File paths affected**: globs of the files the ADR governs, e.g. `lib/features/**/*_use_case.dart`.
+- **Verification command**: what the agent runs to confirm its change, usually `melos run verify` or a narrower `melos run analyze`.
 
 ## Write for the reader who disagrees
 
@@ -55,7 +74,7 @@ The audience is a developer six months from now who thinks the rule is wrong. Gi
 1. Add a row to the table in `docs/adr/README.md`.
 2. Add the one-line form to the **Architectural decisions** list in [`AGENTS.md`](../../../AGENTS.md), then run `melos run sync-agents`.
 3. If it introduces a procedure, add or update the playbook and add it to the AGENTS.md **Playbooks** table.
-4. Link related ADRs both ways — an ADR that supersedes another edits that one's status.
+4. Link related ADRs both ways. If the new ADR supersedes an existing one, set that ADR's status to `Superseded by ADR-NNNN` and update its index row.
 5. Link to the code the decision governs, so the ADR can be checked against reality.
 
 ## Checklist
@@ -64,6 +83,9 @@ The audience is a developer six months from now who thinks the rule is wrong. Gi
 - [ ] Next free number; MADR sections from the template
 - [ ] ≥ 2 alternatives, each with honest Good/Bad
 - [ ] Chosen option has stated downsides
+- [ ] Confirmation names a concrete lint rule, CI check, checklist item or test
+- [ ] AI Implementation Guidelines filled in (all four fields) or the section deleted
+- [ ] Unused `Consulted` / `Informed` bullets deleted
 - [ ] Context is prose, written for someone who disagrees
 - [ ] `docs/adr/README.md` index row added
 - [ ] `AGENTS.md` one-liner added and `melos run sync-agents` run

@@ -15,6 +15,7 @@ Passing state down forces every intermediate widget to declare a parameter it do
 - Refactor cost — extracting or moving widgets should not ripple through constructor signatures.
 - Reuse — `_Header`, `_Footer`, etc., should not need a state-class parameter to compile.
 - DI seam — there should be one allowed `getIt<>()` site (the page root), not many.
+- Testability — a widget test should be able to put a mock state above the widget under test.
 
 ## Considered Options
 
@@ -27,9 +28,9 @@ Passing state down forces every intermediate widget to declare a parameter it do
 
 Chosen option: **`Provider` at the page root**.
 
-The page widget (a `StatelessWidget` or `HookWidget`) creates a `Provider<MyPageState>` whose `create:` resolves the state from `getIt`, calls `init()`, and disposes it on unmount. Descendant widgets read it with `context.read<MyPageState>()` (or `context.watch<...>()` for rebuilding consumers).
+The page widget (a `StatelessWidget` or `HookWidget`) creates a `Provider<MyPageState>` whose `create:` resolves the state from `getIt`, calls `init()`, and disposes it on unmount. Descendant widgets read it with `context.read<MyPageState>()`.
 
-This is the single allowed `getIt<>()` site outside DI bootstrap (per [ADR-0007](0007-di-scopes-and-constructor-injection.md)).
+This is the only `getIt<>()` site outside app bootstrap (per [ADR-0007](0007-di-scopes-and-constructor-injection.md)).
 
 ```dart
 class MyPage extends StatelessWidget {
@@ -47,23 +48,36 @@ class _Content extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<MyPageState>();
-    return Scaffold(/* ... */);
+    return Scaffold(
+      appBar: AppBar(title: Observer(builder: (_) => Text(state.title))),
+    );
   }
 }
 ```
+
+### `context.read` only
+
+Widgets use `context.read<T>()` and never `context.watch<T>()` for a state class. MobX observables drive rebuilds through `Observer`, as in the example above. The `Provider` creates the state once and its identity never changes for the life of the page, so a `watch` subscription never triggers a useful rebuild. It only suggests to a reader that it does.
+
+### Testing
+
+Widget tests override the provider with a mock state, and no DI swap is needed. A widget below the page root is pumped under `Provider<MyPageState>.value(value: mockState, child: ...)`. States must stay mockable that way: widgets use only the state's public members (actions, `@readonly` getters, `@computed` values), so `class _MockMyPageState extends Mock implements MyPageState` is a complete stand-in.
+
+A test that pumps the whole page still goes through the `getIt` call at its root, so it registers the mock in `getIt`, as [`home_page_test.dart`](../../test/features/home/view/home_page_test.dart) does.
 
 ### Consequences
 
 - Good: descendant widgets are decoupled from the state class — refactor and extract freely.
 - Good: one place that calls `getIt`, easy to audit.
 - Good: state lifecycle (`init` / `dispose`) is bound to the `Provider` lifetime, not to a manually-managed `StatefulWidget`.
+- Good: widget tests put a mock state above the widget under test with `Provider.value`.
 - Bad: a widget that forgets to wrap its subtree with the right `Provider` fails at runtime, not compile time.
 - Bad: requires the `provider` package as a dependency.
 
 ## Pros and Cons of the Options
 
 ### `Provider` at the page root
-- Good: one resolution site, free reuse of widgets.
+- Good: one resolution site, free reuse of widgets, mock state in widget tests.
 - Bad: runtime failure on missing provider.
 
 ### Constructor parameters all the way down
@@ -83,3 +97,4 @@ class _Content extends StatelessWidget {
 - [ADR-0001 Layered architecture](0001-layered-architecture.md)
 - [ADR-0007 DI scopes and constructor injection](0007-di-scopes-and-constructor-injection.md)
 - [ADR-0010 `HookWidget` default](0010-hookwidget-default.md)
+- [ADR-0015 Mandatory test coverage and QA gate](0015-mandatory-test-coverage-and-qa-gate.md)

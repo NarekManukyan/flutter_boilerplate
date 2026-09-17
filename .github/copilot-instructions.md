@@ -31,15 +31,16 @@ The playbook has the rest, including when to split work across parallel agents (
 | Building… | Playbook | Governed by |
 |---|---|---|
 | A whole feature module | [`create-feature`](../.claude/skills/create-feature/SKILL.md) | ADR-0001, 0005, 0006 |
-| A page + its state | [`create-page`](../.claude/skills/create-page/SKILL.md) | ADR-0009, 0010 |
+| A page + its state | [`create-page`](../.claude/skills/create-page/SKILL.md) | ADR-0009, 0010, 0018, 0019 |
 | A route, guard, modal or dialog | [`add-route`](../.claude/skills/add-route/SKILL.md) | ADR-0008 |
 | A MobX store | [`create-store`](../.claude/skills/create-store/SKILL.md) | ADR-0002, 0006, 0007 |
 | A use case | [`create-use-case`](../.claude/skills/create-use-case/SKILL.md) | ADR-0003, 0004 |
+| A `try` / `catch`, or any code that can fail | [`handle-errors`](../.claude/skills/handle-errors/SKILL.md) | ADR-0020 |
 | A DTO | [`create-dto`](../.claude/skills/create-dto/SKILL.md) | ADR-0011 |
 | A Retrofit API provider | [`create-api-provider`](../.claude/skills/create-api-provider/SKILL.md) | ADR-0011 |
 | A UI string | [`add-localization`](../.claude/skills/add-localization/SKILL.md) | ADR-0012 |
 | A colour / text style / radius / duration | [`add-design-token`](../.claude/skills/add-design-token/SKILL.md) | ADR-0013 |
-| A design-system component | [`create-ds-component`](../.claude/skills/create-ds-component/SKILL.md) | ADR-0013, 0014 |
+| A design-system component | [`create-ds-component`](../.claude/skills/create-ds-component/SKILL.md) | ADR-0013, 0018, 0019 |
 | Unit + widget tests | [`write-tests`](../.claude/skills/write-tests/SKILL.md) | ADR-0015 |
 | A Maestro E2E flow | [`write-maestro-flow`](../.claude/skills/write-maestro-flow/SKILL.md) | ADR-0015 |
 | The QA pass on a finished feature | [`qa-feature`](../.claude/skills/qa-feature/SKILL.md) | ADR-0015 |
@@ -55,7 +56,8 @@ flutter run -t lib/main_dev.dart     # dev flavor
 flutter run -t lib/main_prod.dart    # prod flavor
 
 melos run bootstrap                  # deps + codegen, all packages
-melos run build                      # codegen after MobX/Retrofit/Freezed/Injectable annotation changes
+melos run build                      # codegen after MobX/Retrofit/Freezed/Injectable annotation changes (api → design_system → app)
+melos run build:app                  # codegen for lib/ only — faster when the packages did not change
 melos run translations               # after editing assets/translations/en-US.json
 
 melos run analyze                    # dart analyze
@@ -82,11 +84,13 @@ UI → State → Store → DioService → API Provider
 
 | Layer | Files | May access | Must not access |
 |---|---|---|---|
-| UI | `*_page.dart`, `*_widget.dart` | State via `context.read<T>()` | DioService, Stores |
+| UI | `*_page.dart`, `*_widget.dart` | State via `context.read<T>()` | DioService, Stores, **Use Cases** |
 | State | `*_state.dart` | Stores, `AppNavigator`, Use Cases | DioService |
 | Store | `*_store.dart` | DioService, other Stores, Use Cases | — |
-| Use Case | `*_use_case.dart` | DioService, Services, `AppNavigator` | **Other Use Cases** |
-| Data | `packages/api` providers | — | — |
+| Use Case | `*_use_case.dart` | DioService, Services, `AppNavigator` | **Other Use Cases, Stores** |
+| Data | `packages/api` providers | DTOs | App layers |
+
+A use case consumes services, not stores: the caller passes store data in and applies the result. Composing several use cases is the caller's job.
 
 **State vs Store:** needs API access → Store (`features/*/mobx/`). Does not → State (`features/*/view/`).
 
@@ -142,8 +146,8 @@ One line each. Open the ADR when you need the *why* or want to challenge the rul
 - **Use-case taxonomy + colocation** — place next to the consumer; promote on second consumer. [ADR-0004](../docs/adr/0004-use-case-taxonomy-and-colocation.md)
 - **Flat feature tree** — features are peers under a domain grouping. [ADR-0005](../docs/adr/0005-flat-feature-tree.md)
 - **Feature-owned singletons** — every store under its owning feature's `mobx/`. [ADR-0006](../docs/adr/0006-feature-owned-singletons.md)
-- **DI scopes + constructor injection** — never `getIt<>()` inside a class; one seam only, `Provider(create:)`. [ADR-0007](../docs/adr/0007-di-scopes-and-constructor-injection.md)
-- **`AppNavigator` routing** — pages never use `context.router`; states inject `AppNavigator`. [ADR-0008](../docs/adr/0008-appnavigator-routing-abstraction.md)
+- **DI scopes + constructor injection** — never `getIt<>()` inside a class; allowed only at app bootstrap (`main`, router setup in the app root) and in `Provider(create:)`. [ADR-0007](../docs/adr/0007-di-scopes-and-constructor-injection.md)
+- **`AppNavigator` routing** — pages never use `context.router` or `Navigator`; states and navigation use cases inject `AppNavigator`. [ADR-0008](../docs/adr/0008-appnavigator-routing-abstraction.md)
 - **Provider-based state access** — page root creates the `Provider`; descendants `context.read<T>()`. Never pass state as a widget parameter. [ADR-0009](../docs/adr/0009-provider-based-state-access.md)
 - **`HookWidget` default** — `StatelessWidget` for pure presentation; `StatefulWidget` only for hook-incompatible APIs. [ADR-0010](../docs/adr/0010-hookwidget-default.md)
 - **Retrofit + freezed API layer** — `@RestApi()` providers in `packages/api`, `@freezed sealed` DTOs, access only via `DioService`. [ADR-0011](../docs/adr/0011-retrofit-typed-api-layer.md)
@@ -155,17 +159,20 @@ One line each. Open the ADR when you need the *why* or want to challenge the rul
 - **Single-source agent instructions** — this file; tool files generated. [ADR-0017](../docs/adr/0017-single-source-agent-instructions.md)
 - **Widget construction discipline** — no methods that return widgets, no `BuildContext` passed into helpers; extract real widget classes. [ADR-0018](../docs/adr/0018-widget-construction-discipline.md)
 - **Hook selection** — `useValueNotifier` when only part of the widget reads a value, `useState` only when the whole widget should rebuild, `useMemoized` for anything allocated in `build()`. [ADR-0019](../docs/adr/0019-hook-selection.md)
+- **Error handling** — every `catch` rethrows or tracks through `IssueTrackingService`; the method is picked by who shows the error. [ADR-0020](../docs/adr/0020-error-handling-and-issue-tracking.md)
 
 ## Rules that apply to every change
 
 These are the ones worth carrying in your head. Everything else is in a playbook.
 
-- **No `context.router`** anywhere. Inject `AppNavigator` into the state class.
+- **No `context.router` and no `Navigator.of(context)` / `Navigator.pop`** anywhere. Inject `AppNavigator` into the state class (or a navigation use case); a reusable widget without a state takes a callback.
 - **No state as a widget parameter.** `Provider` at the page root, `context.read<T>()` below.
 - **No `Widget _buildX()` methods and no `BuildContext` parameters on helpers.** Extract a real widget class (`_Header` is fine). Framework `builder:` callbacks and `BuildContext` extensions are the only exceptions.
-- **No `getIt<>()` inside a class.** Constructor injection only; `Provider(create:)` is the sole exception.
+- **No `getIt<>()` inside a class.** Constructor injection only — interceptors and route guards included. Allowed only at app bootstrap (`main`, the app root's router setup) and in `Provider(create:)`.
+- **Every `catch` rethrows or tracks.** `trackIssue` when nothing else shows the error, `trackHandledError` when the caller does, `trackSilentError` for background work. Never both track and rethrow.
+- **Use cases inject services only** — never a store, never another use case — and are always `@injectable`. Widgets never call them; states and stores do.
 - **No inline UI strings.** `LocaleKeys.key.tr()`, added to `assets/translations/en-US.json`, then `melos run translations`.
-- **No raw colours, `TextStyle(…)` composites, radii, durations or `BoxShadow` stacks in `lib/`.** Use `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. New tokens are added to the design system with **both light and dark values**.
+- **No raw colours, `TextStyle(…)` composites, radii, durations or `BoxShadow` stacks in `lib/`.** Use `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. A value that differs between light and dark goes on the theme extension (`context.geist`) with **both values**; only values identical in every theme may be static constants.
 - **No redundant getter for `@readonly`** — it already generates the public getter. `@computed` is for derived state only.
 - **Relative imports inside `lib/`, single quotes, trailing commas on multiline args.** `analysis_options.yaml` promotes these to errors, along with `cascade_invocations`, `avoid_print`, `cancel_subscriptions`.
 - **Never edit generated files.** Change the annotation and run `melos run build`.

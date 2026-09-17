@@ -39,12 +39,19 @@ workspace:
 | Script | Purpose |
 |---|---|
 | `melos run bootstrap` (custom) | Get deps + generate code for every package — runs `melos run deps && melos run generate` |
-| `melos run build` | `dart run build_runner build -d` across `api`, `design_system`, app |
+| `melos run build` | `translations`, then `build:api` → `build:design_system` → `build:app`, in that order |
+| `melos run build:api` / `build:design_system` / `build:app` | `dart run build_runner build -d` scoped to one package |
 | `melos run analyze` / `test` / `format` / `lint` | Per-package code quality |
 | `melos run translations` | Run `easy_localization:generate` against `assets/translations/en-US.json` |
 | `melos exec --scope api -- "..."` | Run an arbitrary command inside one package |
 
 > **Naming note:** `melos bootstrap` (without `run`) is the Melos built-in that runs `pub get` across the workspace. The custom `bootstrap:` script defined in `pubspec.yaml` is invoked as `melos run bootstrap` and additionally runs codegen. Use `melos run bootstrap` when you want both deps + codegen; the bare `melos bootstrap` only fetches deps.
+
+### Codegen order
+
+Codegen runs in a fixed order: `api`, then `design_system`, then the app. The app's generators (Injectable, MobX, AutoRoute) resolve types from both packages, so the packages' generated code has to exist before the app's build runs. Otherwise a type such as a freezed DTO does not resolve while the app's code is generated.
+
+Each step has its own script: `build:api`, `build:design_system` and `build:app`. `melos run build` runs `translations` first and then the three scripts in that order. Translations come first because the generated `LocaleKeys` are not committed, and a clean checkout does not analyze without them. A change confined to one package only needs that package's script. If the change alters a type the app uses, run `build:app` after it.
 
 ### Package responsibilities
 
@@ -54,11 +61,12 @@ workspace:
 
 ### Consequences
 
-- Good: codegen runs only where it changes. Editing a DTO recompiles `api`, not the design system.
+- Good: codegen runs only where it changes. Editing a DTO needs `build:api` (plus `build:app` if the app uses the changed type), not the design system.
 - Good: `packages/*` can be lifted into another app with no rewrite — they have no dependency on `lib/`.
 - Good: Dart workspace gives a single `pub get` resolution; no version drift between packages.
 - Bad: three `pubspec.yaml` files instead of one — adding a dependency requires choosing the right package.
 - Bad: `melos` is an extra tool contributors must install (`dart pub global activate melos` or via the workspace dev_dependency).
+- Bad: the codegen order is enforced only by the `build` script. Running a single package script by hand in the wrong order can leave the app's generated code stale.
 
 ## Pros and Cons of the Options
 

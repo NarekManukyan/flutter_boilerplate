@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
 import 'package:new_version_plus/new_version_plus.dart';
@@ -9,13 +7,19 @@ import '../constants/app_update_type.dart';
 import '../navigation/app_navigator.dart';
 import '../utils/storage_utils.dart';
 import 'flavor_service.dart';
+import 'issue_tracking_service.dart';
 
 @injectable
 class AppUpdateService {
   final FlavorService _flavorService;
   final AppNavigator _appNavigator;
+  final IssueTrackingService _issueTrackingService;
 
-  AppUpdateService(this._flavorService, this._appNavigator);
+  AppUpdateService(
+    this._flavorService,
+    this._appNavigator,
+    this._issueTrackingService,
+  );
 
   final country =
       WidgetsBinding.instance.platformDispatcher.locale.countryCode ?? 'us';
@@ -52,14 +56,20 @@ class AppUpdateService {
       await _appNavigator.showModal(
         builder: (_) => AppUpdateModal(
           updateType: updateType,
-          appStoreLink: 'res.appStoreLink',
+          appStoreLink: res.appStoreLink,
         ),
         enableDrag: updateType == AppUpdateType.MINOR,
       );
 
       await StorageUtils.setSkippedAppVersion(res.storeVersion);
     } on Exception catch (error, stackTrace) {
-      log('getAppVersionException: $error', stackTrace: stackTrace);
+      // A store lookup that fails leaves the user on their current version;
+      // they are not waiting on it, so it is reported without a notice.
+      _issueTrackingService.trackSilentError(
+        error,
+        stackTrace: stackTrace,
+        context: 'check_app_version',
+      );
     }
   }
 

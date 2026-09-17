@@ -5,7 +5,7 @@ import 'package:mobx/mobx.dart';
 import '../../../core/constants/regexp.dart';
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/state/loading_state.dart';
-import 'use_cases/login_use_case.dart';
+import '../mobx/auth_store.dart';
 
 part 'login_page_state.g.dart';
 
@@ -14,9 +14,9 @@ class LoginPageState = _LoginPageStateBase with _$LoginPageState;
 
 abstract class _LoginPageStateBase with Store {
   final AppNavigator _appNavigator;
-  final LoginUseCase _loginUseCase;
+  final AuthStore _authStore;
 
-  _LoginPageStateBase(this._appNavigator, this._loginUseCase);
+  _LoginPageStateBase(this._appNavigator, this._authStore);
 
   final TextEditingController emailController = TextEditingController();
   final LoadingState loadingState = LoadingState();
@@ -33,11 +33,9 @@ abstract class _LoginPageStateBase with Store {
     }
     _emailError = null;
     loadingState.startLoading();
-    final success = await _loginUseCase(email);
+    await _authStore.login(email);
     loadingState.stopLoading();
-    if (success) {
-      await _appNavigator.pushAndPopAll(const HomeRoute());
-    }
+    await _appNavigator.pushAndPopAll(const HomeRoute());
   }
 
   void dispose() {

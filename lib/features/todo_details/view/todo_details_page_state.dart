@@ -1,9 +1,9 @@
 import 'package:api/api.dart';
-import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mobx/mobx.dart';
 
-import '../../../core/services/dio_service.dart';
+import '../../../core/navigation/app_navigator.dart';
+import 'use_cases/fetch_todo_use_case.dart';
 
 part 'todo_details_page_state.g.dart';
 
@@ -12,9 +12,10 @@ class TodoDetailsPageState = _TodoDetailsPageStateBase
     with _$TodoDetailsPageState;
 
 abstract class _TodoDetailsPageStateBase with Store {
-  final DioService _dioService;
+  final FetchTodoUseCase _fetchTodoUseCase;
+  final AppNavigator _appNavigator;
 
-  _TodoDetailsPageStateBase(this._dioService);
+  _TodoDetailsPageStateBase(this._fetchTodoUseCase, this._appNavigator);
 
   @readonly
   TodoDto? _todo;
@@ -22,23 +23,11 @@ abstract class _TodoDetailsPageStateBase with Store {
   @readonly
   bool _isLoading = false;
 
-  @readonly
-  String? _error;
-
   @action
   Future<void> init(String id) async {
     _isLoading = true;
-    _error = null;
     try {
-      final todos = await _dioService.todosProvider.getTodos();
-      final matches = todos.where((t) => t.id == id);
-      if (matches.isEmpty) {
-        _error = 'not_found';
-      } else {
-        _todo = matches.first;
-      }
-    } on DioException catch (e) {
-      _error = e.message;
+      _todo = await _fetchTodoUseCase(id);
     } finally {
       _isLoading = false;
     }
@@ -52,6 +41,8 @@ abstract class _TodoDetailsPageStateBase with Store {
     }
     _todo = current.copyWith(completed: !current.completed);
   }
+
+  Future<void> onBackPressed() => _appNavigator.pop();
 
   void dispose() {}
 }

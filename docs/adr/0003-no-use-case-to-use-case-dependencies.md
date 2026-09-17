@@ -15,10 +15,11 @@ That introduces a graph of UC → UC dependencies, which: (1) makes test setup r
 - Test setup cost — UCs should fake their *services*, not their *peers*.
 - Single responsibility — a UC is one operation; if it needs a peer, the peer is the operation, not a sub-step.
 - Discoverability — shared logic should live in an obviously-shared place (`Service`, utility, extension), not behind another UC name.
+- Composition belongs to the caller — the Store or State that owns a flow decides which operations run and in what order.
 
 ## Considered Options
 
-- **Forbid UC → UC** — UC depends only on services, navigators, and stores. Shared logic lives in a service or utility.
+- **Forbid UC → UC** — UC depends only on services (`DioService`, `AppNavigator`, `IssueTrackingService`, platform and analytics services). Shared logic lives in a service or utility.
 - **Allow shallow UC composition** — a UC may inject one UC, but no deeper.
 - **Allow free composition** — UCs form a free DAG.
 
@@ -26,22 +27,50 @@ That introduces a graph of UC → UC dependencies, which: (1) makes test setup r
 
 Chosen option: **Forbid UC → UC**.
 
-A use case may inject:
-- `DioService` and any feature/app store
+A use case depends only on services:
+- `DioService`
 - `AppNavigator`
-- Any `*_service.dart` (e.g. `IssueTrackingService`, `FlavorService`)
+- `IssueTrackingService`
+- platform and analytics services, i.e. any other `*_service.dart` (e.g. `FlavorService`)
 
-It must not inject another `*_use_case.dart`. When two UCs share logic, extract that logic to a service or top-level utility.
+It must not inject another `*_use_case.dart`, and it must not inject a store. Use cases consume services, not stores ([ADR-0001](0001-layered-architecture.md)). When a use case needs data a store holds, the caller reads the store and passes the value in as a parameter.
 
-Example — `CreateTodoUseCase` ([lib/features/home/modals/add_todo_modal/use_cases/create_todo_use_case.dart](../../lib/features/home/modals/add_todo_modal/use_cases/create_todo_use_case.dart)) takes only `DioService`. Adding clipboard support would not inject a `CopyUseCase`; it would inject a `ClipboardService`.
+Composing several use cases is the caller's job. When a flow needs more than one operation, the Store or State that owns the flow calls the use cases in order and handles what happens between them. A use case never calls another use case to build a larger operation.
+
+When two operations must succeed together with shared error handling, extract the shared logic into a service and inject that service into both use cases. There are no exceptions, including one level of composition.
+
+```dart
+// FORBIDDEN: a use case injects another use case
+@injectable
+class ArchiveNoteUseCase {
+  final ExportUseCase _exportUseCase;
+
+  ArchiveNoteUseCase(this._exportUseCase);
+}
+
+// CORRECT: a use case injects services only
+@injectable
+class ArchiveNoteUseCase {
+  final DioService _dioService;
+  final IssueTrackingService _issueTrackingService;
+
+  ArchiveNoteUseCase(this._dioService, this._issueTrackingService);
+}
+```
+
+Example — `CreateTodoUseCase` ([lib/features/home/modals/add_todo_modal/use_cases/create_todo_use_case.dart](../../lib/features/home/modals/add_todo_modal/use_cases/create_todo_use_case.dart)) takes only `DioService` and `IssueTrackingService`. Adding clipboard support would not inject a `CopyUseCase`; it would inject a `ClipboardService`.
 
 ### Consequences
 
 - Good: UC tests are flat — fake the services, call `useCase()`, assert.
 - Good: shared logic surfaces as a named service, not hidden behind a UC's `call()`.
 - Good: dependency graph stays a tree of UC → service, not a DAG of UC → UC → UC.
+- Good: removing or renaming a use case affects only its direct callers.
+- Good: UC tests never construct or fake a store.
 - Bad: occasional duplication when two UCs would naturally share a single service-less helper.
 - Bad: requires extracting a service for what could have been a 3-line UC reuse.
+- Bad: the Store or State orchestrates multi-step flows itself, so that sequencing lives in the caller rather than in one reusable class.
+- Bad: store data a use case needs arrives as a parameter, which makes some call sites longer.
 
 ## Pros and Cons of the Options
 

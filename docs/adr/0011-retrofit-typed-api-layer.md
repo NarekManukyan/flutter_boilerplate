@@ -43,23 +43,48 @@ abstract class TodosApiProvider {
 }
 ```
 
-Real example: [`TodosApiProvider`](../../packages/api/lib/src/providers/todos_provider/todos_api_provider.dart). Each provider lives under `packages/api/lib/src/providers/{name}_provider/` with its provider-specific DTOs in a sibling `models/` directory. DTOs shared across providers (e.g. [`ListResponseDto`](../../packages/api/lib/src/models/list_response_entity/list_response_entity.dart), `MetaDto`) live at `packages/api/lib/src/models/`.
+Real example: [`TodosApiProvider`](../../packages/api/lib/src/providers/todos_provider/todos_api_provider.dart).
+
+Endpoints that answer `204 No Content`, or whose body the app does not read, return `Future<void>`. They do not return `Future<dynamic>` or a placeholder DTO.
+
+```dart
+@DELETE(_Paths.deleteTodo)
+Future<void> deleteTodo(@Path('id') String id);
+```
+
+### Where DTOs live
+
+```
+packages/api/lib/src/
+  providers/
+    todos_provider/
+      todos_api_provider.dart
+      models/                   per-resource DTOs: models.dart barrel, src/*_dto.dart
+  models/
+    list_response_entity/       DTOs shared across providers
+```
+
+- A DTO used by one provider lives in that provider's `models/` directory, next to the provider.
+- A DTO shared across providers lives in `packages/api/lib/src/models/`, e.g. [`ListResponseDto`](../../packages/api/lib/src/models/list_response_entity/list_response_entity.dart) and `MetaDto`. A DTO moves there when a second provider needs it.
 
 ### DTO pattern
 
 DTOs are `@freezed sealed class`es with `fromJson` factories. `build.yaml` enables `any_map: true` and `explicit_to_json: true` so nested DTOs serialize correctly and the JSON decoder accepts non-`Map<String, dynamic>` shapes.
 
+Field names follow Dart style. `build.yaml` sets `field_rename: none`, so when a JSON key differs from the field name, the parameter maps it with `@JsonKey(name: ...)`:
+
 ```dart
 @freezed
-sealed class TodoDto with _$TodoDto {
-  factory TodoDto({
+sealed class UserResponseDto with _$UserResponseDto {
+  factory UserResponseDto({
     required String id,
-    required String title,
-    required bool completed,
-  }) = _TodoDto;
+    required String email,
+    required String name,
+    @JsonKey(name: 'req_id') required String reqId,
+  }) = _UserResponseDto;
 
-  factory TodoDto.fromJson(Map<String, dynamic> json) =>
-      _$TodoDtoFromJson(json);
+  factory UserResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$UserResponseDtoFromJson(json);
 }
 ```
 
@@ -77,7 +102,7 @@ API providers are reached only through [`DioService`](../../lib/core/services/di
 
 - Good: typed request/response surface; DTO mismatches fail at build.
 - Good: providers and DTOs sit in their own package, decoupled from the app.
-- Good: `melos exec --scope api -- "dart run build_runner build -d"` runs codegen for the API package alone.
+- Good: `melos run build:api` runs codegen for the API package alone ([ADR-0014](0014-melos-package-split.md)).
 - Bad: every endpoint requires an annotation + a codegen run — friction for one-off requests.
 - Bad: DTOs use freezed code generation; build_runner cycles add wall-clock time on first build.
 

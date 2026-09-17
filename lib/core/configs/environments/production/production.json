@@ -1,7 +1,7 @@
 {
   "apiUrl": "https://example.api.url",
   "socketUrl": "https://example.websocket.url",
-  "env": "PRODUCTION",
+  "env": "PROD",
   "production": true,
   "bundleID": "com.example.bundleID",
   "reCaptcha": {

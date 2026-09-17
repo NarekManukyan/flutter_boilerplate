@@ -2,7 +2,17 @@
 
 ADRs codify the **why** behind architectural rules in this repo. [`AGENTS.md`](../../AGENTS.md) carries the one-line form of each rule (always loaded by every agent); the [playbooks](../../.claude/skills/) carry the step-by-step how-to (loaded on demand). This directory is the source of truth for decisions that had real alternatives.
 
-Format: [MADR 3.0](https://adr.github.io/madr/). Status `Accepted` means the rule describes how the codebase already works.
+Format: [MADR 3.0](https://adr.github.io/madr/), with metadata as bullets under the title (`Status`, `Date`, `Deciders`, plus optional `Consulted` and `Informed`). New ADRs state how the decision is confirmed (a **Confirmation** section) and may carry an **AI Implementation Guidelines** section with an `<ai_context_rules>` block for coding agents. See [`0000-template.md`](0000-template.md).
+
+## Status values
+
+| Status | Meaning |
+|---|---|
+| `Proposed` | Under discussion. Not enforced yet. |
+| `Accepted` | Describes how the codebase works now. This is the normal status here. |
+| `Rejected` | Considered and turned down. Kept so the same discussion is not repeated. |
+| `Deprecated` | No longer applies, and nothing replaced it. |
+| `Superseded by ADR-NNNN` | Replaced by a later ADR, which links back to this one. |
 
 ## Index
 
@@ -27,11 +37,13 @@ Format: [MADR 3.0](https://adr.github.io/madr/). Status `Accepted` means the rul
 | [0017](0017-single-source-agent-instructions.md) | Single-source agent instructions (`AGENTS.md` + playbooks) | Accepted |
 | [0018](0018-widget-construction-discipline.md) | Widget construction discipline: no widget-returning methods, no `BuildContext` parameters | Accepted |
 | [0019](0019-hook-selection.md) | Hook selection: `useValueNotifier` over `useState`, `useMemoized` whenever it applies | Accepted |
+| [0020](0020-error-handling-and-issue-tracking.md) | Error handling: every caught error is tracked through `IssueTrackingService` | Accepted |
 
 ## Adding a new ADR
 
-1. Copy `0000-template.md` to `NNNN-kebab-slug.md`.
-2. Fill in MADR fields. List at least 2 alternatives with concrete trade-offs.
+1. Copy `0000-template.md` to `NNNN-kebab-slug.md`, using the next free number.
+2. Fill in the MADR fields. List at least 2 alternatives with concrete trade-offs. Fill in **Confirmation** with the lint rule, CI check, review checklist item or test that upholds the decision. Fill in **AI Implementation Guidelines** when agents need explicit constraints; otherwise delete that section, and delete `Consulted` / `Informed` if unused.
 3. Add a row above.
-4. If the decision changes a rule referenced from `AGENTS.md`, update the `AGENTS.md` "Architectural decisions" table, then run `melos run sync-agents`.
-5. If the decision adds a procedure, add or update the matching playbook under `.claude/skills/`.
+4. If superseding an existing ADR, set its status to `Superseded by ADR-NNNN` (in the ADR and in its index row), and link the two ADRs both ways.
+5. If the decision changes a rule referenced from `AGENTS.md`, update the `AGENTS.md` "Architectural decisions" table, then run `melos run sync-agents`.
+6. If the decision adds a procedure, add or update the matching playbook under `.claude/skills/`.

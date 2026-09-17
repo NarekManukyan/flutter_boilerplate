@@ -1,6 +1,7 @@
 import 'package:api/api.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_boilerplate/core/services/dio_service.dart';
+import 'package:flutter_boilerplate/core/services/issue_tracking_service.dart';
 import 'package:flutter_boilerplate/features/auth/mobx/auth_store.dart';
 import 'package:flutter_boilerplate/features/home/mobx/home_store.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,8 @@ class _MockDioService extends Mock implements DioService {}
 class _MockTodosApiProvider extends Mock implements TodosApiProvider {}
 
 class _MockAuthStore extends Mock implements AuthStore {}
+
+class _MockIssueTrackingService extends Mock implements IssueTrackingService {}
 
 TodoDto _todo(String id, {bool completed = false}) =>
     TodoDto(id: id, title: 'todo $id', completed: completed);
@@ -24,14 +27,16 @@ void main() {
   late _MockDioService dioService;
   late _MockTodosApiProvider todosProvider;
   late _MockAuthStore authStore;
+  late _MockIssueTrackingService issueTracking;
   late HomeStore store;
 
   setUp(() {
     dioService = _MockDioService();
     todosProvider = _MockTodosApiProvider();
     authStore = _MockAuthStore();
+    issueTracking = _MockIssueTrackingService();
     when(() => dioService.todosProvider).thenReturn(todosProvider);
-    store = HomeStore(dioService, authStore);
+    store = HomeStore(dioService, authStore, issueTracking);
   });
 
   group('HomeStore', () {
@@ -66,6 +71,29 @@ void main() {
       // Regression guard: a failure must not leave a permanent spinner.
       expect(store.isLoading, isFalse);
       expect(store.todos, isEmpty);
+    });
+
+    test('should report a failed load as handled, not as a notice', () async {
+      final error = _dioError('boom');
+      when(() => todosProvider.getTodos()).thenThrow(error);
+
+      await store.loadTodos();
+
+      // The page shows its own error state, so a notice would say it twice.
+      verify(
+        () => issueTracking.trackHandledError(
+          error,
+          stackTrace: any(named: 'stackTrace'),
+          handlingContext: 'load_todos',
+        ),
+      ).called(1);
+      verifyNever(
+        () => issueTracking.trackIssue(
+          any(),
+          stackTrace: any(named: 'stackTrace'),
+          message: any(named: 'message'),
+        ),
+      );
     });
 
     test('should clear a previous error on a successful retry', () async {

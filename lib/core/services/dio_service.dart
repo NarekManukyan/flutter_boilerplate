@@ -5,6 +5,8 @@ import 'package:api/api.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../features/auth/mobx/auth_store.dart';
+import '../navigation/app_navigator.dart';
 import 'flavor_service.dart';
 import 'interceptors/api_interceptor.dart';
 import 'interceptors/auth_interceptor.dart';
@@ -13,6 +15,8 @@ import 'interceptors/mock_todos_interceptor.dart';
 @lazySingleton
 class DioService {
   final FlavorService _flavorService;
+  final AuthStore _authStore;
+  final AppNavigator _appNavigator;
   late final AuthProvider authProvider = AuthProvider(dio);
   late final TodosApiProvider todosProvider = TodosApiProvider(dio);
 
@@ -20,7 +24,7 @@ class DioService {
   late final Dio dio;
   late final Dio uploadImageDio;
 
-  DioService(this._flavorService) {
+  DioService(this._flavorService, this._authStore, this._appNavigator) {
     initDio();
   }
 
@@ -39,8 +43,8 @@ class DioService {
         // Dev only — a mock interceptor must never reach production traffic.
         // Must come first so it can short-circuit before auth/logging.
         if (_flavorService.isDev) MockTodosInterceptor(),
-        ApiInterceptor(),
-        AuthInterceptor(),
+        ApiInterceptor(_flavorService),
+        AuthInterceptor(_authStore, _appNavigator),
         // CacheInterceptor(),
         LogInterceptor(
           requestBody: true,

@@ -1,5 +1,6 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 
 class ChallengeJoinedTipCard extends StatelessWidget {
   const ChallengeJoinedTipCard({
@@ -45,13 +46,13 @@ class ChallengeJoinedTipCard extends StatelessWidget {
               child: Icon(icon, size: kSpacing32px, color: context.textWarning),
             ),
           ),
-          const SizedBox(height: kSpacing4px),
+          const Gap(kSpacing4px),
           Text(
             title,
             textAlign: TextAlign.center,
             style: context.labelMSemibold.setColor(context.textNeutralDarker),
           ),
-          const SizedBox(height: kSpacing2px),
+          const Gap(kSpacing2px),
           Text(
             participantsLabel,
             style: context.labelSRegular.setColor(context.textNeutral),

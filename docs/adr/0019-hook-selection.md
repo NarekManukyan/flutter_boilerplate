@@ -33,7 +33,9 @@ MobX owns feature and app state ([ADR-0002](0002-state-vs-store-separation.md)).
 
 ## Decision Outcome
 
-Chosen option: **Prefer `useValueNotifier` over `useState` when only part of the widget depends on the value, and use `useMemoized` whenever it applies.**
+Chosen option: **Prefer `useValueNotifier` over `useState` whenever the state should be observable but does not warrant MobX, and use `useMemoized` whenever it applies.**
+
+The main reason is rebuild scope. When only part of the widget depends on the value, `useValueNotifier` rebuilds that part and nothing else, which is exactly what the Home FAB above needed.
 
 `useState` is **not** banned. It is correct when the value genuinely should rebuild the whole widget, for example a filter that changes everything the widget renders.
 
@@ -46,14 +48,31 @@ Chosen option: **Prefer `useValueNotifier` over `useState` when only part of the
 | Subscribe to an existing `ValueNotifier` / `Listenable` | `useValueListenable` / `useListenable` |
 | Local state that legitimately rebuilds the whole widget | `useState` |
 | A controller per widget instance | the dedicated hook: `useTextEditingController`, `useScrollController`, `useFocusNode`, `useAnimationController`, `useTabController` (each disposes for you) |
+| A controller with no dedicated hook | `useMemoized` to create it, `useEffect` to dispose it |
 | A value created once per instance, or recomputed on key change | `useMemoized` |
 | A side effect with cleanup | `useEffect` |
 
-Default to `useValueNotifier` when:
+Default to `useValueNotifier` for observable local state that does not warrant MobX. That covers these cases:
 
+- only part of the tree reads the value (the main reason);
 - the widget lives in `packages/design_system/`;
-- it is a small component where MobX would be overkill, such as a search field's query, an expanded flag or a counter;
-- only part of the tree reads the value.
+- it is a small component where MobX would be overkill, such as a search field's query, an expanded flag or a counter.
+
+### Controllers and `useMemoized`
+
+For a value that has to survive rebuilds, go in this order:
+
+1. **A dedicated controller hook**, when `flutter_hooks` has one: `useTextEditingController`, `useScrollController`, `useFocusNode`, `useAnimationController`, `useTabController`, `usePageController` and the rest. It creates the controller once per widget instance and disposes it. Do not rebuild one of these by hand with `useMemoized` and a disposing `useEffect`.
+2. **`useMemoized` as the fallback** for values without a dedicated hook, whose lifecycle you manage yourself. The key list decides when the value is recreated. If the value holds resources, a `useEffect` keyed on it disposes it.
+
+`useMemoized` applies to:
+
+- controllers without a dedicated hook, such as a third-party player or map controller, paired with a `useEffect` that disposes them;
+- derived collections: filtered, sorted or grouped lists;
+- parsed strings and decoded payloads;
+- `RegExp` instances;
+- formatted dates, and the `DateFormat` that produces them;
+- anything else whose construction is non-trivial, or whose identity matters for `==` further down the tree.
 
 ### Examples
 
@@ -85,6 +104,13 @@ class ExpandableCard extends HookWidget {
 // ✅ Controllers — the dedicated hook, never a controller built in build()
 final controller = useTextEditingController();
 
+// ✅ No dedicated hook — useMemoized creates it, useEffect disposes it
+final player = useMemoized(() => PlayerController(source), [source]);
+useEffect(() => player.dispose, [player]);
+
+// ✅ useMemoized — a parsed value, recomputed only when the input changes
+final config = useMemoized(() => parseConfig(raw), [raw]);
+
 // ✅ useMemoized — a derived collection, recomputed only when an input changes
 final filtered = useMemoized(
   () => items.where((i) => i.matches(query)).toList(),
@@ -101,6 +127,7 @@ final filtered = useMemoized(
 - Bad: a little more wiring than `useState` (a `ValueListenableBuilder` or an explicit `useValueListenable`).
 - Bad: engineers have to decide whether a value should rebuild the whole widget, which is not always obvious.
 - Bad: a `useMemoized` with a missing key returns a stale value. The key list needs the same discipline as a `useEffect` dependency list.
+- Bad: a controller created with `useMemoized` leaks if its disposing `useEffect` is forgotten, which is why the dedicated hooks come first.
 
 ## Pros and Cons of the Options
 

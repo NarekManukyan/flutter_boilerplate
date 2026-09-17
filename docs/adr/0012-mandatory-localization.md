@@ -32,7 +32,7 @@ Workflow:
 2. Run `melos run translations`. This regenerates [`lib/gen/locale_keys.g.dart`](../../lib/gen/locale_keys.g.dart) — never edit this file by hand.
 3. Use the generated key in UI: `Text(LocaleKeys.loginPage_title.tr())`.
 
-Hard rule: **no inline string literals in `Text(...)`, `Snackbar`, `AppBar(title:)`, error messages, or any other user-facing surface**. Tooltips, semantic labels, modal copy — all routed through `LocaleKeys`.
+Hard rule: **no inline string literals in any user-facing surface**.
 
 ```dart
 // ❌ Forbidden
@@ -44,12 +44,21 @@ Text(LocaleKeys.loginPage_continueWithEmail.tr())
 
 The bootstrap path in [`lib/main.dart`](../../lib/main.dart) calls `EasyLocalization.ensureInitialized()` before `runApp`, and [`lib/app.dart`](../../lib/app.dart) wires the `EasyLocalization` widget into the app root.
 
+### Scope
+
+The rule covers all text a user can see or hear: `Text`, `TextSpan`, `Tooltip` messages, `SnackBar` content, `AppBar(title:)`, dialog titles and bodies, bottom-sheet and modal copy, error messages shown to the user, and semantic labels.
+
+Two exceptions are allowed. Both should be rare, and each one gets flagged in code review so a reviewer confirms the string really belongs to one of them:
+
+1. **Debug-only log messages that users never see**, such as `log(...)` output.
+2. **Non-translatable identifiers**, such as brand names and format codes. A date pattern passed to `DateFormat('yyyy-MM-dd')` is a format code, not copy.
+
 ### Consequences
 
 - Good: zero localization debt. Adding a locale is a translation task, not an engineering project.
 - Good: typos in keys break the build (the generated `LocaleKeys` field doesn't exist).
 - Good: every string lives in one auditable JSON file per locale.
-- Bad: trivial debug strings still cost a key + codegen run.
+- Bad: the two exceptions need a reviewer's judgement; a brand name and a translatable product term can look alike.
 - Bad: codegen step (`melos run translations`) is required before the keys appear, which slows down "just add a label" PRs.
 
 ## Pros and Cons of the Options

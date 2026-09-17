@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
@@ -42,7 +43,7 @@ class _TodoDetailsContent extends StatelessWidget {
         preferredSize: const Size.fromHeight(56),
         child: _TopNav(
           title: LocaleKeys.todoDetailsPage_title.tr(),
-          onBack: () => Navigator.of(context).maybePop(),
+          onBack: state.onBackPressed,
         ),
       ),
       body: SafeArea(
@@ -52,7 +53,7 @@ class _TodoDetailsContent extends StatelessWidget {
             if (state.isLoading) {
               return const _LoadingBody();
             }
-            if (state.error != null || state.todo == null) {
+            if (state.todo == null) {
               return _ErrorBody(message: LocaleKeys.todoDetailsPage_error.tr());
             }
             final todo = state.todo!;
@@ -294,50 +295,36 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-class _PulsingDot extends StatefulWidget {
+class _PulsingDot extends HookWidget {
   const _PulsingDot({required this.color});
   final Color color;
 
   @override
-  State<_PulsingDot> createState() => _PulsingDotState();
-}
-
-class _PulsingDotState extends State<_PulsingDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (geistReducedMotion(context)) {
-      _c.stop();
-    } else if (!_c.isAnimating) {
-      _c.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final controller = useAnimationController(
+      duration: const Duration(milliseconds: 1600),
+    );
+    final reducedMotion = geistReducedMotion(context);
+    useEffect(() {
+      if (reducedMotion) {
+        controller.stop();
+      } else if (!controller.isAnimating) {
+        controller.repeat(reverse: true);
+      }
+      return null;
+    }, [reducedMotion]);
+
     return AnimatedBuilder(
-      animation: _c,
+      animation: controller,
       builder: (_, _) {
-        final t = Curves.easeInOut.transform(_c.value);
+        final t = Curves.easeInOut.transform(controller.value);
         return DecoratedBox(
           decoration: BoxDecoration(
-            color: widget.color,
+            color: color,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: widget.color.withValues(alpha: 0.15 + 0.25 * t),
+                color: color.withValues(alpha: 0.15 + 0.25 * t),
                 blurRadius: 4 + 4 * t,
                 spreadRadius: 1 * t,
               ),
