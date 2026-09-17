@@ -19,3 +19,5 @@ Invoke the `qa-feature` skill and follow it fully. In short:
 5. **Report** — gate PASS/FAIL, the AC→proof table, findings ranked P1/P2/P3, and an explicit "not covered" list with reasons.
 
 Be honest about the verdict. Do not mark the gate passed with an AC row that has no automated proof; list it as an open item instead.
+
+**Do not end your turn while a suite is still running.** Run `melos run verify` and the Maestro flows in the foreground (or block until a background run reports), then write the report. The report is the last thing you output. A session that ends on "waiting for the suite" — which is exactly what happens in a headless (`claude -p`) or CI run the moment the turn ends — ships no verdict at all.

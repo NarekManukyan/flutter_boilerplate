@@ -35,11 +35,13 @@ Chosen option: **one `IssueTrackingService` (`lib/core/services/issue_tracking_s
 
 | Method | Who shows the error | Notice | Use for |
 |---|---|---|---|
-| `trackIssue(e, stackTrace:, message:)` | nobody else; the service shows an `ErrorNotice` | yes | an action failed and nothing on screen says so |
+| `trackIssue(e, stackTrace:, context:, message:, notifyOnConnectivityError:)` | nobody else; the service shows an `ErrorNotice` | yes | an action failed and nothing on screen says so |
 | `trackHandledError(e, stackTrace:, handlingContext:)` | the caller: an error state, an inline message, a failure value it branches on | no | stores and use cases whose contract hands failure to the caller |
 | `trackSilentError(e, stackTrace:, context:)` | nobody should; the user is not waiting on it | no | background sync, analytics, cache warm-up, best-effort cleanup |
 
-`handlingContext` and `context` are required: a short snake_case name for the operation (`load_todos`, `create_todo`). They become the `error_context` tag in Sentry, which is how a report is traced back to its call site.
+Every method requires an operation name: `context` on `trackIssue` and `trackSilentError`, `handlingContext` on `trackHandledError`. It is a short snake_case name (`load_todos`, `create_todo`, `delete_todo`) and becomes the `error_context` tag in Sentry, which is how a report is traced back to its call site.
+
+`message` and `notifyOnConnectivityError` are optional and exist only on `trackIssue`. `message` is the notice text, from `LocaleKeys`. `notifyOnConnectivityError` is covered under the filters below.
 
 ### The golden rule
 
@@ -68,7 +70,7 @@ Track exactly once. The layer that catches and does not rethrow is the layer tha
 
 These rules live in the service, so call sites never repeat them:
 
-- **Connectivity errors** (connection, send and receive timeouts, connection errors) are not reported and show no notice. The connection page already tells the user the device is offline.
+- **Connectivity errors** (connection, send and receive timeouts, connection errors) are never reported. By default they show no notice either. That holds for a load: the connection page already tells the user the device is offline. It does not hold for an optimistic change the app undid. A deleted row that comes back after a timeout has no connection page to explain it, and a timeout can happen while the device is online. A rollback path passes `notifyOnConnectivityError: true`, so the notice shows for offline and timeout errors too. They are still not reported.
 - **Cancellations** (`DioExceptionType.cancel`) are neither reported nor shown.
 - **Status codes something else owns** (`IssueTrackingService.ignoredStatusCodes`, `401` by default, which `AuthInterceptor` turns into a logout) are neither reported nor shown.
 - **Thrown values that are not an `Error` or `Exception`** are logged in debug and not reported.
@@ -90,6 +92,53 @@ A use case catches at its boundary and tracks before it returns ([ADR-0004](0004
 
 When a caller must tell "not found" from "offline", return a sealed result instead of a bare `null`. `null` loses the reason.
 
+### Stores: restore, then rethrow
+
+A store action with no `error` observable for the failure, such as an optimistic delete, has nowhere to show it. A store shared across screens should not decide what the user sees anyway. So it puts its state back and rethrows. The state that called it owns the screen and tracks once.
+
+Illustrative: the todos provider in this repo has no delete endpoint, and `homePage_deleteTodoFailed` is not a real key.
+
+```dart
+// HomeStore: @singleton, read by more than one screen.
+@action
+Future<void> deleteTodo(String id) async {
+  final index = _todos.indexWhere((todo) => todo.id == id);
+  if (index == -1) {
+    return;
+  }
+  final removed = _todos.removeAt(index);
+  try {
+    await _dioService.todosProvider.deleteTodo(id);
+  } catch (_) {
+    // Any failure, not only DioException: the row has to come back. min():
+    // the list may have shrunk while the request was out.
+    _todos.insert(min(index, _todos.length), removed);
+    rethrow;
+  }
+}
+
+// HomePageState: owns the screen, so it tracks.
+@action
+Future<void> onTodoDismissed(String id) async {
+  try {
+    await _homeStore.deleteTodo(id);
+  } catch (e, stackTrace) {
+    _issueTrackingService.trackIssue(
+      e,
+      stackTrace: stackTrace,
+      context: 'delete_todo',
+      message: LocaleKeys.homePage_deleteTodoFailed.tr(),
+      // The row came back. Say so even offline or after a timeout.
+      notifyOnConnectivityError: true,
+    );
+  }
+}
+```
+
+- The calling state uses `trackIssue` when nothing else on screen reports the failure, or `trackHandledError` when it shows its own error UI. Either way the failure is tracked once, and the shared store never decides UI.
+- A store whose page already renders its `error` observable does not rethrow. It restores, sets `error` and tracks with `trackHandledError`.
+- The restore sits in a `catch` with no `on` clause, so it runs whatever failed. `on DioException` is for a request whose only expected failure is the request itself, with nothing to undo.
+
 ### Allowed without tracking
 
 - `rethrow`, or throwing a domain exception after tracking (pattern 3).
@@ -108,7 +157,7 @@ When a caller must tell "not found" from "offline", return a sealed result inste
 ### Confirmation
 
 - Review: search the diff for `catch` and check every hit against the golden rule.
-- Tests: a store or use case test that fails a request verifies the tracking call with its `handlingContext` (`test/features/home/mobx/home_store_test.dart`, `create_todo_use_case_test.dart`).
+- Tests: a store, state or use case test that fails a request verifies the tracking call with its `handlingContext` or `context`, and for `trackIssue` its `message` and `notifyOnConnectivityError` (`test/features/home/mobx/home_store_test.dart`, `create_todo_use_case_test.dart`).
 - The service's filtering is unit-tested in `test/core/services/issue_tracking_service_test.dart`.
 
 ## Pros and Cons of the Options
@@ -132,14 +181,13 @@ When a caller must tell "not found" from "offline", return a sealed result inste
 - [ADR-0003 No use case → use case](0003-no-use-case-to-use-case-dependencies.md) — shared error logic becomes a service
 - [ADR-0004 Use-case taxonomy](0004-use-case-taxonomy-and-colocation.md)
 - [ADR-0012 Mandatory localization](0012-mandatory-localization.md) — notice text comes from `LocaleKeys`
-- Playbooks: [`handle-errors`](../../.claude/skills/handle-errors/SKILL.md), [`create-use-case`](../../.claude/skills/create-use-case/SKILL.md)
-- Adopted from `krisp-mobile` `docs/error-handling-guidelines.md` and the error-handling section of `docs/use_cases_guide.md`.
+- Playbooks: [`handle-errors`](../../.claude/skills/handle-errors/SKILL.md), [`create-store`](../../.claude/skills/create-store/SKILL.md), [`create-use-case`](../../.claude/skills/create-use-case/SKILL.md)
 
 ## AI Implementation Guidelines
 
 <ai_context_rules>
 - **Autonomy level:** Full
-- **Architecture constraints:** Every `catch` in `lib/` rethrows or calls `trackIssue` / `trackHandledError` / `trackSilentError` before returning, never both. Choose the method by who shows the error: the service (`trackIssue`), the caller (`trackHandledError`), nobody (`trackSilentError`). Never call Sentry outside `IssueTrackingService`. Never attach request headers or bodies to a report.
+- **Architecture constraints:** Every `catch` in `lib/` rethrows or calls `trackIssue` / `trackHandledError` / `trackSilentError` before returning, never both. Choose the method by who shows the error: the service (`trackIssue`), the caller (`trackHandledError`), nobody (`trackSilentError`). Every call passes its operation name (`context:` or `handlingContext:`). A rollback of an optimistic change passes `notifyOnConnectivityError: true` to `trackIssue`. A shared store with no error observable restores its state and rethrows; the calling state tracks. Never call Sentry outside `IssueTrackingService`. Never attach request headers or bodies to a report.
 - **File paths affected:** `lib/**/*_store.dart`, `lib/**/*_state.dart`, `lib/**/*_use_case.dart`, `lib/core/services/**`
 - **Verification command:** `flutter test test/core/services/issue_tracking_service_test.dart`
 </ai_context_rules>

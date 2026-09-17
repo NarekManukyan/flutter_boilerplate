@@ -1,6 +1,6 @@
-# Boilerplate Project
+# Flutter Boilerplate
 
-A boilerplate project created in flutter using MobX.
+A Flutter starter for mobile apps: layered architecture, MobX state management, a Retrofit API package, a token-based design system package, GetIt + Injectable DI, and a Melos-managed Dart workspace. Start a new app from it so every project shares the same structure, rules and tooling.
 
 ## Working in this repo — with or without an AI agent
 
@@ -10,6 +10,7 @@ A boilerplate project created in flutter using MobX.
 | [`.claude/skills/`](.claude/skills/) | **Playbooks** — step-by-step guides for building one kind of thing (a DTO, a store, a page, a Maestro flow). Plain Markdown any agent can read; Claude Code registers them as invocable skills. Open the one you need; do not read them all. |
 | [`docs/adr/`](docs/adr/README.md) | **Why** each rule exists, and what was rejected. |
 | [`DESIGN.md`](DESIGN.md) | Visual system — palette, type, motion, component states, dark mode, accessibility, and the per-feature design-spec template. |
+| [`docs/troubleshooting.md`](docs/troubleshooting.md) | Symptom → cause → fix for setup, codegen, runtime, test, device and Maestro problems. |
 
 `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` and `.cursor/rules/000-agents.mdc` are **generated** from `AGENTS.md` — edit `AGENTS.md`, then run `melos run sync-agents`. CI fails on drift.
 
@@ -27,44 +28,33 @@ A feature is done when all three test tiers exist ([ADR-0015](docs/adr/0015-mand
 
 In Claude Code: `/build-feature <JIRA-KEY>` runs the whole loop, `/qa-feature <feature>` runs the gate.
 
-## Getting Started
+## Prerequisites
 
-The Boilerplate contains the minimal implementation required to create a new library or project. The repository code is preloaded with some basic components like basic app architecture, app theme, constants and required dependencies to create a new project. By using boilerplate code as standard initializer, we can have same patterns in all the projects that will inherit it. This will also help in reducing setup & development time by allowing you to use same code pattern and avoid re-writing from scratch.
-
-## How to Use
-
-**Step 1:**
-
-Download or clone this repo by using the link below:
-
-```
-https://github.com/NarekManukyan/flutter_boilerplate
-```
-
-**Step 2:**
-
-Install Melos globally (if not already installed):
+| Tool | Needed for | Check |
+|---|---|---|
+| Flutter SDK (stable channel), which includes Dart | everything | `flutter --version` |
+| Xcode, with its command-line tools | iOS builds (macOS only) | `xcodebuild -version` |
+| CocoaPods | iOS plugin dependencies | `pod --version` |
+| Android Studio, or the Android SDK and an emulator image | Android builds | `flutter doctor` |
+| Melos | workspace scripts | `melos --version` |
+| Maestro *(optional)* | E2E flows | `maestro --version` |
 
 ```bash
-dart pub global activate melos
+dart pub global activate melos                   # then add $HOME/.pub-cache/bin to PATH
+curl -fsSL "https://get.maestro.mobile.dev" | bash   # optional, for E2E
+flutter doctor                                   # fix anything it reports before going on
 ```
 
-**Step 3:**
+## Getting started
 
-Bootstrap the workspace to set up all dependencies and generate code:
+**1. Clone the repo** (or create a repository from the template):
 
 ```bash
-melos bootstrap
+git clone https://github.com/NarekManukyan/flutter_boilerplate
+cd flutter_boilerplate
 ```
 
-This will:
-- Install dependencies for all packages
-- Generate code for all packages
-- Set up the workspace
-
-**Step 4:**
-
-Generate the platform folders for your app:
+**2. Generate the platform folders** with your own organisation id:
 
 ```bash
 flutter create --platforms=ios,android --org com.yourcompany .
@@ -72,17 +62,43 @@ flutter create --platforms=ios,android --org com.yourcompany .
 
 See [No committed `ios/` or `android/`](#no-committed-ios-or-android) for why this step exists.
 
-**Step 5:**
-
-For development, use the development workflow:
+**3. Fetch dependencies and generate code:**
 
 ```bash
-melos run dev
+melos run bootstrap
 ```
 
-This will:
-- Get dependencies for all packages
-- Generate code for all packages
+This fetches dependencies for the whole workspace and runs every code generator in order (translations → `api` → `design_system` → app). The built-in `melos bootstrap` (without `run`) only resolves dependencies; a fresh clone also needs the codegen, because generated files are not committed.
+
+**4. Install iOS pods, if needed.** `flutter run` installs them on its own; run it by hand when that fails or after changing plugins:
+
+```bash
+cd ios && pod install && cd ..
+```
+
+**5. Verify the setup:**
+
+```bash
+melos run verify:quick     # analyze + format check, no tests
+```
+
+**6. Run the app** on iOS and on Android. List devices first, then pass the id with `-d`:
+
+```bash
+flutter devices
+flutter run -t lib/main_dev.dart -d <ios-simulator-id>
+flutter run -t lib/main_dev.dart -d <android-emulator-id>    # e.g. emulator-5554
+```
+
+**7. Install the git hooks** (once per clone):
+
+```bash
+melos run hooks:install
+```
+
+The pre-commit hook fixes, formats and analyzes the staged Dart files, and blocks the commit when the analyzer reports a problem. Skip it for one commit with `git commit --no-verify`.
+
+Something failed? See [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
 ## No committed `ios/` or `android/`
 
@@ -92,319 +108,316 @@ A platform folder is where the app's identity lives: bundle id and application i
 
 What follows from that:
 
-**Run `flutter create` before your first build.** Nothing in `lib/` depends on the platform folders, so `melos bootstrap`, `melos run verify` and the unit and widget tests all work without them. Only building or running the app on a device needs them.
+**Run `flutter create` before your first build.** Nothing in `lib/` depends on the platform folders, so `melos run bootstrap`, `melos run verify` and the unit and widget tests all work without them. Only building or running the app on a device needs them.
 
-**Set the bundle id in the Maestro flows.** `.maestro/common/*.yaml` carry an `appId`. Point it at whatever `--org` you used, or the flows will look for an app that is not installed.
+**Maestro picks the app from `APP_ID`.** Every flow header is `appId: ${APP_ID}`, and `tool/run_maestro.sh` passes it in. With `APP_ID` unset, the runner uses the ids `flutter create --org com.example` produces — `com.example.flutterBoilerplate` on iOS, `com.example.flutter_boilerplate` on Android — picked from the target device, and prints which one it chose. With a different `--org`, run `APP_ID=<your id> ./tool/run_maestro.sh`. No flow needs editing. See [E2E tests](#e2e-tests-maestro).
 
 **The E2E job in CI skips itself here.** `.github/workflows/maestro.yml` checks whether `ios/` is tracked and stops with a notice if it is not, rather than failing on a condition the branch cannot fix. In this repo it always skips. In an app generated from this boilerplate, where `ios/` is committed, the same job runs the flows with no changes. The flows are verified either way, locally, with `melos run maestro` against a booted simulator.
 
-## Monorepo Management with Melos
-
-This project uses [Melos](https://melos.invertase.dev/) to manage the monorepo structure. Melos provides powerful tools for managing multiple packages in a single repository.
-
-### Prerequisites
-
-Install Melos globally:
+## Daily workflow
 
 ```bash
-dart pub global activate melos
+git pull
+melos bootstrap                                   # resolve dependencies (pubspecs may have changed)
+melos run build                                   # regenerate code (annotations may have changed)
+flutter run -t lib/main_dev.dart -d <device-id>
 ```
 
-### Initial Setup
+`melos run bootstrap` runs the middle two steps in one command.
 
-1. **Bootstrap the workspace:**
-   ```bash
-   melos bootstrap
-   ```
-   This command will:
-   - Install dependencies for all packages
-   - Generate code for all packages
-   - Set up the workspace
+**Codegen while you work.** MobX, Freezed, Retrofit, Injectable and AutoRoute generate code from annotations. After changing an annotation:
 
-2. **Get dependencies for all packages:**
-   ```bash
-   melos run deps
-   ```
-
-### Available Melos Commands
-
-#### Development Workflow
-- **`melos run dev`** - Complete development setup (deps, generate)
-- **`melos run deps`** - Get dependencies for all packages
-- **`melos run generate`** - Generate code for all packages
-- **`melos run build`** - Build all packages (generate code)
-- **`melos run clean`** - Clean all packages
-
-#### Code Quality
-- **`melos run verify`** - Everything CI runs except E2E: lint, analyze, format check, tests, agent-file drift. **Run before every PR.**
-- **`melos run analyze`** - Analyze the app and both packages
-- **`melos run format`** / **`melos run format:check`** - Format, or fail on unformatted code
-- **`melos run lint`** - Apply mechanical lint fixes
-
-#### Testing — ADR-0015
-- **`melos run test`** - Unit + widget tests
-- **`melos run test:coverage`** - Tests with lcov output
-- **`melos run maestro`** - Every Maestro E2E flow (needs a booted device with the app installed)
-- **`melos run maestro:happy`** - Happy-path flows only — the PR gate
-
-#### Agent instructions — ADR-0017
-- **`melos run sync-agents`** - Regenerate `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` and the Cursor rule from `AGENTS.md`
-
-#### Asset Generation
-- **`melos run assets`** - Generate assets and translations
-- **`melos run translations`** - Generate translation keys
-
-#### Workspace Management
-- **`melos run bootstrap`** - Complete workspace setup
-
-#### Deployment
-- **`melos run deploy-dev`** - Deploy to development environment
-
-### Package Structure
-
-The monorepo contains the following packages:
-
-- **`flutter_boilerplate`** (root) - Main Flutter application
-- **`packages/api`** - API client and network layer
-- **`packages/design_system`** - Reusable UI components and themes
-
-### Working with Packages
-
-- **Run commands on specific packages:**
-  ```bash
-  melos exec --scope api -- "dart run build_runner build"
-  melos exec --scope design_system -- "dart test"
-  ```
-
-- **Run commands on all packages except specific ones:**
-  ```bash
-  melos exec --ignore="**/test/**" -- "dart analyze"
-  ```
-
-- **Add a new package:**
-  1. Create a new directory in `packages/`
-  2. Add a `pubspec.yaml` file
-  3. Run `melos bootstrap` to set up the new package
-
-### IDE Integration
-
-Melos provides IDE integration for:
-- **VS Code** - Enhanced workspace management
-- **IntelliJ/Android Studio** - Better package navigation
-
-### Migration from Derry
-
-If you were using derry before, here are the equivalent Melos commands:
-
-| Old Derry Command | New Melos Command |
-|-------------------|-------------------|
-| `derry generate_translations` | `melos run translations` |
-| `derry delete_generated_files` | `melos run clean` |
-| `derry build_runner` | `melos run build` |
-| `derry build_api` | `melos exec --scope api -- "dart run build_runner build -d"` |
-| `derry build_design_system` | `melos exec --scope design_system -- "dart run build_runner build -d"` |
-| `derry build_all` | `melos run build` |
-| `derry generate` | `melos run dev` |
-| `derry deploy_dev` | `melos run deploy-dev` |
-
-## Hide Generated Files
-
-In-order to hide generated files, navigate to `Android Studio` -> `Preferences` -> `Editor` -> `File Types` and paste the below lines under `ignore files and folders` section:
-
-```
-*.inject.summary;*.inject.dart;*.g.dart;
+```bash
+melos run build            # everything, in dependency order
+melos run build:app        # lib/ only — faster when the packages did not change
+melos run watch            # lib/ in watch mode: regenerates on every save
+melos run translations     # after editing assets/translations/en-US.json
 ```
 
-In Visual Studio Code, navigate to `Preferences` -> `Settings` and search for `Files:Exclude`. Add the following patterns:
+**Before every PR:**
 
-```
-**/*.inject.summary
-**/*.inject.dart
-**/*.g.dart
-```
-
-## Boilerplate Features:
-
-- Splash Screen
-- Login Page
-- Dashboard
-- Routing with AutoRoute
-- Theme Management
-- SVG Support
-- Dio for HTTP Requests
-- Local Database Integration
-- Shared Preferences
-- Modal Bottom Sheet
-- Freezed for Immutable Classes
-- ExtendedImage for Advanced Image Handling
-- MobX for State Management
-- Code Generation
-- Dependency Injection with GetIt
-- Dark Theme Support
-- Multilingual Support
-- Flavor Configuration
-- Environment-Based Configurations
-- **Monorepo Management with Melos**
-
-### Up-Coming Features:
-
-- Connectivity Support
-- Background Fetch Support
-- More Examples
-
-## Libraries & Tools Used
-
-- [Dio](https://github.com/flutterchina/dio)
-- [Routing](https://github.com/Milad-Akarie/auto_route_library)
-- [MobX](https://github.com/mobxjs/mobx.dart) (State Management)
-- [SVG support](https://github.com/dnfield/flutter_svg)
-- [Modal bottom sheet](https://github.com/jamesblasco/modal_bottom_sheet)
-- [Multilingual Support](https://github.com/aissat/easy_localization)
-- [ExtendedImage](https://github.com/fluttercandies/extended_image) (Official extension image)
-- [Shared preferences](https://github.com/flutter/plugins/tree/master/packages/shared_preferences/shared_preferences) (Platform-specific persistent storage for simple data)
-- [Json Serialization](https://github.com/dart-lang/json_serializable)
-- [Freezed](https://github.com/rrousselGit/freezed) (Code generation for immutable classes)
-- [Dependency Injection](https://github.com/fluttercommunity/get_it)
-- [Melos](https://melos.invertase.dev/) (Monorepo Management)
-- **Local Libraries:**
-  - `packages/api` - Handles API-related logic and network requests.
-  - `packages/design_system` - Contains reusable UI components, themes, and design elements.
-
-### Folder Structure
-
-Here is the core folder structure which flutter provides.
-
-```
-flutter-app/
-|- assets
-|- build
-|- lib
-|- test
+```bash
+melos run verify           # analyze, format check, tests, agent-file drift — read-only
+melos run maestro:happy    # happy-path E2E flows, on a booted device with the dev build installed
 ```
 
-Here is the folder structure we have been using in this project:
+`verify` and `verify:quick` never modify files. To fix what they report, run `melos run lint` and `melos run format`.
+
+## Melos commands
+
+The root app is not a melos package (`melos list` shows only `api` and `design_system`), so every script runs the app explicitly and then the packages.
+
+| Command | What it does |
+|---|---|
+| **Setup** | |
+| `melos run bootstrap` | Dependencies + full codegen |
+| `melos run deps` | Resolve dependencies for the workspace |
+| `melos run hooks:install` | Use the repo's git hooks (`tool/git-hooks/`) |
+| **Codegen** | |
+| `melos run build` | `translations` → `build:api` → `build:design_system` → `build:app` |
+| `melos run build:api` / `build:design_system` / `build:app` | One package's `build_runner` |
+| `melos run watch` | App codegen in watch mode |
+| `melos run translations` | `LocaleKeys` from `assets/translations/en-US.json` |
+| `melos run assets` | Design-system assets + translations |
+| `melos run clean` | `build_runner clean` for the app and packages |
+| `melos run clean:all` | Deep clean: `build_runner` caches, `lib/gen/*.g.dart`, `flutter clean` |
+| `melos run rebuild` | `clean:all`, then `bootstrap` |
+| **Quality** | |
+| `melos run verify` | Analyze, format check, tests, agent-file drift — what CI checks, read-only |
+| `melos run verify:quick` | Analyze + format check, no tests |
+| `melos run analyze` | Analyzer for the app and packages |
+| `melos run format` / `format:check` | Format, or fail on unformatted code |
+| `melos run lint` | `dart fix --apply` |
+| `melos run deps:check` | Outdated dependencies across the workspace (report only) |
+| **Tests** | |
+| `melos run test` | Unit + widget tests |
+| `melos run test:coverage` | Tests with lcov output |
+| `melos run maestro` | Every Maestro flow (`tool/run_maestro.sh`) |
+| `melos run maestro:happy` | Happy-path flows only — the PR gate |
+| **Agents** | |
+| `melos run sync-agents` | Regenerate `CLAUDE.md`, `GEMINI.md`, Copilot and Cursor files from `AGENTS.md` |
+| **Deployment** | |
+| `melos run deploy-dev` | `pod install` + `fastlane dev` — needs a Fastlane setup in the app's `ios/` |
+
+Run a command in one package: `melos exec --scope api -- "dart run build_runner build -d"`.
+
+## Testing
+
+### Unit and widget tests
+
+```bash
+melos run test
+flutter test test/features/home/                          # one directory
+flutter test test/features/home/mobx/home_store_test.dart # one file
+flutter test --name 'should set error' --reporter expanded
+```
+
+Many unit tests, fewer widget tests, few E2E flows. The how-to is in [`write-tests`](.claude/skills/write-tests/SKILL.md); the shared widget-test harness is `test/helpers/pump_app.dart`.
+
+### E2E tests (Maestro)
+
+Build and install the dev flavor on a booted simulator or emulator, then:
+
+```bash
+melos run maestro                      # every flow
+melos run maestro:happy                # happy-path flows only
+
+APP_ID=com.yourcompany.yourApp DEVICE=<udid-or-adb-serial> melos run maestro
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `APP_ID` | `com.example.flutterBoilerplate` | Bundle id (iOS) or applicationId (Android) of the installed dev build |
+| `DEVICE` | the single booted device | Simulator UDID or adb serial, when more than one is running |
+| `OUT_DIR` | `.maestro/output` | JUnit report (`report.xml`) and debug output (logs, screenshots) |
+
+Flows run against the dev flavor's mock interceptor, so they need no backend. Writing a flow: [`write-maestro-flow`](.claude/skills/write-maestro-flow/SKILL.md).
+
+## Dependency health
+
+```bash
+melos run deps:check                 # outdated packages in the app and both packages
+flutter pub deps --style=compact     # who depends on what
+```
+
+The app and both packages resolve together as one Dart workspace, so a dependency is upgraded in every pubspec that declares it, in one change. Run `melos run verify` after an upgrade.
+
+## Profiling
+
+Profile on a **physical device** — debug builds are unoptimized, and profile mode does not run on simulators or emulators.
+
+```bash
+flutter run --profile -t lib/main_dev.dart -d <device-id>
+```
+
+Open DevTools from the link `flutter run` prints: **Performance** for jank and slow frames, **Memory** for leaks, **CPU Profiler** for hot code.
+
+App size, broken down by package and asset:
+
+```bash
+flutter build apk --analyze-size --target-platform android-arm64 -t lib/main_prod.dart
+```
+
+Open the size file it writes in DevTools → **App Size**.
+
+## Release builds
+
+Release builds use the prod entry point. Signing (an Apple team and provisioning profile, an Android upload keystore) is configured per app in `ios/` and `android/`, and never committed.
+
+```bash
+flutter build ipa -t lib/main_prod.dart                      # iOS archive for App Store Connect
+flutter build appbundle --release -t lib/main_prod.dart      # Android App Bundle for Google Play
+```
+
+The version and build number come from `version:` in `pubspec.yaml` (`1.2.0+42`), or `--build-name` / `--build-number` on the command line.
+
+### Pre-deployment checklist
+
+- [ ] `melos run verify` passes on a clean tree (`melos run rebuild` first)
+- [ ] `melos run maestro` passes on an iOS and an Android dev build
+- [ ] Version and build number bumped; the build number is higher than the last upload
+- [ ] `lib/core/configs/environments/production/production.json` holds production values: API URL, Sentry DSN, bundle id, third-party keys
+- [ ] Built from `lib/main_prod.dart`; the mock interceptor is dev-only, and nothing logs request headers or bodies in production
+- [ ] Signing configured for both platforms
+- [ ] The release build installed on a physical iPhone and Android device, and the main journeys smoke-tested
+- [ ] App size checked with `--analyze-size` for unexpected growth
+- [ ] `melos run deps:check` reviewed
+- [ ] Release notes and store metadata ready
+
+## Project structure
 
 ```
 lib/
-|- core/
-|- features/
-|- gen/
-|- shared/
-|- app.dart
-|- main.dart
-|- main_dev.dart
-|- main_prod.dart
-|- injectable.dart
-|- injectable.config.dart
+  core/
+    configs/           environment config (development/, production/ JSON)
+    constants/         app-wide constants and enums
+    extensions/        Dart extensions
+    guards/            route guards (AuthGuard)
+    navigation/        AppRouter + AppNavigator
+    services/          FlavorService, DioService, IssueTrackingService, interceptors/
+    state/             reusable MobX state helpers
+    ui/                cross-feature widgets (TestId, ErrorNotice, …)
+    use_cases/         use cases shared across features
+    utils/             helpers
+  features/{feature}/
+    view/              page, page state, *_keys.dart, widgets/, use_cases/
+    mobx/              stores, use_cases/
+    core/use_cases/    use cases shared by layers of this feature
+    models/  modals/  components/  constants/  overlays/     (only when needed)
+  gen/                 GENERATED (LocaleKeys, assets) — never edit
+  app.dart             MaterialApp.router, themes, localization
+  injectable.dart      DI bootstrap (configureDependencies)
+  main.dart            run(): bindings, localization, DI, Sentry
+  main_dev.dart        dev entry point
+  main_prod.dart       prod entry point
 packages/
-|- api/
-|- design_system/
+  api/                 Retrofit providers + freezed DTOs, one directory per resource
+  design_system/       GeistTheme tokens, components, generated assets
+assets/translations/   en-US.json
+test/                  unit + widget tests, mirrors lib/
+.maestro/              E2E flows: flows/{feature}/{feature}_{happy|failure|edge}.yaml
+tool/                  sync_agents.sh, run_maestro.sh, git-hooks/
+docs/                  adr/, troubleshooting.md
 ```
 
-Now, let's dive into the `lib` folder which has the main code for the application:
+- Features are peers: a feature never contains a `features/` folder ([ADR-0005](docs/adr/0005-flat-feature-tree.md)).
+- There is no `lib/shared/`. It is deprecated: stores live under their owning feature's `mobx/`, even `@singleton` ones, and cross-feature widgets live in `lib/core/ui/` ([ADR-0006](docs/adr/0006-feature-owned-singletons.md)).
+- The full layout and naming rules are in [`AGENTS.md`](AGENTS.md#project-structure) and the [`create-feature`](.claude/skills/create-feature/SKILL.md) playbook.
 
-1. **core** - Contains core utilities, constants, and configurations.
-2. **features** - Contains feature-specific modules and their respective UI, logic, and data layers.
-3. **gen** - Contains generated files.
-4. **shared** - Contains shared components like widgets, themes, and utilities.
-5. **app.dart** - The main app widget and configurations.
-6. **main.dart** - The entry point of the application.
-7. **main_dev.dart** - Entry point for the development environment.
-8. **main_prod.dart** - Entry point for the production environment.
-9. **injectable.dart** - Dependency injection setup.
-10. **injectable.config.dart** - Generated configuration for dependency injection.
-11. **packages/api** -Contains API client setup, endpoints, and interceptors for handling network requests.
-12. **packages/design_system** -CProvides reusable UI components and themes to maintain design consistency.
+## Routing
 
-### Routes
-
-This file contains all the routes for your application.
+Routes are declared with AutoRoute in `lib/core/navigation/app_router.dart`. Pages carry `@RoutePage()`, and `melos run build` generates a `{Name}Route` class for each.
 
 ```dart
-import 'package:auto_route/auto_route.dart';
+@AutoRouterConfig(replaceInRouteName: 'Page,Route')
+class AppRouter extends RootStackRouter {
+  AppRouter({required AuthGuard authGuard}) : _authGuard = authGuard;
 
-import 'features/dashboard/dashboard_page.dart';
-import 'features/login/login_page.dart';
-import 'features/splash/splash_screen.dart';
+  final AuthGuard _authGuard;
 
-export 'router.gr.dart';
-
-@AdaptiveAutoRouter(
-  preferRelativeImports: true,
-  replaceInRouteName: 'Page,Route',
-  routes: [
-    AdaptiveRoute(
-      page: SplashScreenPage,
+  @override
+  late final List<AutoRoute> routes = [
+    AutoRoute(
       initial: true,
-      fullscreenDialog: true,
+      path: '/',
+      page: SplashRoute.page,
+      guards: [_authGuard],
     ),
-    AdaptiveRoute(
-      page: LoginPage,
-      fullscreenDialog: true,
+    AutoRoute(path: '/login', page: LoginRoute.page),
+    AutoRoute(path: '/home', page: HomeRoute.page, guards: [_authGuard]),
+    AutoRoute(
+      path: '/todos/:id',
+      page: TodoDetailsRoute.page,
+      guards: [_authGuard],
     ),
-    AdaptiveRoute(
-      page: DashboardPage,
-    ),
-  ],
-)
-class $Router {}
+  ];
+}
 ```
 
-### Main
-
-This is the starting point of the application. All the application level configurations are defined in this file i.e., theme, routes, title, orientation, etc.
+Nothing navigates through the router directly. `AppNavigator` (`lib/core/navigation/app_navigator.dart`), a `@singleton`, owns the `AppRouter` and exposes the operations the app uses — `push`, `replace`, `pushAndPopAll`, `pop`, `showModal`:
 
 ```dart
-import 'dart:async';
+@singleton
+class AppNavigator {
+  AppNavigator(AuthStore authStore)
+    : _router = AppRouter(authGuard: AuthGuard(authStore));
 
-import 'package:easy_localization/easy_localization.dart';
-import 'package:flavorbanner/flavor_config.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+  final AppRouter _router;
 
-import 'app.dart';
-import 'core/injection.dart';
+  RouterConfig<UrlState> get config => _router.config();
 
-Future<void> run({Flavor env = Flavor.DEV}) async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
-  await EasyLocalization.ensureInitialized();
-
-  registerGetIt(env);
-
-  FlavorConfig(
-    flavor: env,
-    color: Colors.grey,
-    values: FlavorValues(
-      baseUrl: 'https://dev.com/',
-      showBanner: env != Flavor.PROD,
-    ),
-  );
-  runApp(
-    EasyLocalization(
-      supportedLocales: const [
-        Locale('en', 'US'),
-      ],
-      startLocale: const Locale('en', 'US'),
-      fallbackLocale: const Locale('en', 'US'),
-      path: 'assets/translations',
-      child: const MyApp(),
-    ),
-  );
-}
-
-Future<void> main() async {
-  await run();
+  Future<T?> push<T extends Object?>(PageRouteInfo route) => _router.push(route);
+  // …
 }
 ```
 
-## Conclusions
+`app.dart` hands `getIt<AppNavigator>().config` to `MaterialApp.router`. Page states and navigation use cases inject `AppNavigator` and call it; pages never use `context.router` or `Navigator` ([ADR-0008](docs/adr/0008-appnavigator-routing-abstraction.md)):
 
-I will be happy to answer any questions that you may have on this approach, and if you want to lend a hand with the boilerplate then please feel free to submit an issue and/or pull request 🙂
+```dart
+@action
+Future<void> onLogoutPressed() async {
+  await _homeStore.logout();
+  await _appNavigator.pushAndPopAll(const LoginRoute());
+}
+```
 
-Again to note, this example can appear as over-architected for what it is - but it is an example only. If you liked my work, don't forget to ⭐ star the repo to show your support.
+Adding a screen: [`add-route`](.claude/skills/add-route/SKILL.md).
+
+## Flavors and entry points
+
+There are two flavors, selected by entry point with `-t` (no `--flavor`):
+
+| Flavor | Entry point | Config |
+|---|---|---|
+| dev | `lib/main_dev.dart` (also `lib/main.dart`) | `lib/core/configs/environments/development/development.json` |
+| prod | `lib/main_prod.dart` | `lib/core/configs/environments/production/production.json` |
+
+Both call `run()` in `lib/main.dart`, which sets up bindings and localization, registers dependencies for the flavor (`configureDependencies`, which picks `FlavorDev` or `FlavorProd`), and starts Sentry outside debug builds. Only the dev flavor installs the mock interceptor.
+
+## Hide generated files
+
+In Android Studio, open **Settings → Editor → File Types** and add to **Ignored Files and Folders**:
+
+```
+*.g.dart;*.freezed.dart;*.gr.dart;*.config.dart;
+```
+
+In VS Code, open **Settings**, search for `files.exclude`, and add:
+
+```
+**/*.g.dart
+**/*.freezed.dart
+**/*.gr.dart
+```
+
+## What's included
+
+- Splash, login, home (todo list) and detail screens wired end to end
+- Routing with AutoRoute behind an `AppNavigator` abstraction, with an auth guard
+- MobX state management with page states and feature stores
+- GetIt + Injectable dependency injection, with flavor-scoped bindings
+- Dio + Retrofit typed API layer with freezed DTOs (`packages/api`)
+- A dev-flavor mock interceptor with switchable scenarios for E2E tests
+- Error tracking through `IssueTrackingService` and Sentry
+- Design system package with Geist tokens, light and dark themes, generated assets (`packages/design_system`)
+- Localization with easy_localization and generated `LocaleKeys`
+- Connectivity handling and an app-update prompt
+- Unit, widget and Maestro E2E tests, with a shared widget-test harness
+- Melos workspace scripts, a pre-commit hook, CI workflows, and agent playbooks and ADRs
+
+## Libraries
+
+- [MobX](https://github.com/mobxjs/mobx.dart) and [flutter_hooks](https://pub.dev/packages/flutter_hooks) — state
+- [AutoRoute](https://github.com/Milad-Akarie/auto_route_library) — routing
+- [Dio](https://github.com/cfug/dio) and [Retrofit](https://pub.dev/packages/retrofit) — networking
+- [Freezed](https://github.com/rrousselGit/freezed) and [json_serializable](https://github.com/google/json_serializable.dart) — immutable models and JSON
+- [get_it](https://github.com/fluttercommunity/get_it) and [injectable](https://pub.dev/packages/injectable) — dependency injection
+- [easy_localization](https://github.com/aissat/easy_localization) — localization
+- [Sentry](https://pub.dev/packages/sentry_flutter) — error reporting
+- [extended_image](https://github.com/fluttercandies/extended_image), [skeletonizer](https://pub.dev/packages/skeletonizer), [gap](https://pub.dev/packages/gap) — UI
+- [mocktail](https://pub.dev/packages/mocktail) and [Maestro](https://maestro.dev) — testing
+- [Melos](https://melos.invertase.dev/) — workspace management
+
+## Contributing
+
+Questions and improvements are welcome: open an issue or a pull request. Like any template, this can look over-architected for a small app. The structure pays off as the app and the team grow.

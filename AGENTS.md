@@ -24,6 +24,10 @@ Full rationale: [ADR-0016](docs/adr/0016-plan-first-delivery-workflow.md). Playb
 
 The playbook has the rest, including when to split work across parallel agents (only when it is both large and separable — otherwise do not ask).
 
+## Agents
+
+`.claude/agents/` holds build-and-review panels. Claude Code runs them as subagents; any other tool can read them as plain briefs. `flutter-team` covers Dart and Flutter. `ios-team` and `android-team` cover native code in apps generated from this template (`ios/` and `android/` are not committed here). `mobile-orchestrator` handles work that spans Dart and native: it agrees the platform-channel contract first, runs the three teams in parallel and reconciles their verdicts. [`plan-feature`](.claude/skills/plan-feature/SKILL.md) says when to use them.
+
 ## Playbooks — open before you build
 
 | Building… | Playbook | Governed by |
@@ -31,17 +35,19 @@ The playbook has the rest, including when to split work across parallel agents (
 | A whole feature module | [`create-feature`](.claude/skills/create-feature/SKILL.md) | ADR-0001, 0005, 0006 |
 | A page + its state | [`create-page`](.claude/skills/create-page/SKILL.md) | ADR-0009, 0010, 0018, 0019 |
 | A route, guard, modal or dialog | [`add-route`](.claude/skills/add-route/SKILL.md) | ADR-0008 |
-| A MobX store | [`create-store`](.claude/skills/create-store/SKILL.md) | ADR-0002, 0006, 0007 |
+| A MobX store | [`create-store`](.claude/skills/create-store/SKILL.md) | ADR-0002, 0006, 0007, 0020 |
 | A use case | [`create-use-case`](.claude/skills/create-use-case/SKILL.md) | ADR-0003, 0004 |
 | A `try` / `catch`, or any code that can fail | [`handle-errors`](.claude/skills/handle-errors/SKILL.md) | ADR-0020 |
 | A DTO | [`create-dto`](.claude/skills/create-dto/SKILL.md) | ADR-0011 |
-| A Retrofit API provider | [`create-api-provider`](.claude/skills/create-api-provider/SKILL.md) | ADR-0011 |
+| A Retrofit API provider or interceptor | [`create-api-provider`](.claude/skills/create-api-provider/SKILL.md) | ADR-0007, 0011 |
+| A platform channel (Dart ↔ iOS / Android) | [`add-platform-channel`](.claude/skills/add-platform-channel/SKILL.md) | ADR-0007, 0015, 0020 |
 | A UI string | [`add-localization`](.claude/skills/add-localization/SKILL.md) | ADR-0012 |
 | A colour / text style / radius / duration | [`add-design-token`](.claude/skills/add-design-token/SKILL.md) | ADR-0013 |
 | A design-system component | [`create-ds-component`](.claude/skills/create-ds-component/SKILL.md) | ADR-0013, 0018, 0019 |
 | Unit + widget tests | [`write-tests`](.claude/skills/write-tests/SKILL.md) | ADR-0015 |
 | A Maestro E2E flow | [`write-maestro-flow`](.claude/skills/write-maestro-flow/SKILL.md) | ADR-0015 |
 | The QA pass on a finished feature | [`qa-feature`](.claude/skills/qa-feature/SKILL.md) | ADR-0015 |
+| A diagnosis of a user bug report | [`triage-bug-report`](.claude/skills/triage-bug-report/SKILL.md) | ADR-0020 |
 | A plan for a Jira ticket | [`plan-feature`](.claude/skills/plan-feature/SKILL.md) | ADR-0016 |
 | A new architectural decision | [`create-adr`](.claude/skills/create-adr/SKILL.md) | — |
 
@@ -58,18 +64,28 @@ melos run build                      # codegen after MobX/Retrofit/Freezed/Injec
 melos run build:app                  # codegen for lib/ only — faster when the packages did not change
 melos run translations               # after editing assets/translations/en-US.json
 
+melos run watch                      # build_runner watch for lib/
+
 melos run analyze                    # dart analyze
-melos run lint                       # dart fix --apply
-melos run format                     # dart format
+melos run lint                       # dart fix --apply (auto-fix; verify does not run it)
+melos run format                     # dart format (auto-fix)
 melos run test                       # flutter test — unit + widget
 melos run test:coverage              # with lcov
-melos run maestro                    # Maestro E2E, needs a booted device
+melos run maestro                    # Maestro E2E via tool/run_maestro.sh, needs a booted device
 melos run sync-agents                # regenerate tool instruction files from this one
-melos run verify                     # lint + analyze + format + test — run before every PR
+melos run verify                     # analyze + format check + test + agent-file drift; read-only — run before every PR
+melos run verify:quick               # analyze + format check only
+
+melos run clean:all                  # build_runner clean (app + packages), lib/gen, flutter clean
+melos run rebuild                    # clean:all, then bootstrap
+melos run deps:check                 # flutter pub outdated, app + packages (informational)
+melos run hooks:install              # once per clone: pre-commit fixes, formats and analyzes staged Dart files
 ```
 
 Single test file: `flutter test test/path/to_file_test.dart`.
-Single Maestro flow: `maestro test .maestro/flows/{feature}/{flow}.yaml`.
+Single Maestro flow: `maestro test .maestro/flows/{feature}/{flow}.yaml -e APP_ID=com.example.flutterBoilerplate` (Android: `com.example.flutter_boilerplate`). Without `APP_ID` the flow fails at once.
+
+Something broken? [`docs/troubleshooting.md`](docs/troubleshooting.md) has symptom → cause → fix for setup, codegen, tests, devices and Maestro.
 
 ## Architecture
 
@@ -98,12 +114,14 @@ A use case consumes services, not stores: the caller passes store data in and ap
 lib/
   core/                    configs, constants, extensions, guards, navigation,
                            services (Flavor, Dio, interceptors, social auth),
-                           ui (cross-feature widgets), use_cases, utils
+                           ui (cross-feature widgets), use_cases, utils;
+                           added when needed: exceptions, hooks, platform_channels
   features/{feature}/
     view/                  pages, states, widgets  (+ view/use_cases/)
     mobx/                  stores                  (+ mobx/use_cases/)
     core/use_cases/        use cases shared across layers of this feature
-    models/  modals/  components/
+    models/  modals/  components/  constants/  overlays/
+                           (only when needed; no per-feature shared/)
   gen/                     GENERATED — never edit
 packages/
   api/lib/src/            providers/{resource}_provider/ — one dir per resource,
@@ -111,7 +129,9 @@ packages/
   design_system/lib/      src/ (theme, components, colors, typography), gen/
 assets/translations/       en-US.json …
 test/                      unit + widget, mirrors lib/
-.maestro/flows/{feature}/  E2E: {feature}_{happy|failure|edge}.yaml
+.maestro/flows/{feature}/  E2E: {feature}_{scenario}_{happy|failure|edge}.yaml
+docs/plans/                {TICKET}-{slug}.md — the approved plan, committed with the feature
+.maestro/common/           E2E subflows (launch, login, set_mock, go_offline/go_online); never under flows/
 docs/adr/                  architecture decision records
 ```
 
@@ -126,11 +146,15 @@ docs/adr/                  architecture decision records
 | Page state | `*_page_state.dart` | | Service | `*_service.dart` |
 | Store | `*_store.dart` | | API provider | `*_api_provider.dart` |
 | Use case | `*_use_case.dart` | | Test ids | `*_keys.dart` |
-| Widget | `*_widget.dart` | | Maestro flow | `{feature}_{category}.yaml` |
+| Model | `*_model.dart` | | Typed exception | `*_exception.dart` |
+| Utils | `*_utils.dart` | | Platform channel | `*_channel.dart` |
+| Constants | `*_constants.dart` | | Directories | `snake_case` |
+| Widget | `*_widget.dart` | | Maestro flow | `{feature}_{scenario}_{happy\|failure\|edge}.yaml` |
 
 ## File Boundaries
 
 - **Safe to edit:** `lib/`, `packages/*/lib/src/`, `test/`, `.maestro/`, `docs/`
+- **Playbooks (`.claude/skills/`) and ADRs:** edit only to record a lesson you measured while doing the task (a device quirk, a tool behaviour), kept generic — no device-specific numbers — and called out in your report so it is reviewed on its own. Never loosen a rule to make your change pass.
 - **Never edit by hand:** `*.g.dart`, `*.gr.dart`, `*.freezed.dart`, `*.gen.dart`, `*.tailor.dart`, `lib/gen/`, `packages/*/lib/gen/`, `injectable.config.dart`
 - **Generated from `AGENTS.md`** — edit this file, then `melos run sync-agents`: `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.cursor/rules/000-agents.mdc`
 
@@ -170,11 +194,11 @@ These are the ones worth carrying in your head. Everything else is in a playbook
 - **Every `catch` rethrows or tracks.** `trackIssue` when nothing else shows the error, `trackHandledError` when the caller does, `trackSilentError` for background work. Never both track and rethrow.
 - **Use cases inject services only** — never a store, never another use case — and are always `@injectable`. Widgets never call them; states and stores do.
 - **No inline UI strings.** `LocaleKeys.key.tr()`, added to `assets/translations/en-US.json`, then `melos run translations`.
-- **No raw colours, `TextStyle(…)` composites, radii, durations or `BoxShadow` stacks in `lib/`.** Use `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. A value that differs between light and dark goes on the theme extension (`context.geist`) with **both values**; only values identical in every theme may be static constants.
+- **No raw colours, `TextStyle(…)` composites, radii, durations or `BoxShadow` stacks in `lib/`.** Use `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. A value that differs between light and dark goes on the theme extension (`context.geist`) with **both values**; only values identical in every theme may be static constants. Non-visual timing (debounce, timeout, backoff) is a named `Duration` constant, never inline.
 - **No redundant getter for `@readonly`** — it already generates the public getter. `@computed` is for derived state only.
 - **Relative imports inside `lib/`, single quotes, trailing commas on multiline args.** `analysis_options.yaml` promotes these to errors, along with `cascade_invocations`, `avoid_print`, `cancel_subscriptions`.
 - **Never edit generated files.** Change the annotation and run `melos run build`.
-- **Every widget an E2E flow touches is tagged with `TestId`** from the feature's `*_keys.dart` (plain `String` ids), plus a `Semantics` label from `LocaleKeys`. A bare `Key` is invisible to Maestro — only `Semantics(identifier:)` sets a native accessibility id.
+- **Every widget an E2E flow touches is tagged with `TestId`** from the feature's `*_keys.dart` (plain `String` ids; a shared widget in `lib/core/ui/` keeps a `{widget}_keys.dart` next to it), plus a `Semantics` label from `LocaleKeys`. A bare `Key` is invisible to Maestro — only `Semantics(identifier:)` sets a native accessibility id.
 
 ## Testing
 
@@ -188,17 +212,20 @@ A feature is done when all three tiers exist:
 | Widget | `test/features/{feature}/view/` | page renders each state; callbacks fire |
 | E2E | `.maestro/flows/{feature}/` | the journey on a device — **happy, failure, edge** |
 
-Run the E2E suite against `.maestro` (the workspace root), not `.maestro/flows` — the directory runner does not recurse.
+Run the E2E suite with `./tool/run_maestro.sh` (or `melos run maestro`): it runs the `.maestro` workspace root, passes `APP_ID`, and writes a JUnit report to `.maestro/output/`. Pointing Maestro at `.maestro/flows` finds no flows. Subflows live in `.maestro/common/` and must never match the `flows/*/*.yaml` glob. Every `go_offline` needs a `go_online` in the same flow, and both are Android-only.
 
 ## Before every PR
 
 `melos run verify`, then `melos run maestro` (needs a booted device with the dev build installed), then the [`qa-feature`](.claude/skills/qa-feature/SKILL.md) gate: every AC line maps to a passing test or flow, and happy / failure / edge all exist.
+
+`verify` only checks. If it fails on formatting or lint, run `melos run format` / `melos run lint`, then run it again.
 
 ## Quick Navigation
 
 - Pages & states → `lib/features/*/view/` · Stores → `lib/features/*/mobx/`
 - Use cases → `lib/features/*/{mobx,view,core}/use_cases/`, `lib/core/use_cases/`
 - Reusable UI → `lib/core/ui/` · Services → `lib/core/services/` · Navigation → `lib/core/navigation/`
+- Platform channels → `lib/core/platform_channels/` · Troubleshooting → [`docs/troubleshooting.md`](docs/troubleshooting.md)
 - API providers → `packages/api/lib/src/providers/` · DTOs → `packages/api/lib/src/models/`
 - Design tokens → `packages/design_system/lib/src/theme/src/geist_theme.dart` · Visual spec → [`DESIGN.md`](DESIGN.md)
 - DI bootstrap → `lib/injectable.dart`, `lib/core/services/get_it.dart`

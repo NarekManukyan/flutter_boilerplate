@@ -56,7 +56,7 @@ final todo = await _createTodoUseCase(title);
 
 | Type | Injects | Does |
 |---|---|---|
-| **API** | `DioService`, `IssueTrackingService` | wraps one API call, catches `DioException`, returns a domain-friendly result |
+| **API** | `DioService`, `IssueTrackingService` | an API call that more than one consumer needs, or whose response or error mapping is not trivial; returns a domain-friendly result |
 | **Navigation** | `AppNavigator` (+ services for conditions) | shows a modal, pushes a route, guards an action |
 | **Service coordination** | 2+ services | orchestrates a multi-service operation into one logical action |
 | **State delegation** | often nothing | conditional flow, guard logic, or a **pure transform** of data the caller passes in |
@@ -152,12 +152,18 @@ Catch at the use-case boundary and **track before returning** — the full rules
 
 ## Extract or keep inline?
 
-**Extract** when it is:
+**API calls.** A store may call `DioService` inline for its own single request whose result it applies to its own observables: a load, a refresh, an optimistic mutation and its rollback ([`create-store`](../create-store/SKILL.md#inline-request-or-use-case)). Extract an API use case only when:
+- another consumer needs the same call;
+- the call coordinates several requests or services;
+- response or error mapping is not trivial, such as translating server codes into domain exceptions.
+
+"It makes an API call" is not a reason on its own — for a **store**. A **state** never touches `DioService` (ADR-0001), so a state that needs a request calls its store or, when no store owns that data, an API use case (`CreateTodoUseCase`, `FetchTodoUseCase`).
+
+**Other logic: extract** when it is:
 - reused in 2+ places;
 - coordinating 2+ services;
 - complex enough to deserve its own test;
-- making the store or state method hard to read;
-- an API call whose error handling should be standardized.
+- making the store or state method hard to read.
 
 **Keep inline** when it is:
 - a one-line delegation to a store or service — `await _authStore.login(email);` does not need a class;
@@ -169,22 +175,60 @@ Catch at the use-case boundary and **track before returning** — the full rules
 - ❌ **Use case injecting another use case** — the caller composes; shared logic becomes a service.
 - ❌ **Use case injecting or mutating a store** — return the result, let the caller apply it.
 
+  Illustrative: the todos provider in this repo has no delete endpoint. A plain delete would stay inline in the store; the use case below exists because it maps a status code.
+
   ```dart
-  // ❌
+  // ❌ the use case mutates the store
   class DeleteTodoUseCase {
     final HomeStore _homeStore;
     Future<void> call(String id) async {
-      await _dioService.todosProvider.deleteTodo(id: id);
+      await _dioService.todosProvider.deleteTodo(id);
       _homeStore.removeTodo(id);
     }
   }
 
-  // ✅ the use case does the call; the store updates itself
+  // ✅ the use case only talks to the server, and returns or throws
+  @injectable
+  class DeleteTodoUseCase {
+    DeleteTodoUseCase(this._dioService);
+
+    final DioService _dioService;
+
+    /// Throws on failure (pattern 5, rethrow): the store rolls back and the
+    /// state tracks.
+    Future<void> call(String id) async {
+      try {
+        await _dioService.todosProvider.deleteTodo(id);
+      } on DioException catch (e) {
+        // Not tracked: a 404 means it is already gone, which is the outcome
+        // the user asked for.
+        if (e.response?.statusCode == HttpStatus.notFound) {
+          return;
+        }
+        rethrow;
+      }
+    }
+  }
+
+  // ✅ the store owns the list: it removes first, and puts the row back
+  //    where it was if the call fails
+  @action
   Future<void> deleteTodo(String id) async {
-    final deleted = await _deleteTodoUseCase(id);
-    if (deleted) _todos.removeWhere((t) => t.id == id);
+    final index = _todos.indexWhere((todo) => todo.id == id);
+    if (index == -1) {
+      return;
+    }
+    final removed = _todos.removeAt(index);
+    try {
+      await _deleteTodoUseCase(id);
+    } catch (_) {
+      _todos.insert(min(index, _todos.length), removed);
+      rethrow;
+    }
   }
   ```
+
+  The state that calls `deleteTodo` tracks with `trackIssue(…, context: 'delete_todo', message: …, notifyOnConnectivityError: true)` ([`handle-errors`](../handle-errors/SKILL.md#stores-restore-then-rethrow)).
 
 - ❌ **Use case as a getter** — `GetCurrentUserUseCase` returning `_userStore.currentUser`. Read the store.
 - ❌ **Use case called from a widget** — go through the state.
@@ -196,7 +240,11 @@ Catch at the use-case boundary and **track before returning** — the full rules
 ```
 Business logic to place
 ├─ Trivial one-liner, no error handling?          → inline in the store / state
-├─ Makes an API call?                             → API use case
+├─ A store's own single request, applied to its own observables
+│  (load, refresh, optimistic mutation + rollback)? → inline in the store
+├─ An API call that another consumer needs, that coordinates
+│  several requests or services, or whose response or error
+│  mapping is not trivial?                        → API use case
 ├─ Navigation, modal, or guard?                   → Navigation use case
 ├─ Coordinates 2+ services?                       → Service coordination use case
 ├─ Conditional / guard / transform used in 2+ places? → State delegation use case

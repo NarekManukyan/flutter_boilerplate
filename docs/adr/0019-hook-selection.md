@@ -51,6 +51,7 @@ The main reason is rebuild scope. When only part of the widget depends on the va
 | A controller with no dedicated hook | `useMemoized` to create it, `useEffect` to dispose it |
 | A value created once per instance, or recomputed on key change | `useMemoized` |
 | A side effect with cleanup | `useEffect` |
+| Behaviour several widgets repeat — input formatting, debounced search, mention detection | a custom `useX` hook built from the hooks above (see [Custom hooks](#custom-hooks-for-reusable-behaviour)) |
 
 Default to `useValueNotifier` for observable local state that does not warrant MobX. That covers these cases:
 
@@ -118,16 +119,86 @@ final filtered = useMemoized(
 );
 ```
 
+### Custom hooks for reusable behaviour
+
+When the same widget behaviour shows up in a second widget — formatting input as it is typed, debouncing a search field, detecting `@mentions` in a text field — extract it into a custom hook rather than copying the `useEffect` and controller wiring. A custom hook is a plain function whose name starts with `use`, built only from other hooks.
+
+- **Check `flutter_hooks` first.** It already ships many hooks, including `useDebounced(value, timeout)` for a debounced *value*. Write a custom hook only for behaviour it does not cover.
+- **Build it from primitives**: `useEffect` for anything with a cleanup, `useRef` for mutable values that must not rebuild, `useMemoized` / `useCallback` for stable instances, `useValueNotifier` for observable local state. The same rules apply inside the hook as in a widget: call hooks unconditionally, keep key lists complete, dispose what you create.
+- **UI behaviour only.** A hook that calls an API, owns data another widget reads, or outlives the screen belongs in a MobX store or page state ([ADR-0002](0002-state-vs-store-separation.md)). The hook takes a callback, and the state does the work.
+- **Location.** A hook used by one widget stays in that widget's file. A second consumer in the app moves it to `lib/core/hooks/use_{name}.dart`. A hook a design-system component needs lives in `packages/design_system`.
+
+Example: a debounced callback, for a search field that should query only once typing pauses. `useEffect` owns the `Timer`'s cleanup, so a pending call never fires after the widget is gone.
+
+```dart
+// lib/core/hooks/use_debounced_callback.dart
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+
+/// Returns a function that passes its latest argument to [callback] once
+/// [delay] has gone by without another call.
+ValueChanged<T> useDebouncedCallback<T>(
+  ValueChanged<T> callback, {
+  required Duration delay,
+}) {
+  // Always call the newest closure the widget was built with.
+  final latest = useRef(callback)..value = callback;
+  final timer = useRef<Timer?>(null);
+
+  // Cleanup: a call still pending when the widget unmounts must not fire.
+  useEffect(() {
+    return () => timer.value?.cancel();
+  }, const []);
+
+  return useCallback<ValueChanged<T>>((value) {
+    timer.value?.cancel();
+    timer.value = Timer(delay, () => latest.value(value));
+  }, [delay]);
+}
+```
+
+```dart
+// lib/core/constants/debounce_constants.dart — behaviour timing, not a GeistDuration motion token
+
+/// How long typing must pause before a search runs.
+const kSearchDebounce = Duration(milliseconds: 300);
+```
+
+```dart
+class TodoSearchField extends HookWidget {
+  const TodoSearchField({super.key, required this.onQueryChanged});
+
+  final ValueChanged<String> onQueryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final onChanged = useDebouncedCallback(
+      onQueryChanged,
+      delay: kSearchDebounce,
+    );
+    return TextField(onChanged: onChanged);
+  }
+}
+```
+
+- `useRef` holds the latest callback and the pending timer without causing rebuilds, and `useCallback` keeps the returned function identical across rebuilds, so the `TextField` does not see a new `onChanged` every frame.
+- The widget stays a thin caller. The page state's `onQueryChanged` sets the store's query ([`create-store`](../../.claude/skills/create-store/SKILL.md#search-and-filtering)).
+- Test a custom hook with `HookBuilder` in a widget test: pump it, call the returned function, advance time with `tester.pump(duration)`, and assert. Include the unmount case.
+
 ### Consequences
 
 - Good: rebuilds stay inside the subtrees that depend on the value.
 - Good: one controller per widget instance rather than one per rebuild, so controllers keep their text, selection and scroll position.
 - Good: derived collections are allocated when their inputs change, not on every frame.
 - Good: MobX stays reserved for state that is genuinely shared.
+- Good: repeated widget behaviour (debouncing, formatting, mention detection) lives in one tested custom hook instead of copies of the same effect wiring.
 - Bad: a little more wiring than `useState` (a `ValueListenableBuilder` or an explicit `useValueListenable`).
 - Bad: engineers have to decide whether a value should rebuild the whole widget, which is not always obvious.
 - Bad: a `useMemoized` with a missing key returns a stale value. The key list needs the same discipline as a `useEffect` dependency list.
 - Bad: a controller created with `useMemoized` leaks if its disposing `useEffect` is forgotten, which is why the dedicated hooks come first.
+- Bad: a custom hook hides its effects behind a function call, so a reviewer has to open it to see what it allocates and cleans up. Keep custom hooks small and tested.
 
 ## Pros and Cons of the Options
 
@@ -150,4 +221,3 @@ final filtered = useMemoized(
 - [ADR-0018 Widget construction discipline](0018-widget-construction-discipline.md)
 - Playbooks: [`create-page`](../../.claude/skills/create-page/SKILL.md), [`create-ds-component`](../../.claude/skills/create-ds-component/SKILL.md)
 - `flutter_hooks`: https://pub.dev/packages/flutter_hooks
-- Adopted from `krisp-mobile` ADR-0015.

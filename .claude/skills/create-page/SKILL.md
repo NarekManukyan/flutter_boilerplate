@@ -118,6 +118,46 @@ Observer(
 
 Each branch needs a test identifier (below) so the Maestro failure and edge flows can assert it.
 
+## Lists whose rows are removed or inserted
+
+A list whose rows can be removed or inserted mid-list (swipe to delete, reorder, an optimistic insert) keys each row with `ValueKey(item.id)` and gives the builder a callback that maps the key back to the row's current index:
+
+| Builder | Callback |
+|---|---|
+| `SliverList.separated`, `ListView.separated` | `findItemIndexCallback` |
+| `SliverList.builder`, `ListView.builder` | `findChildIndexCallback` |
+
+Without the callback, Flutter matches children by position. Remove row 2, and the element at position 2 is handed row 3's widget. The keys differ, so that element is thrown away and row 3 is built from scratch, and so is every row below it. Their state is lost and their entry animations play again.
+
+Illustrative: `onTodoDismissed` and `HomeKeys.todoRow` do not exist in this repo.
+
+```dart
+SliverList.separated(
+  itemCount: todos.length,
+  separatorBuilder: (_, _) => const Gap(kSpacing8px),
+  itemBuilder: (_, index) {
+    final todo = todos[index];
+    return Dismissible(
+      key: ValueKey(todo.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => state.onTodoDismissed(todo.id),
+      child: _TodoCard(todo: todo).withTestId(HomeKeys.todoRow(todo.id)),
+    );
+  },
+  findItemIndexCallback: (key) {
+    final index = todos.indexWhere((todo) => ValueKey(todo.id) == key);
+    return index == -1 ? null : index;
+  },
+)
+```
+
+- The key goes on the widget the builder returns, here the `Dismissible`, not on a child inside it.
+- `ValueKey(item.id)`, never `ValueKey(index)` (the index shifts with the removal) or `UniqueKey()` (it never matches).
+- `onDismissed` must take the row out of the list before the next frame, or `Dismissible` throws. The store removes it before its first `await` ([`create-store`](../create-store/SKILL.md#optimistic-mutation-with-rollback)).
+- A row's test id includes the item id, so a flow can assert that exact row before and after: `static String todoRow(String id) => 'home_todo_row_$id';` in the keys file.
+- Lowering `dismissThresholds` so a swipe dismisses sooner is a product decision, not a test fix ([`write-maestro-flow`](../write-maestro-flow/SKILL.md#swipes-and-gestures-shared-by-several-flows)).
+- Widget test: the element of a row below the removed one survives the removal ([`write-tests`](../write-tests/SKILL.md#rows-keep-their-element-when-a-row-is-removed)).
+
 ## Test identifiers
 
 Every widget an E2E flow touches carries a stable identifier, and every interactive widget carries a `Semantics` label from `LocaleKeys` ([ADR-0015](../../../docs/adr/0015-mandatory-test-coverage-and-qa-gate.md)).
@@ -148,6 +188,11 @@ TestId(HomeKeys.todoList, child: RefreshIndicator(...))
 ```
 
 Widget tests then use `find.byKey(const Key(HomeKeys.emptyState))`; flows use `id: "home_empty_state"`. The string is the contract across both — do not rename it without updating the flow.
+
+Where the ids live:
+
+- A feature widget uses its feature's `{feature}_keys.dart`.
+- A shared widget in `lib/core/ui/` belongs to no feature, so it keeps its ids in a `{widget}_keys.dart` next to it: `lib/core/ui/error_notice_keys.dart` for `error_notice.dart`.
 
 A `TextField` is the one case where the inner widget also wants the raw `Key` (so `find.byKey` targets the field itself rather than the wrapper); tag the wrapper with `TestId` for Maestro and put `key: const Key(...)` on the `TextField` too.
 
@@ -218,7 +263,8 @@ Use the primitives in `lib/core/ui/geist_motion.dart` — `PressScale` for tap f
 - [ ] No `Widget _buildX()` methods; no `BuildContext` passed into helpers
 - [ ] `useValueNotifier` where only part of the widget reads a value; `useMemoized` for values built in `build()`
 - [ ] Loading / error / empty / content all handled, each tagged with `TestId`
+- [ ] Rows that can be removed or inserted: `ValueKey(item.id)` on the returned widget, plus `findItemIndexCallback` (`.separated`) or `findChildIndexCallback` (`.builder`)
 - [ ] Tokens + `LocaleKeys` only
-- [ ] Ids are Strings in `{feature}_keys.dart`, applied with `TestId` — never a bare `Key`
+- [ ] Ids are Strings in `{feature}_keys.dart` (a `lib/core/ui/` widget: `{widget}_keys.dart` next to it), applied with `TestId` — never a bare `Key`
 - [ ] Semantics labels on interactive widgets, sourced from `LocaleKeys`
 - [ ] `melos run build` after adding `@RoutePage` or MobX annotations

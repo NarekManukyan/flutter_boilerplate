@@ -59,6 +59,30 @@ Each step has its own script: `build:api`, `build:design_system` and `build:app`
 - **`packages/design_system`** — visual language. `GeistTheme`, components (`PrimaryButton`, etc.), generated `Assets`, asset codegen via `flutter_gen`. See [ADR-0013](0013-design-system-tokens-only.md).
 - **`lib/`** (the app) — features, navigation, DI bootstrap, app-level services (`DioService`, interceptors), localization wiring.
 
+### Dependency direction
+
+Dependencies point one way, into the packages:
+
+```
+            app (lib/)
+           /          \
+          v            v
+        api      design_system
+```
+
+- The app depends on both packages.
+- **`api` and `design_system` depend on neither each other nor the app.** A DTO or provider never imports a widget or a token, and a component never imports a DTO, a provider, or anything from `lib/`.
+- The app is where the two meet. A store turns DTOs into observable state, and a page passes plain values and callbacks into design-system components.
+
+This is what the reuse driver depends on. A package that imports the app does not build in any other app. A package that imports its sibling drags the sibling into every app that wants only one of them, and an edge from `api` to `design_system` would also invert the codegen order above.
+
+In practice:
+
+- A package's `pubspec.yaml` never lists `flutter_boilerplate` or the other package.
+- A package's files never import `package:flutter_boilerplate/…`, the other package, or a relative path that climbs out of the package.
+- A component that shows API data takes the fields it renders as parameters; mapping the DTO to those fields is app code.
+- Something both packages seem to need is defined in each, or lives in the app. If a real shared core appears, it becomes a third package that both depend on, recorded in a new ADR.
+
 ### Consequences
 
 - Good: codegen runs only where it changes. Editing a DTO needs `build:api` (plus `build:app` if the app uses the changed type), not the design system.
@@ -67,6 +91,17 @@ Each step has its own script: `build:api`, `build:design_system` and `build:app`
 - Bad: three `pubspec.yaml` files instead of one — adding a dependency requires choosing the right package.
 - Bad: `melos` is an extra tool contributors must install (`dart pub global activate melos` or via the workspace dev_dependency).
 - Bad: the codegen order is enforced only by the `build` script. Running a single package script by hand in the wrong order can leave the app's generated code stale.
+- Bad: the dependency direction is not enforced by the analyzer. A package could add the other one to its pubspec and nothing would fail until another app tried to reuse it; review has to catch it.
+- Neutral: code that maps API data to UI cannot live in either package, so it sits in the app, even when it looks generic.
+
+### Confirmation
+
+These checks print nothing while the dependency direction holds:
+
+```bash
+grep -nE '^\s+(api|design_system|flutter_boilerplate):' packages/api/pubspec.yaml packages/design_system/pubspec.yaml
+grep -rnE "package:(flutter_boilerplate|design_system)/" packages/api/lib; grep -rnE "package:(flutter_boilerplate|api)/" packages/design_system/lib
+```
 
 ## Pros and Cons of the Options
 

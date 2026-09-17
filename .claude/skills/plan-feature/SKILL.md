@@ -37,9 +37,16 @@ Anything you cannot phrase as a verifiable outcome is an **open question**, not 
 ```
 OPEN  AC2 does not say whether the list re-sorts or the new item is prepended optimistically.
 OPEN  No AC covers the offline case. Assume queue-and-retry, or fail fast?
+OPEN  AC3 says a failed delete puts the row back. Must the user be told when it failed on a timeout?
 ```
 
 Raise open questions with the user **now**. Do not encode a guess into the plan and discover it in review.
+
+**When no human can answer** (a headless or CI run), do not decide silently. For each open question:
+
+1. Write it into the plan under "Open questions", with the reading you chose.
+2. Choose the most conservative reading of the AC: the one that hides nothing from the user and loses no data. For the timeout question above, that is: notify.
+3. Flag it in the final report, so a human confirms or reverses it.
 
 ## Step 3 — Analyse the codebase
 
@@ -55,6 +62,8 @@ Read, do not assume. For each AC, find out:
 Prefer the `code-review-graph` MCP tools (`semantic_search_nodes`, `query_graph`, `get_impact_radius`) over grepping when the graph is populated for this repo.
 
 ## Step 4 — Write the plan
+
+The plan is a file: `docs/plans/{TICKET}-{slug}.md` (for example `docs/plans/MONE-123-add-todo-from-home.md`). Without a ticket, use a short slug alone. It is committed with the feature, so review checks the code against it.
 
 File-level, no prose padding. Every row names the governing ADR and the playbook that builds it.
 
@@ -84,7 +93,7 @@ File-level, no prose padding. Every row names the governing ADR and the playbook
 | AC4 | `.maestro/flows/home/home_add_todo_failure.yaml` + store unit test |
 
 ### Open questions
-- …
+- … (headless run: the question, the conservative reading chosen, and "flagged in report")
 
 ### Out of scope
 - …
@@ -108,19 +117,26 @@ When both hold, propose the split concretely:
 ```
 Large (5 surfaces) and separable. Suggested split:
   contracts first (this session): DTOs, provider, routes, LocaleKeys
-  agent A: features/wallet/view      (wallet_page, wallet_page_state, widgets)
-  agent B: features/wallet/mobx      (wallet_store + use cases)
-  agent C: .maestro/flows/wallet     (happy / failure / edge)
+  flutter-team A: features/wallet/view      (wallet_page, wallet_page_state, widgets)
+  flutter-team B: features/wallet/mobx      (wallet_store + use cases)
+  flutter-team C: .maestro/flows/wallet     (happy / failure / edge)
 Run as a team, or all in this session?
 ```
 
 When either fails: **build it in this session and do not ask.** A "should we parallelize?" question on a two-file change is noise.
 
+When the user chooses a team, name the agent for each slice:
+
+- **Dart-only work:** one [`flutter-team`](../../agents/flutter-team.md) agent per slice.
+- **Any slice that touches `ios/` or `android/`** (a platform channel, a permission that needs the manifest and `Info.plist`, background modes, push notifications, deep links): [`mobile-orchestrator`](../../agents/mobile-orchestrator.md). It agrees the channel contract first, then runs `flutter-team`, `ios-team` and `android-team` in parallel. Treat that contract like any other shared contract: it lands before the slices start.
+
+Claude Code agent teams, where teammates message each other and share a task list, need `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. This repo sets it in [`.claude/settings.json`](../../settings.json). Teammates are only spawned in an interactive session. Without the variable, or in a non-interactive run such as `claude -p`, the same agents run as ordinary subagents, which is fine for disjoint slices. Other tools can read the agent files in `.claude/agents/` as plain briefs.
+
 ## Step 6 — Approval, then build
 
-Present the plan. On approval, work through it in order — contracts first, then implementation, then tests. Open each playbook named in the plan before you build that row.
+Present the plan and wait for approval. In a headless or CI run where the task itself states the plan is pre-approved, write the plan file, record open questions as described above, and proceed without waiting. On approval, work through it in order — contracts first, then implementation, then tests. Open each playbook named in the plan before you build that row.
 
-If reality contradicts the plan mid-build, say so and amend the plan. Do not silently diverge; the plan is what review will be checked against.
+If reality contradicts the plan mid-build, say so and amend the plan file. Do not silently diverge; the plan is what review will be checked against.
 
 ## Step 7 — Exit through the QA gate
 
@@ -130,6 +146,8 @@ Run [`qa-feature`](../qa-feature/SKILL.md). Every AC line must map to a passing 
 
 - Planning from the ticket title. The AC are in the description and the comments.
 - Guessing an ambiguous AC instead of asking. The guess becomes the spec.
+- In a headless run, deciding an open question without writing it into the plan and the final report.
+- A plan that lives only in the chat. It goes in `docs/plans/` and is committed with the feature.
 - A plan with no "Proof" column — it is a wish list, not a plan.
 - Asking about parallel agents on small work, or splitting work that shares a store.
-- Starting parallel agents before the shared contracts (DTOs, routes, tokens) have landed.
+- Starting parallel agents before the shared contracts (DTOs, routes, tokens, platform-channel contracts) have landed.

@@ -80,14 +80,17 @@ class PrimaryButton extends HookWidget {
 
 ## Styling
 
-Tokens only — the component is *inside* the design system, so it reads them directly rather than through `context.geist` where a `ThemeExtension` lookup would be circular:
+Tokens only. A component inside the package reads the same tokens app code does, and it reads colours through the theme, so an app that overrides `GeistTheme` restyles the component too:
 
-- Colours → `context.geist.*` (components still resolve through the theme, so an app override works)
+- Colours → `context.geist.*`, read once at the top of `build`
 - Text → `GeistTextStyles.*`, colour applied with `.copyWith(color: …)` at the use site
-- Radii → `GeistRadius.*` · Durations → `GeistDuration.*` · Spacing → `kSpacingNpx`
+- Radii → `GeistRadius.*` · Durations → `GeistDuration.*`
+- Spacing → `kSpacingNpx` for padding; `Gap(kSpacingNpx)` between siblings in a `Row` or `Column`, never `SizedBox`
 - Shadows → the composed stacks on `GeistTheme` (`cardShadow`, `ringShadow`)
 
-No raw `Color(0x…)`, no `TextStyle(…)` composite, no hand-assembled `BoxShadow` list — in the package either. A new token goes through [`add-design-token`](../add-design-token/SKILL.md), with a light **and** a dark value.
+No raw `Color(0x…)`, no `TextStyle(…)` composite, no hand-assembled `BoxShadow` list — in the package either.
+
+When a token is missing, decide its kind before adding it: **does it need a different value in dark mode?** If yes, it is a theme-aware field on `GeistTheme` with a light **and** a dark value — never a constant, because a constant renders the light value in dark mode. If no, it is a static constant (`GeistRadius`, `GeistDuration`, `GeistTextStyles`, spacing). The dark value of a theme-aware token is not optional, and forgetting it is not always a compile error: if the extension is missing from one theme, `context.geist` silently falls back to the light values at runtime. Full steps: [`add-design-token`](../add-design-token/SKILL.md).
 
 ## Local state inside a component
 
@@ -105,13 +108,13 @@ A component is unfinished until default, pressed, hover, focus, disabled and loa
 
 ## Codegen
 
-Assets, colours and fonts under `packages/design_system/lib/gen/` are generated. After adding an asset or font, run:
+Assets, brand colours (`assets/colors/colors.xml` → `AppColors`) and fonts under `packages/design_system/lib/gen/` are generated, and so is the Tailor `CustomTheme` mixin. After adding or changing any of them, re-run the design-system codegen:
 
 ```bash
-melos exec --scope design_system -- "dart run build_runner build -d"
+melos run build:design_system
 ```
 
-Never edit `gen/`.
+Then `melos run build:app` if the app uses the changed type, or `melos run build` to run everything in order ([ADR-0014](../../../docs/adr/0014-melos-package-split.md)). Never edit `gen/` or `*.tailor.dart` by hand. `GeistTheme` and the static token classes are hand-written and need no codegen.
 
 ## Checklist
 
@@ -121,6 +124,9 @@ Never edit `gen/`.
 - [ ] Local state uses `useValueNotifier`; no `Widget _buildX()` methods
 - [ ] Shared behaviour extracted to a base widget under `src/`
 - [ ] Tokens only — no raw colour, text style, radius, duration or shadow stack
+- [ ] New token: theme-aware (light **and** dark on `GeistTheme`) if it differs in dark mode, static constant otherwise
+- [ ] Sibling spacing is `Gap(kSpacingNpx)`
+- [ ] `melos run build:design_system` run after an asset, font or brand-colour change
 - [ ] All six states defined; light and dark both correct at WCAG AA
 - [ ] `super.key` passed through; `semanticsLabel` accepted for interactive components
 - [ ] `DESIGN.md` updated if this introduces a new visual pattern

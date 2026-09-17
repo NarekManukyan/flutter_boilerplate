@@ -19,7 +19,7 @@ Before posting any new feedback:
 
 Review code quality of the pull request.
 
-Do NOT raise comments about: missing `///` doc comments on public APIs, enum values using `lowerCamelCase`, package-vs-relative import preferences, `dart format`-accepted style nits, tests for trivial code, or generated files. See `AGENTS.md` for the full list.
+Do NOT raise comments about: missing `///` doc comments on public APIs, enum values using `lowerCamelCase`, import-style preferences (`analysis_options.yaml` already enforces relative imports inside `lib/`), `dart format`-accepted style nits, tests for trivial code, or generated files (the "File Boundaries" section of `AGENTS.md` lists them). Do raise anything that breaks a rule in `AGENTS.md`.
 
 Provide feedback using inline comments for specific issues.
 Use top-level comments for general observations or praise.

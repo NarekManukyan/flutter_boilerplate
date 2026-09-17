@@ -37,10 +37,14 @@ lib/features/{feature}/
     {feature}_store.dart         @injectable or @singleton, owns DioService
     use_cases/                   UCs consumed only by the store
   core/use_cases/                UCs consumed by 2+ layers of THIS feature
-  models/                        feature-local models (not DTOs)
+  models/                        feature-local models (not DTOs): {name}_model.dart, enums
+  constants/                     feature-local constants: {feature}_constants.dart
   modals/{modal}/                view/ + mobx/ + use_cases/ per modal
+  overlays/{overlay}/            overlay entries, tooltips, coach marks; same inner shape as modals/
   components/                    widgets reused across this feature's pages
 ```
+
+Every folder below `view/` and `mobx/` is optional. There is **no per-feature `shared/`**: the name collides with the deprecated `lib/shared/` and invites the same dumping ground. Code reused inside the feature goes in `components/`, `models/`, `constants/` or `core/use_cases/`; code reused across features goes in `lib/core/`.
 
 Mirror it in tests and flows:
 
@@ -49,6 +53,25 @@ test/features/{feature}/         unit tests (store, state, use cases)
 test/features/{feature}/view/    widget tests
 .maestro/flows/{feature}/        {feature}_happy.yaml | _failure.yaml | _edge.yaml
 ```
+
+### What belongs in `lib/core/` instead
+
+`lib/core/` holds what more than one feature uses: `configs/`, `constants/`, `extensions/`, `guards/`, `navigation/`, `services/` (with `interceptors/`), `state/`, `ui/`, `use_cases/`, `utils/`. These are added when the app first needs them:
+
+- `exceptions/` — typed domain exceptions shared across features (`{name}_exception.dart`), thrown by use cases and interceptors and caught by type ([ADR-0020](../../../docs/adr/0020-error-handling-and-issue-tracking.md) pattern 3). An exception only one feature throws and catches can stay in that feature's `models/`.
+- `platform_channels/` — one Dart wrapper per native capability (`{capability}_channel.dart`). See [`add-platform-channel`](../add-platform-channel/SKILL.md).
+- `hooks/` — custom hooks used by widgets in more than one feature (`use_{name}.dart`). See [ADR-0019](../../../docs/adr/0019-hook-selection.md#custom-hooks-for-reusable-behaviour).
+
+### Naming
+
+| Kind | Suffix | Example |
+|---|---|---|
+| Feature-local model | `*_model.dart` | `todo_filter_model.dart` |
+| Pure helpers | `*_utils.dart` | `date_range_utils.dart` |
+| Constants | `*_constants.dart` | `todos_constants.dart` |
+| Typed exception | `*_exception.dart` | `todo_already_exists_exception.dart` |
+
+The page, state, store, use case, DTO and keys suffixes are in [AGENTS.md](../../../AGENTS.md#naming). Directories and file names are `snake_case`, always: `todo_details/`, never `todoDetails/` or `TodoDetails/`.
 
 ## Build order
 
@@ -72,7 +95,8 @@ Never navigate from the page. The state class injects `AppNavigator` and the pag
 
 ## Definition of done
 
-- [ ] Feature is a peer, not nested; nothing added to `lib/shared/`
+- [ ] Feature is a peer, not nested; nothing added to `lib/shared/`, no per-feature `shared/`
+- [ ] Only the folders the feature needs; files and folders `snake_case` with the documented suffixes
 - [ ] Store lives under `{feature}/mobx/` even if `@singleton`
 - [ ] State has no `DioService`; page has no store and no `context.router`
 - [ ] Every string via `LocaleKeys`; every colour/style via design-system tokens

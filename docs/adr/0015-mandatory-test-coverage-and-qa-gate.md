@@ -41,6 +41,24 @@ Chosen option: **Three-tier mandatory coverage with an explicit QA gate**.
 
 A feature is not done until all three exist. "All three" means at least one flow per tier, not exhaustive permutation.
 
+### Proportions: the testing pyramid
+
+The tiers are not equal in size. A feature has **many unit tests, fewer widget tests, and few E2E flows**:
+
+```
+        /\         E2E (Maestro): few. Happy, failure and edge journeys per feature
+       /  \
+      /----\       Widget: fewer. Each page's loading, error, empty and content branches
+     /      \
+    /--------\     Unit: many. Every branch of store, state, use case and service logic
+```
+
+- **Unit** tests carry the logic: every success, failure and empty path of every store, state, use case and service. They run in milliseconds with no device, so there is no reason to leave a branch untested.
+- **Widget** tests check wiring: each page renders its four branches and fires its callbacks. They do not re-test the logic behind a branch; that is already covered one tier down.
+- **E2E** flows check the journey on a device, where DI bootstrap, routing and localization loading actually run. They are slow and can flake, so they cover the named happy / failure / edge categories, not every permutation.
+
+A check belongs in the cheapest tier that can catch the bug it guards against. An upside-down pyramid — a Maestro flow for each validation rule, or widget tests that exercise business logic — makes the suite slow and flaky while testing less, and a flaky suite gets ignored.
+
 ### The QA gate — happy / failure / edge
 
 Every feature ships Maestro flows for three named categories. This is the QA contract, and it is what the `qa-feature` playbook checks:
@@ -49,13 +67,13 @@ Every feature ships Maestro flows for three named categories. This is the QA con
 - **Failure** — the server errors (5xx), auth expires, or the network drops; the app shows a recoverable error and does not crash or hang on a spinner.
 - **Edge** — empty list, single item, maximum-length input, offline start, backgrounding mid-request, rapid double-tap on the primary action.
 
-Flow files are named `{feature}_{category}.yaml` (e.g. `todo_create_failure.yaml`) so the category is visible in a directory listing and selectable by Maestro tag.
+Flow files are named `{feature}_{scenario}_{happy|failure|edge}.yaml` (e.g. `home_add_todo_failure.yaml`), so the category is visible in a directory listing and selectable by Maestro tag. A feature with a single scenario may use `{feature}_{happy|failure|edge}.yaml`.
 
 ### Test identifiers are part of the feature
 
 Maestro selects by *native* accessibility identifier, and a Flutter `Key` is not one. Verified on device: a widget carrying only a `Key` appears in the accessibility hierarchy with an empty `resource-id`, so every `id:` selector against it fails. The identifier comes from `Semantics(identifier:)`, which maps to `UIAccessibilityElement.accessibilityIdentifier` on iOS and `setViewIdResourceName` on Android.
 
-The repo therefore ships a `TestId` widget (`lib/core/ui/test_id.dart`) that applies both from a single string — the `Semantics(identifier:)` Maestro matches and a `Key` for widget tests. Identifiers are plain `String` constants in a per-feature `{feature}_keys.dart`, so one value is the contract for both tiers and the flow cannot drift from the widget silently.
+The repo therefore ships a `TestId` widget (`lib/core/ui/test_id.dart`) that applies both from a single string — the `Semantics(identifier:)` Maestro matches and a `Key` for widget tests. Identifiers are plain `String` constants in a per-feature `{feature}_keys.dart`, so one value is the contract for both tiers and the flow cannot drift from the widget silently. A shared widget in `lib/core/ui/` belongs to no feature and keeps its ids in a `{widget}_keys.dart` next to it (e.g. `lib/core/ui/error_notice_keys.dart`).
 
 Every widget an E2E flow drives is tagged with `TestId`, and every interactive widget also carries a `Semantics` label sourced from `LocaleKeys` ([ADR-0012](0012-mandatory-localization.md)).
 
@@ -65,9 +83,10 @@ Every widget an E2E flow drives is tagged with `TestId`, and every interactive w
 - Good: the failure and edge categories force the error branches to be designed, not discovered.
 - Good: test identifiers plus semantics labels make the app measurably more accessible as a side effect.
 - Good: unit tests stay fast because widget tests are limited to wiring, not logic.
+- Good: the pyramid keeps the whole suite fast enough to run before every PR; most checks never need a device.
 - Bad: feature cost rises — roughly 30–40% more work per feature up front.
 - Bad: Maestro is an external toolchain (JVM + CLI) that every developer and CI runner must install.
-- Bad: flows are device-dependent and will flake; they need retry policy and a quarantine tag rather than being deleted on first red.
+- Bad: flows are device-dependent and will flake. The answer is a `quarantine` tag (excluded by `config.yaml`) and a fix, not a retry policy that hides the flake and not deleting the flow on first red.
 - Bad: driving a real device surfaces host-level behaviour that has to be learned once and written down — `clearState` logging the user out, `hideKeyboard` pressing Done and submitting a form, `eraseText` clearing only a fixed number of characters, and the directory runner not recursing into subdirectories. These are captured in the `write-maestro-flow` playbook.
 
 ## Pros and Cons of the Options

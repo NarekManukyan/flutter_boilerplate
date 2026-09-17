@@ -52,3 +52,5 @@ melos run maestro
 ```
 
 and a summary: what landed, the AC→proof table, what is not covered and why.
+
+**Do not end your turn while a suite is still running.** Run `melos run verify` and the Maestro flows in the foreground (or block until a background run reports), then write the report. The report is the last thing you output. A session that ends on "waiting for the suite" — which is exactly what happens in a headless (`claude -p`) or CI run the moment the turn ends — ships no verdict at all.

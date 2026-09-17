@@ -46,7 +46,9 @@ A token is one of two kinds, and the kind decides where a new one goes.
 - **Static tokens** are `const` values that are identical in every theme: spacing, radii, durations, and the metrics of a text style (size, weight, height, letter spacing). They are plain constants: `kSpacingNpx`, `GeistRadius`, `GeistDuration`, `GeistTextStyles`.
 - **Theme-aware tokens** are values that differ between light and dark: every color (shadow colors included) and non-color values such as `focusHaloAlpha`. They are fields on the `GeistTheme` `ThemeExtension`, read through `context.geist`.
 
-A value that differs between light and dark is always exposed through `context.geist` and never as a constant. That is why `GeistTextStyles` carries no color: the style is static, and the color is applied from the theme.
+A value that differs between light and dark is always exposed through `context.geist` and never as a constant. A colour that is genuinely identical in both themes (a brand colour generated into the design system from `assets/colors/colors.xml`) is the one static colour case; a colour typed as a `Color(...)` constant in `lib/` never is.
+
+Non-visual timing is not a design token. A debounce window, a request timeout or a retry backoff is a named `Duration` constant in `lib/core/constants/` (or next to the one class that uses it), never an inline literal. Motion durations — anything that times an animation or transition — always come from `GeistDuration`. That is why `GeistTextStyles` carries no color: the style is static, and the color is applied from the theme.
 
 ### Spacing
 

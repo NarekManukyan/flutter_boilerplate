@@ -48,9 +48,14 @@ Real example: [`TodosApiProvider`](../../packages/api/lib/src/providers/todos_pr
 Endpoints that answer `204 No Content`, or whose body the app does not read, return `Future<void>`. They do not return `Future<dynamic>` or a placeholder DTO.
 
 ```dart
-@DELETE(_Paths.deleteTodo)
+// _Paths.todoById = '/todos/{id}'
+@DELETE(_Paths.todoById)
 Future<void> deleteTodo(@Path('id') String id);
 ```
+
+Illustrative: the real `TodosApiProvider` has no delete endpoint. Path parameters are positional, so a caller writes `deleteTodo(id)`. A path shared by several methods is named for the resource (`todoById`), not for one verb. Every path string lives in the provider's private `_Paths` class.
+
+Each endpoint gets a request-shape test: the real provider over a `Dio` with a fake `HttpClientAdapter` that records the request, asserting method and path. The generated code is not written by hand, but the annotations are, and a store test that mocks the provider cannot catch a wrong one. See [`create-api-provider`](../../.claude/skills/create-api-provider/SKILL.md#test-the-request-shape).
 
 ### Where DTOs live
 
@@ -96,7 +101,7 @@ Paginated responses use a generic [`ListResponseDto<T>`](../../packages/api/lib/
 
 ### Access boundary
 
-API providers are reached only through [`DioService`](../../lib/core/services/dio_service.dart) in stores and use cases. Interceptors (auth, logging, mocking) live in [`lib/core/services/interceptors/`](../../lib/core/services/interceptors/) — app-side concerns belong in the app, not in the `packages/api` package.
+API providers are reached only through [`DioService`](../../lib/core/services/dio_service.dart) in stores and use cases. A store calls a provider inline for its own single request whose result it applies to its own observables (a load, a refresh, an optimistic mutation and its rollback). The call moves into an API use case when another consumer needs it, when it coordinates several requests or services, or when its response or error mapping is not trivial ([`create-use-case`](../../.claude/skills/create-use-case/SKILL.md)). Interceptors (auth, logging, mocking) live in [`lib/core/services/interceptors/`](../../lib/core/services/interceptors/) — app-side concerns belong in the app, not in the `packages/api` package.
 
 ### Consequences
 

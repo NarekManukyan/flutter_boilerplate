@@ -16,17 +16,22 @@ Governed by [ADR-0008](../../../docs/adr/0008-appnavigator-routing-abstraction.m
 
 ## Router entry
 
+`AppRouter` is not registered in DI. `AppNavigator` (a `@singleton`) builds it and hands it its guards, which get their dependencies through the constructor ([ADR-0007](../../../docs/adr/0007-di-scopes-and-constructor-injection.md)):
+
 ```dart
-@singleton
 @AutoRouterConfig(replaceInRouteName: 'Page,Route')
 class AppRouter extends RootStackRouter {
+  AppRouter({required AuthGuard authGuard}) : _authGuard = authGuard;
+
+  final AuthGuard _authGuard;
+
   @override
   late final List<AutoRoute> routes = [
     AutoRoute(
       initial: true,
       path: '/',
       page: SplashRoute.page,
-      guards: [authGuard],
+      guards: [_authGuard],
       meta: const {'description': 'Splash screen, entry point of the app'},
     ),
     AutoRoute(

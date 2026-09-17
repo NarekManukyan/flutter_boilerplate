@@ -113,4 +113,3 @@ Helpers receive plain data. If a helper needs the navigator, scaffold, or overla
 - [ADR-0010 `HookWidget` default](0010-hookwidget-default.md)
 - [ADR-0019 Hook selection](0019-hook-selection.md)
 - Playbook: [`create-page`](../../.claude/skills/create-page/SKILL.md)
-- Adopted from `krisp-mobile` ADR-0014.
