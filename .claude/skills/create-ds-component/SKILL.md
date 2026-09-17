@@ -89,6 +89,10 @@ Tokens only — the component is *inside* the design system, so it reads them di
 
 No raw `Color(0x…)`, no `TextStyle(…)` composite, no hand-assembled `BoxShadow` list — in the package either. A new token goes through [`add-design-token`](../add-design-token/SKILL.md), with a light **and** a dark value.
 
+## Local state inside a component
+
+Components in the package default to `useValueNotifier`, not `useState` ([ADR-0019](../../../docs/adr/0019-hook-selection.md)). A design-system widget is used everywhere, so a whole-widget rebuild on every toggle multiplies across the app. Scope the rebuild with a `ValueListenableBuilder` around the part that changes, cache anything built in `build()` with `useMemoized`, and never write a `Widget _buildX()` method: extract a private widget class instead ([ADR-0018](../../../docs/adr/0018-widget-construction-discipline.md)).
+
 ## The six states
 
 A component is unfinished until default, pressed, hover, focus, disabled and loading are all defined — see `DESIGN.md` §12. Loading keeps the control the same size; disabled stays readable (≥ 3:1) rather than washing out.
@@ -114,6 +118,7 @@ Never edit `gen/`.
 - [ ] Belongs in the package — imports nothing from `lib/`
 - [ ] Own directory with a barrel, exported through `design_system.dart`
 - [ ] Variants are named constructors; type and size are private
+- [ ] Local state uses `useValueNotifier`; no `Widget _buildX()` methods
 - [ ] Shared behaviour extracted to a base widget under `src/`
 - [ ] Tokens only — no raw colour, text style, radius, duration or shadow stack
 - [ ] All six states defined; light and dark both correct at WCAG AA

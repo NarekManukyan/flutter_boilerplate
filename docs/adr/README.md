@@ -25,6 +25,8 @@ Format: [MADR 3.0](https://adr.github.io/madr/). Status `Accepted` means the rul
 | [0015](0015-mandatory-test-coverage-and-qa-gate.md) | Mandatory test coverage and QA gate | Accepted |
 | [0016](0016-plan-first-delivery-workflow.md) | Plan-first delivery workflow | Accepted |
 | [0017](0017-single-source-agent-instructions.md) | Single-source agent instructions (`AGENTS.md` + playbooks) | Accepted |
+| [0018](0018-widget-construction-discipline.md) | Widget construction discipline: no widget-returning methods, no `BuildContext` parameters | Accepted |
+| [0019](0019-hook-selection.md) | Hook selection: `useValueNotifier` over `useState`, `useMemoized` whenever it applies | Accepted |
 
 ## Adding a new ADR
 

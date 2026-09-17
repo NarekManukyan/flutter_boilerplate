@@ -41,7 +41,10 @@ class _HomePageContent extends HookWidget {
     final state = context.read<HomePageState>();
     final filter = useState(_TodoFilter.all);
     final scrollController = useScrollController();
-    final fabVisible = useState(true);
+    // useValueNotifier, not useState: only the FAB reads this, and it is set
+    // from a scroll listener, so a useState rebuilt the whole page (app bar,
+    // filters, list Observer) on every change of scroll direction. ADR-0019.
+    final fabVisible = useValueNotifier(true);
 
     useEffect(() {
       void onScroll() {
@@ -157,9 +160,10 @@ class _HomePageContent extends HookWidget {
           ).withTestId(HomeKeys.todoList);
         },
       ),
-      floatingActionButton: _NewTodoFab(
-        visible: fabVisible.value,
-        onPressed: state.onAddTodoPressed,
+      floatingActionButton: ValueListenableBuilder<bool>(
+        valueListenable: fabVisible,
+        builder: (_, visible, _) =>
+            _NewTodoFab(visible: visible, onPressed: state.onAddTodoPressed),
       ).withTestId(HomeKeys.addTodoFab),
     );
   }

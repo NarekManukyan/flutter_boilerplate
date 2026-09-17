@@ -5,7 +5,7 @@ description: Build a page and its MobX page state — Provider root, context.rea
 
 # Create a page + page state
 
-Governed by [ADR-0009](../../../docs/adr/0009-provider-based-state-access.md) (Provider access), [ADR-0010](../../../docs/adr/0010-hookwidget-default.md) (HookWidget), [ADR-0008](../../../docs/adr/0008-appnavigator-routing-abstraction.md) (navigation), [ADR-0002](../../../docs/adr/0002-state-vs-store-separation.md) (state vs store).
+Governed by [ADR-0009](../../../docs/adr/0009-provider-based-state-access.md) (Provider access), [ADR-0010](../../../docs/adr/0010-hookwidget-default.md) (HookWidget), [ADR-0018](../../../docs/adr/0018-widget-construction-discipline.md) (widget construction), [ADR-0019](../../../docs/adr/0019-hook-selection.md) (hook selection), [ADR-0008](../../../docs/adr/0008-appnavigator-routing-abstraction.md) (navigation), [ADR-0002](../../../docs/adr/0002-state-vs-store-separation.md) (state vs store).
 
 ## The page state
 
@@ -89,6 +89,8 @@ class _HomePageContent extends HookWidget {
 - **Never `context.router`.** Navigation goes through `AppNavigator` in the state class.
 - **`HookWidget`** whenever the widget needs a controller, effect, or local UI state. `StatelessWidget` for pure presentation. `StatefulWidget` only for APIs hooks cannot express.
 - **Hooks are for local widget state and lifecycle only.** Business logic, anything shared between widgets, and anything that outlives the screen belong in the state class or a store — never in a `useState`.
+- **No widget-returning methods, no `BuildContext` parameters.** See [Splitting a large `build()`](#splitting-a-large-build) below.
+- **Pick the hook by rebuild scope.** See [Choosing a hook](#choosing-a-hook) below.
 - **`Observer` scoped tight.** Wrap the smallest subtree that reads observables — not the whole `Scaffold`. A page-wide `Observer` rebuilds the app bar on every list change.
 - **Design-system tokens only** — `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. No raw `Color`, `TextStyle(…)`, or `BoxShadow` stacks ([ADR-0013](../../../docs/adr/0013-design-system-tokens-only.md)).
 - **Every string via `LocaleKeys`** ([ADR-0012](../../../docs/adr/0012-mandatory-localization.md)).
@@ -149,6 +151,60 @@ Widget tests then use `find.byKey(const Key(HomeKeys.emptyState))`; flows use `i
 
 A `TextField` is the one case where the inner widget also wants the raw `Key` (so `find.byKey` targets the field itself rather than the wrapper); tag the wrapper with `TestId` for Maestro and put `key: const Key(...)` on the `TextField` too.
 
+## Splitting a large `build()`
+
+[ADR-0018](../../../docs/adr/0018-widget-construction-discipline.md). When `build()` grows, extract a **widget class**, never a method.
+
+```dart
+// ❌ a method that returns a widget: no const, no Observer boundary,
+//    rebuilds with the parent, cannot be pumped on its own
+Widget _buildHeader() => Text(LocaleKeys.homePage_title.tr());
+
+// ✅ a real widget, file-private
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) => Text(LocaleKeys.homePage_title.tr());
+}
+```
+
+Never pass `BuildContext` into a helper. Helpers take plain data; the widget that owns the context uses it directly, and anything that has to act from outside a build phase goes through `AppNavigator` ([ADR-0008](../../../docs/adr/0008-appnavigator-routing-abstraction.md)).
+
+The only exceptions are framework `builder:` callbacks whose signature the framework fixes (`ListView.builder`, `LayoutBuilder`, `ValueListenableBuilder`, `showModalBottomSheet`, …) and extension methods on `BuildContext` such as `context.geist` and `context.read<T>()`.
+
+## Choosing a hook
+
+[ADR-0019](../../../docs/adr/0019-hook-selection.md). Pick by **what should rebuild**, not by habit.
+
+| Need | Use |
+|---|---|
+| Local value that only part of the widget reads | `useValueNotifier` + `ValueListenableBuilder` |
+| Local value that legitimately changes the whole widget | `useState` |
+| A controller | `useTextEditingController`, `useScrollController`, `useFocusNode`, `useAnimationController` |
+| Anything allocated in `build()` — derived lists, parsed values, formatters | `useMemoized(() => …, [keys])` |
+| Side effect with cleanup | `useEffect` |
+
+```dart
+// ❌ useState from a scroll listener: every direction change rebuilds
+//    the whole page (app bar, filters, list Observer) to move one button
+final fabVisible = useState(true);
+// ...
+floatingActionButton: _NewTodoFab(visible: fabVisible.value, ...),
+
+// ✅ only the FAB rebuilds
+final fabVisible = useValueNotifier(true);
+// ...
+floatingActionButton: ValueListenableBuilder<bool>(
+  valueListenable: fabVisible,
+  builder: (_, visible, _) => _NewTodoFab(visible: visible, ...),
+),
+```
+
+That was a real defect on the Home page, fixed alongside this rule.
+
+A `useMemoized` with a missing key returns a stale value. Treat the key list with the same care as a `useEffect` dependency list.
+
 ## Motion
 
 Use the primitives in `lib/core/ui/geist_motion.dart` — `PressScale` for tap feedback, `FadeSlideIn` for entry, `AnimatedCount` for numbers. They already respect `MediaQuery.disableAnimationsOf`. Durations come from `GeistDuration`; never hardcode a `Duration` in `lib/`.
@@ -159,6 +215,8 @@ Use the primitives in `lib/core/ui/geist_motion.dart` — `PressScale` for tap f
 - [ ] State injected, never passed as a parameter
 - [ ] No `context.router`; `AppNavigator` in the state
 - [ ] `Observer` scoped to the smallest reactive subtree
+- [ ] No `Widget _buildX()` methods; no `BuildContext` passed into helpers
+- [ ] `useValueNotifier` where only part of the widget reads a value; `useMemoized` for values built in `build()`
 - [ ] Loading / error / empty / content all handled, each tagged with `TestId`
 - [ ] Tokens + `LocaleKeys` only
 - [ ] Ids are Strings in `{feature}_keys.dart`, applied with `TestId` — never a bare `Key`

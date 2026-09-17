@@ -130,6 +130,40 @@ void main() {
       verify(state.onAddTodoPressed).called(1);
     });
 
+    testWidgets('should hide the FAB on scroll down and show it on scroll up', (
+      tester,
+    ) async {
+      // Guards the ADR-0019 refactor: visibility now flows through a
+      // ValueNotifier + ValueListenableBuilder instead of a useState.
+      _stubStore(store, todos: [for (var i = 0; i < 40; i++) _todo('$i')]);
+      await tester.pumpApp(const HomePage());
+
+      double fabOpacity() => tester
+          .widget<AnimatedOpacity>(
+            find.descendant(
+              of: find.byKey(const Key(HomeKeys.addTodoFab)),
+              matching: find.byType(AnimatedOpacity),
+            ),
+          )
+          .opacity;
+
+      expect(fabOpacity(), 1, reason: 'visible before any scroll');
+
+      await tester.drag(
+        find.byKey(const Key(HomeKeys.todoList)),
+        const Offset(0, -400),
+      );
+      await tester.settleFrames();
+      expect(fabOpacity(), 0, reason: 'scrolling down hides it');
+
+      await tester.drag(
+        find.byKey(const Key(HomeKeys.todoList)),
+        const Offset(0, 200),
+      );
+      await tester.settleFrames();
+      expect(fabOpacity(), 1, reason: 'scrolling back up shows it');
+    });
+
     testWidgets('should render the list in dark mode too', (tester) async {
       _stubStore(store, todos: [_todo('1')]);
 

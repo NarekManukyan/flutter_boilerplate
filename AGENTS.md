@@ -151,6 +151,8 @@ One line each. Open the ADR when you need the *why* or want to challenge the rul
 - **Mandatory test coverage + QA gate** — unit + widget + Maestro happy/failure/edge per feature. [ADR-0015](docs/adr/0015-mandatory-test-coverage-and-qa-gate.md)
 - **Plan-first delivery** — AC checklist and written plan before code. [ADR-0016](docs/adr/0016-plan-first-delivery-workflow.md)
 - **Single-source agent instructions** — this file; tool files generated. [ADR-0017](docs/adr/0017-single-source-agent-instructions.md)
+- **Widget construction discipline** — no methods that return widgets, no `BuildContext` passed into helpers; extract real widget classes. [ADR-0018](docs/adr/0018-widget-construction-discipline.md)
+- **Hook selection** — `useValueNotifier` when only part of the widget reads a value, `useState` only when the whole widget should rebuild, `useMemoized` for anything allocated in `build()`. [ADR-0019](docs/adr/0019-hook-selection.md)
 
 ## Rules that apply to every change
 
@@ -158,6 +160,7 @@ These are the ones worth carrying in your head. Everything else is in a playbook
 
 - **No `context.router`** anywhere. Inject `AppNavigator` into the state class.
 - **No state as a widget parameter.** `Provider` at the page root, `context.read<T>()` below.
+- **No `Widget _buildX()` methods and no `BuildContext` parameters on helpers.** Extract a real widget class (`_Header` is fine). Framework `builder:` callbacks and `BuildContext` extensions are the only exceptions.
 - **No `getIt<>()` inside a class.** Constructor injection only; `Provider(create:)` is the sole exception.
 - **No inline UI strings.** `LocaleKeys.key.tr()`, added to `assets/translations/en-US.json`, then `melos run translations`.
 - **No raw colours, `TextStyle(…)` composites, radii, durations or `BoxShadow` stacks in `lib/`.** Use `context.geist.*`, `GeistTextStyles.*`, `GeistRadius.*`, `GeistDuration.*`, `kSpacingNpx`. New tokens are added to the design system with **both light and dark values**.
