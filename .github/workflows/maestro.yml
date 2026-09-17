@@ -16,6 +16,11 @@ concurrency:
   group: maestro-${{ github.ref }}
   cancel-in-progress: true
 
+
+# Read-only token: these jobs check code, they never write to the repo.
+permissions:
+  contents: read
+
 jobs:
   e2e:
     name: E2E on iOS Simulator

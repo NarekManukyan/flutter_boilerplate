@@ -9,6 +9,11 @@ concurrency:
   group: verify-${{ github.ref }}
   cancel-in-progress: true
 
+
+# Read-only token: these jobs check code, they never write to the repo.
+permissions:
+  contents: read
+
 jobs:
   # The same checks as `melos run verify`, split into steps so a failure is
   # easy to spot. Every step only checks: nothing here modifies files (no

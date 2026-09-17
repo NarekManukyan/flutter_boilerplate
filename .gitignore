@@ -109,3 +109,19 @@ melos.yaml.bak
 
 # Maestro run output (screenshots, reports)
 .maestro/output/
+
+# Signing material and secrets. ios/ and android/ are ignored here as a whole,
+# but an app generated from this template commits them, and these must never
+# follow.
+key.properties
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+.env
+.env.*
+!.env.example
+google-services.json
+GoogleService-Info.plist
