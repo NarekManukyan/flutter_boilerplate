@@ -1,6 +1,11 @@
 # AC: when GET /todos returns 5xx the user sees a recoverable error — not a
 # crash and not a permanent spinner — and retry works once the server recovers.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: common/start_home.yaml, then mock `serverError` and later
+#   `reset` via common/set_mock.yaml.
+# Test ids: home_todo_list, home_error_state, home_skeleton_list,
+#   home_error_retry
+appId: ${APP_ID}
 name: "Home — todo list server error (failure)"
 tags:
   - failure

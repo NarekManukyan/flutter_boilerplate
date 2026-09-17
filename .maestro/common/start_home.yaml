@@ -1,5 +1,9 @@
 # Launch + sign in + land on Home. The starting point for every Home flow.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: the dev build (lib/main_dev.dart) is installed as ${APP_ID}.
+#   Ends on Home, signed in as qa@example.com, with mock scenario `normal`.
+# Test ids: see launch.yaml and login.yaml
+appId: ${APP_ID}
 ---
 - runFlow: launch.yaml
 - runFlow:

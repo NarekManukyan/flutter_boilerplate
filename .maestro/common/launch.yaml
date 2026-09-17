@@ -1,10 +1,33 @@
-# Cold launch from a clean slate. Every flow starts here — a flow that depends
-# on the previous flow's state passes locally and fails in CI.
+# SUBFLOW: cold launch from a clean slate. Every flow starts here. A flow that
+# depends on the previous flow's state passes locally and fails in CI.
 #
 # `clearState: true` also clears the auth token, so this lands on Login, not
 # Home. Flows that need a signed-in user run `login.yaml` next.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: the dev build (lib/main_dev.dart) is installed as ${APP_ID}.
+# Test ids: login_email_field
+appId: ${APP_ID}
 ---
+# Fail fast when APP_ID was not passed. Maestro does not read plain shell
+# variables, and an unset `${APP_ID}` evaluates to the string "undefined", so
+# without this guard the first sign of trouble is "Unable to launch app
+# undefined". Worse, a flow that skipped launchApp would drive whatever app is
+# in the foreground.
+#
+# The marker id never exists; it IS the error message. Unlike `assertTrue`,
+# whose failure reads "false is true", the id shows up in the console summary,
+# in the JUnit report and in single-flow output. The 1 ms timeout makes it fail
+# at once instead of after assertVisible's ~17 s default.
+- runFlow:
+    when:
+      true: ${typeof APP_ID !== 'string' || APP_ID.length === 0}
+    label: "Require APP_ID: run tool/run_maestro.sh or pass -e APP_ID=<bundle id>"
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "APP_ID_IS_NOT_SET-run_tool/run_maestro.sh_or_pass_-e_APP_ID"
+          timeout: 1
+
 - launchApp:
     clearState: true
     clearKeychain: true

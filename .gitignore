@@ -102,3 +102,10 @@ Thumbs.db
 .melos_tool/
 melos.yaml.bak
 
+# Claude Code local state: hook scratch files, agent worktrees, personal settings
+.claude/state/
+.claude/worktrees/
+.claude/settings.local.json
+
+# Maestro run output (screenshots, reports)
+.maestro/output/

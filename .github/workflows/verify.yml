@@ -10,10 +10,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The same checks as `melos run verify`, split into steps so a failure is
+  # easy to spot. Every step only checks: nothing here modifies files (no
+  # `dart fix --apply`, no `dart format` without --set-exit-if-changed).
   verify:
-    name: Lint · Analyze · Format · Test
+    name: Analyze · Format · Test
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      FLUTTER_DISABLE_ANALYTICS: "true"
 
     steps:
       - uses: actions/checkout@v4
@@ -42,14 +47,18 @@ jobs:
         run: ./tool/sync_agents.sh --check
 
       - name: Format check
-        run: dart format --output none --set-exit-if-changed lib test packages
+        run: melos run format:check
 
       - name: Analyze
         run: melos run analyze
 
       # Unit + widget tiers of ADR-0015. The E2E tier runs in maestro.yml.
+      # `melos run test` minus coverage: the app with lcov output, then any
+      # workspace package that has a test/ directory.
       - name: Test
-        run: flutter test --coverage
+        run: |
+          flutter test --coverage
+          melos exec -c 1 --dir-exists=test -- "dart test"
 
       - name: Upload coverage
         if: always()
@@ -58,3 +67,45 @@ jobs:
           name: coverage
           path: coverage/lcov.info
           if-no-files-found: warn
+
+  # Proves the app still compiles for a device. Analyze and tests do not catch
+  # native build breakage: plugin minSdk or Gradle/Kotlin requirements,
+  # manifest merges, codegen that analyzes but does not compile.
+  build-smoke:
+    name: Build smoke (Android debug APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      FLUTTER_DISABLE_ANALYTICS: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install melos
+        run: dart pub global activate melos
+
+      # The boilerplate does not commit android/ (each app needs its own
+      # application id and signing), so generate the platform shell first.
+      - name: Generate Android platform files
+        run: flutter create --platforms=android --org com.example .
+
+      - name: Bootstrap
+        run: |
+          flutter pub get
+          melos run deps
+
+      - name: Codegen
+        run: melos run build
+
+      - name: Build debug APK
+        run: flutter build apk --debug -t lib/main_dev.dart

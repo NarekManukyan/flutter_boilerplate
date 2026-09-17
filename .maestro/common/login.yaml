@@ -2,7 +2,10 @@
 #
 # The dev flavor accepts any well-formed email — LoginUseCase is mocked. Pass a
 # different address with `env: { EMAIL: "..." }` when a flow needs one.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: on Login, straight after launch.yaml. Needs env EMAIL.
+# Test ids: login_email_field, login_continue_button, home_todo_list
+appId: ${APP_ID}
 ---
 - tapOn:
     id: "login_email_field"

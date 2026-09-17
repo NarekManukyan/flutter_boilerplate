@@ -1,0 +1,64 @@
+# SUBFLOW: bring the device back online. The mirror of go_offline.yaml; read
+# that file's header first, since it explains why the platforms differ.
+#
+#   - runFlow: ../../common/go_offline.yaml
+#   # ... assert the offline UI ...
+#   - runFlow:
+#       file: ../../common/go_online.yaml
+#       env:
+#         SYNCED_ID: "{feature}_synced"     # placeholder: the feature's own id
+#         SYNC_TIMEOUT_MS: "45000"          # longer than its whole retry schedule
+#
+# Every go_offline.yaml needs a go_online.yaml in the same flow. See
+# go_offline.yaml for what happens when a flow dies between the two.
+#
+# Preconditions: go_offline.yaml ran earlier in this flow. Android only.
+# Optional env:
+#   SYNCED_ID        test id that proves the offline work reached the server.
+#                    When set, the helper waits for it after reconnecting. This
+#                    is the real "back online" signal; without it the helper
+#                    can only do a blind, capped settle.
+#   SYNC_TIMEOUT_MS  how long to wait for SYNCED_ID. Default 30000.
+# Test ids: ${SYNCED_ID} when passed, otherwise none
+#
+# Reconnecting does not mean the data synced. An app that re-sends on a backoff
+# ladder (say 3 s, 10 s, 30 s) may not retry for most of a minute after the
+# network comes back. SYNC_TIMEOUT_MS must be longer than the whole ladder plus
+# one request, or the flow fails on a slow retry rather than a real bug. The
+# boilerplate has no automatic retry (Home only has a manual retry button), so
+# the feature that adds one owns this number.
+appId: ${APP_ID}
+---
+# 1. Anything but Android: fail loudly, mirroring go_offline.yaml. Normally
+#    unreachable, because go_offline.yaml has already stopped the flow. It is
+#    kept so the pair stays symmetric and a stray go_online can't pass silently.
+- runFlow:
+    when:
+      true: ${maestro.platform !== 'android'}
+    commands:
+      - takeScreenshot: "go_online_unsupported_platform"
+      - assertVisible:
+          id: "GO_ONLINE_NOT_SUPPORTED_ON_THIS_PLATFORM-setAirplaneMode_only_works_on_Android-run_offline_flows_on_an_Android_emulator"
+
+# 2. Android: radios back up.
+- runFlow:
+    when:
+      true: ${maestro.platform === 'android'}
+    commands:
+      - setAirplaneMode: disabled
+
+      # Bounded settle. Reconnect is slower than disconnect: the emulator has to
+      # re-associate with its virtual access point before the app sees a
+      # connection again. Returns once the screen is still, capped at 8 s.
+      - waitForAnimationToEnd:
+          timeout: 8000
+
+      # Wait past the retry schedule before asserting the data synced.
+      - runFlow:
+          when:
+            true: ${typeof SYNCED_ID === 'string' && SYNCED_ID.length > 0}
+          commands:
+            - extendedWaitUntil:
+                visible:
+                  id: ${SYNCED_ID}
+                timeout: ${SYNC_TIMEOUT_MS || 30000}

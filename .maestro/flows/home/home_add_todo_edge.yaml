@@ -7,7 +7,11 @@
 #
 # NOTE: no `hideKeyboard` after typing. On iOS Maestro presses the keyboard's
 # Done key, which fires the field's `onSubmitted` and submits early.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: common/start_home.yaml (clean state, signed in, mock `normal`).
+# Test ids: home_add_todo_fab, add_todo_title_field, add_todo_submit,
+#   add_todo_counter, add_todo_error, add_todo_cancel
+appId: ${APP_ID}
 name: "Home — add todo input edges (edge)"
 tags:
   - edge

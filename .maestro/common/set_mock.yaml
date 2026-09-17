@@ -8,7 +8,12 @@
 # modal shows its generic error before we dismiss it — expected, not a defect.
 #
 # Scenarios: normal | empty | serverError | slow | reset
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: signed in and on Home, with the add-todo sheet closed. Needs env
+#   SCENARIO.
+# Test ids: home_add_todo_fab, add_todo_title_field, add_todo_submit,
+#   add_todo_error, add_todo_cancel
+appId: ${APP_ID}
 # NOTE: no `hideKeyboard` after typing into the add-todo field. On iOS Maestro
 # presses the keyboard's Done key, which fires the field's `onSubmitted` and
 # submits the form early — verified on device. Tap the submit button instead.

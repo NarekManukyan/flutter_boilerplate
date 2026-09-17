@@ -1,6 +1,11 @@
 # Edge cases for the todo list: empty result, and the filtered-empty state that
 # is distinct from it. Both must be distinguishable from loading and from error.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: common/start_home.yaml, then mock `empty` and later `reset` via
+#   common/set_mock.yaml.
+# Test ids: home_todo_list, home_empty_state, home_skeleton_list,
+#   home_error_state, home_add_todo_fab, add_todo_title_field, add_todo_submit
+appId: ${APP_ID}
 name: "Home — empty results (edge)"
 tags:
   - edge

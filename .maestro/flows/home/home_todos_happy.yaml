@@ -1,5 +1,10 @@
 # AC: a signed-in user lands on Home and sees their todos.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: common/start_home.yaml (clean state, signed in, mock `normal`,
+#   so the seeded "Buy groceries" (active) and "Read a book" (done) exist).
+# Test ids: home_todo_list, home_skeleton_list, home_error_state,
+#   home_empty_state, home_filter_done, home_filter_active, home_filter_all
+appId: ${APP_ID}
 name: "Home — todo list loads (happy)"
 tags:
   - happy

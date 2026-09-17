@@ -22,6 +22,8 @@ analyzer:
     - 'lib/**/*.gr.dart'
     - 'pubspec.lock'
     - build/**
+    # Nested build dirs (SwiftPM checkouts, package builds) otherwise add analyze errors.
+    - '**/build/**'
     - android/**
     - ios/**
     - web/**

@@ -1,14 +1,76 @@
 # Maestro workspace config — ADR-0015.
+# Reference: https://docs.maestro.dev/reference/workspace-configuration
 #
-# Run:  maestro test .maestro/flows
-#       maestro test .maestro/flows --include-tags happy   (the PR gate)
-flows:
-  - "flows/**"
+# Run the suite through the runner. It passes APP_ID, and writes a JUnit report
+# plus debug artifacts to .maestro/output/:
+#
+#   ./tool/run_maestro.sh                          # every flow
+#   ./tool/run_maestro.sh --include-tags happy     # the PR gate
+#
+# Calling Maestro directly works too, as long as you point it at the WORKSPACE
+# ROOT (`.maestro`, never `.maestro/flows`: only the root reads this file) and
+# pass APP_ID yourself:
+#
+#   maestro test .maestro -e APP_ID=com.example.flutterBoilerplate    # iOS
+#   maestro test .maestro -e APP_ID=com.example.flutter_boilerplate   # Android
+#
+# The two ids differ because `flutter create --org com.example` camel-cases the
+# iOS bundle id but keeps the underscore in the Android applicationId. The
+# runner picks the right default from the target device.
+#
+# App under test: this file has no appId key. Every flow and subflow header is
+# `appId: ${APP_ID}`, and `-e` values reach every subflow run through `runFlow`.
+# common/launch.yaml fails the flow straight away if APP_ID is missing, so a
+# forgotten `-e` can't quietly drive whatever app is in the foreground.
 
-# Device-level flakiness is expected; a broad `retry:` inside a flow would mask
-# real instability, so the retry budget lives here instead.
+# Test discovery. Each pattern is a glob resolved against this directory, and a
+# single `*` never crosses a `/`:
+#
+#   flows/*/*.yaml   runs   flows/home/home_todos_happy.yaml
+#                           flows/{every feature}/{flow}.yaml
+#                    skips  common/launch.yaml             (not under flows/)
+#                           flows/home/_helpers/x.yaml     (one level too deep)
+#                           flows/stray_flow.yaml          (not in a feature folder)
+#
+# Rule: a subflow must never match this glob. A subflow assumes the app is
+# already launched and on a particular screen. Run standalone, it fails, or it
+# passes against the wrong state. Subflows live in common/ and are reached only
+# through `runFlow`.
+#
+# Don't widen this to `flows/**`: any helper nested under a feature would then
+# run as a test. Don't narrow it to per-prefix globs such as
+# `flows/home/home_*.yaml` either, because a new feature folder would be skipped
+# silently and nobody would notice the missing coverage.
+flows:
+  - "flows/*/*.yaml"
+
+# Known-flaky flows carry a `quarantine` tag and a linked ticket. They stay in
+# the repo, never deleted, and are left out of every workspace run. This merges
+# with CLI tags: `--include-tags happy` still skips a flow tagged
+# happy + quarantine. To debug a quarantined flow, run its file directly
+# (`maestro test .maestro/flows/{feature}/{flow}.yaml -e APP_ID=...`). A
+# single-file run does not read this config.
+excludeTags:
+  - quarantine
+
+# Every discovered flow runs even after one fails, so one red flow doesn't hide
+# the others. That is Maestro's default; this key only changes behaviour if a
+# `flowsOrder` sequence is added. It is not a retry budget. Maestro has no
+# suite-level retry, and a `retry:` around half a flow masks real instability.
+#
+# Because the run carries on, device state leaks between flows. A flow that dies
+# between common/go_offline.yaml and common/go_online.yaml leaves an Android
+# emulator in airplane mode, and every later flow fails for an unrelated reason.
+# tool/run_maestro.sh restores connectivity on exit. By hand:
+#     adb shell cmd connectivity airplane-mode disable
 executionOrder:
   continueOnFailure: true
 
-# Flows tagged `quarantine` are known-flaky and excluded from the blocking run.
-# They stay in the repo with a linked ticket — never deleted.
+# Turns off system animations (Reduce Motion on iOS). The Maestro docs mark this
+# as honoured on Maestro Cloud only; on a local simulator/emulator it does
+# nothing, so turn animations off in the device settings for steadier local runs.
+platform:
+  ios:
+    disableAnimations: true
+  android:
+    disableAnimations: true

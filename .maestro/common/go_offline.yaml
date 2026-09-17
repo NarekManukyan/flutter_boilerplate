@@ -1,0 +1,84 @@
+# SUBFLOW: take the device offline. Always pair it with go_online.yaml.
+#
+#   - runFlow: ../../common/go_offline.yaml
+#   # ... assert the offline UI ...
+#   - runFlow: ../../common/go_online.yaml
+#
+# A flow that fails between the two leaves the emulator in airplane mode, and
+# every later flow in the run fails for an unrelated reason. The run does not
+# stop at the first failure. tool/run_maestro.sh restores connectivity on exit;
+# by hand:  adb shell cmd connectivity airplane-mode disable
+#
+# Preconditions: the app is launched (any screen). Android emulator/device only.
+# Optional env:
+#   OFFLINE_ID  test id of something the app shows once it knows it is offline
+#               (a banner, a disabled send button). When set, the helper waits
+#               for it. Without it, the helper can only do a blind, capped settle.
+# Test ids: ${OFFLINE_ID} when passed, otherwise none
+#
+# ---------------------------------------------------------------------------
+# Why this branches on platform (read before "fixing" the iOS half)
+# ---------------------------------------------------------------------------
+# Android  `setAirplaneMode` runs `cmd connectivity airplane-mode enable` over
+#          adb. The radios really go down, so the app's connectivity listener
+#          fires and the real offline code path runs. Fully automated.
+#
+# iOS      Not automatable. A simulator has no airplane mode and shares the host
+#          Mac's network. Maestro's `setAirplaneMode` does not fail on iOS: it
+#          logs a warning and carries on (docs: "On web or iOS, the command will
+#          pass but has no effect"). An offline flow would run fully online and
+#          report a false pass, so this helper stops the flow instead.
+#
+# The preferred iOS route is a debug-only in-app network switch: a control
+# compiled only into dev builds that forces the app's HTTP/connectivity layer
+# offline, tagged with `TestId` (a Semantics identifier) along with a state
+# marker that is visible while it is offline. This boilerplate does NOT ship
+# one, so don't reference ids for it. Build the switch in the app first, then
+# replace the hard stop below with a tap on it plus an `extendedWaitUntil` on
+# the marker.
+#
+# Host-level blocking (Network Link Conditioner, pfctl) is not a substitute. The
+# interface stays up, so the app still believes it is online and requests just
+# time out. That is a different code path from the one under test.
+# ---------------------------------------------------------------------------
+appId: ${APP_ID}
+---
+# 1. Anything but Android: fail loudly. Screenshot first, because nothing after
+#    the failing assertion runs. The marker id IS the error message the report
+#    shows; it never exists on screen.
+- runFlow:
+    when:
+      true: ${maestro.platform !== 'android'}
+    commands:
+      - takeScreenshot: "go_offline_unsupported_platform"
+      - assertVisible:
+          id: "GO_OFFLINE_NOT_SUPPORTED_ON_THIS_PLATFORM-setAirplaneMode_only_works_on_Android-run_offline_flows_on_an_Android_emulator"
+
+# 2. Android: radios down.
+- runFlow:
+    when:
+      true: ${maestro.platform === 'android'}
+    commands:
+      - setAirplaneMode: enabled
+
+      # Bounded settle. The connectivity change reaches the app on a platform
+      # stream, so acting on the very next command races it.
+      #
+      # Best: wait for the app's own offline signal.
+      - runFlow:
+          when:
+            true: ${typeof OFFLINE_ID === 'string' && OFFLINE_ID.length > 0}
+          commands:
+            - extendedWaitUntil:
+                visible:
+                  id: ${OFFLINE_ID}
+                timeout: 10000
+
+      # Fallback: returns once the screen is still, capped at 3 s. This is not a
+      # guarantee the app has noticed. Pass OFFLINE_ID when the feature has one.
+      - runFlow:
+          when:
+            true: ${!(typeof OFFLINE_ID === 'string' && OFFLINE_ID.length > 0)}
+          commands:
+            - waitForAnimationToEnd:
+                timeout: 3000

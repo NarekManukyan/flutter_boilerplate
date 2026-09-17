@@ -35,6 +35,14 @@ jobs:
           git submodule sync
           git submodule update --init --recursive
 
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install melos
+        run: dart pub global activate melos
+
       - name: Run Claude Security & Performance Review
         id: claude-security-performance-review
         uses: anthropics/claude-code-action@v1
@@ -42,6 +50,6 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: '/review-security-performance ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,mcp__github__get_pull_request,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(npm audit:*),Bash(yarn audit:*)"
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,mcp__github__get_pull_request,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(git diff:*),Bash(melos run deps:check:*),Bash(flutter pub outdated:*),Read,Grep,Glob"
             --model claude-sonnet-4-5
             --max-turns 20

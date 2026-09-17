@@ -1,6 +1,11 @@
 # AC: when POST /todos fails the sheet stays open and says so — a silent no-op
 # leaves the user tapping a button that appears to do nothing.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: common/start_home.yaml, then mock `serverError` via
+#   common/set_mock.yaml.
+# Test ids: home_add_todo_fab, add_todo_title_field, add_todo_submit,
+#   add_todo_error, add_todo_cancel
+appId: ${APP_ID}
 name: "Home — add todo server error (failure)"
 tags:
   - failure

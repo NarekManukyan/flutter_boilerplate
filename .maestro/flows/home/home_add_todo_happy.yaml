@@ -1,5 +1,9 @@
 # AC: submitting a non-empty title creates the todo and it appears in the list.
-appId: com.example.flutterBoilerplate
+#
+# Preconditions: common/start_home.yaml (clean state, signed in, mock `normal`).
+# Test ids: home_add_todo_fab, add_todo_title_field, add_todo_counter,
+#   add_todo_submit, add_todo_error, home_todo_list
+appId: ${APP_ID}
 name: "Home — add a todo (happy)"
 tags:
   - happy

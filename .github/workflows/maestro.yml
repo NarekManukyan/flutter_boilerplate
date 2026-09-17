@@ -59,14 +59,19 @@ jobs:
           melos run build
 
       # PRs run the happy tag only — the full trio takes too long to gate every
-      # push. Nightly and manual runs execute everything (ADR-0015).
+      # push. Nightly and manual runs execute everything (ADR-0015). Quarantined
+      # flows are excluded by .maestro/config.yaml, not here.
       - name: Choose tags
         if: steps.ios.outputs.present == 'true'
         id: tags
+        env:
+          # Passed through env, never interpolated into the script.
+          INPUT_TAGS: ${{ github.event.inputs.tags }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ -n "${{ github.event.inputs.tags }}" ]; then
-            echo "args=--include-tags ${{ github.event.inputs.tags }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ -n "$INPUT_TAGS" ]; then
+            echo "args=--include-tags $INPUT_TAGS" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
             echo "args=--include-tags happy" >> "$GITHUB_OUTPUT"
           else
             echo "args=" >> "$GITHUB_OUTPUT"
@@ -95,21 +100,32 @@ jobs:
           curl -fsSL https://get.maestro.mobile.dev | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
-      - name: Run flows
+      # Every flow header is `appId: ${APP_ID}`. Read it from the app we just
+      # built, so a generated app with its own --org needs no edit here.
+      - name: Read bundle id
         if: steps.ios.outputs.present == 'true'
         run: |
-          maestro test .maestro \
-            ${{ steps.tags.outputs.args }} \
-            --exclude-tags quarantine \
-            --format junit \
-            --output maestro-report.xml
+          APP_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' build/ios/iphonesimulator/Runner.app/Info.plist)
+          echo "APP_ID=$APP_ID" >> "$GITHUB_ENV"
+
+      # tool/run_maestro.sh passes -e APP_ID, runs the .maestro workspace root and
+      # writes .maestro/output/{report.xml,debug/,artifacts/}. Its exit code is
+      # Maestro's.
+      - name: Run flows
+        if: steps.ios.outputs.present == 'true'
+        env:
+          DEVICE: ${{ env.SIM_UDID }}
+          TAG_ARGS: ${{ steps.tags.outputs.args }}
+        # TAG_ARGS is unquoted on purpose: "--include-tags happy" is two words.
+        run: ./tool/run_maestro.sh $TAG_ARGS
 
       - name: Upload report
         if: always() && steps.ios.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: maestro-report
-          path: |
-            maestro-report.xml
-            ~/.maestro/tests/**
+          name: maestro-output
+          path: .maestro/output
+          # Maestro nests debug output under a hidden .maestro/tests/<timestamp>/,
+          # which upload-artifact skips by default.
+          include-hidden-files: true
           if-no-files-found: warn
