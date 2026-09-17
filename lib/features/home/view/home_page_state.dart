@@ -1,9 +1,11 @@
+import 'package:api/api.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../core/navigation/app_navigator.dart';
 import '../../../core/use_cases/open_todo_details_use_case.dart';
 import '../mobx/home_store.dart';
+import '../models/todo_filter.dart';
 import 'use_cases/show_add_todo_modal_use_case.dart';
 
 part 'home_page_state.g.dart';
@@ -24,7 +26,28 @@ abstract class _HomePageStateBase with Store {
     this._showAddTodoModalUseCase,
   );
 
-  HomeStore get store => _homeStore;
+  // The page reads the store through these, never directly (ADR-0001). MobX
+  // tracks through a getter, so an Observer reading them still rebuilds when
+  // the store changes.
+  List<TodoDto> get todos => _homeStore.todos;
+
+  bool get isLoading => _homeStore.isLoading;
+
+  String? get error => _homeStore.error;
+
+  @readonly
+  TodoFilter _filter = TodoFilter.all;
+
+  /// Recomputed when the list or the filter changes, not on every rebuild.
+  @computed
+  List<TodoDto> get visibleTodos =>
+      _homeStore.todos.where(_filter.matches).toList();
+
+  @computed
+  int get doneCount => _homeStore.todos.where((todo) => todo.completed).length;
+
+  @action
+  void onFilterChanged(TodoFilter filter) => _filter = filter;
 
   Future<void> init() async {
     await _homeStore.loadTodos();
@@ -42,8 +65,9 @@ abstract class _HomePageStateBase with Store {
 
   @action
   Future<void> onLogoutPressed() async {
+    // No navigation here: logout resets DI, the app root remounts a fresh
+    // router, and SplashPageState sends the signed-out user to login.
     await _homeStore.logout();
-    await _appNavigator.pushAndPopAll(const LoginRoute());
   }
 
   @action

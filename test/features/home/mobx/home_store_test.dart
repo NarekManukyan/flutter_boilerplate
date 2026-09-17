@@ -73,6 +73,22 @@ void main() {
       expect(store.todos, isEmpty);
     });
 
+    test(
+      'should show the error state when the response cannot be parsed',
+      () async {
+        // Regression guard: only DioException was caught, so a payload that
+        // failed fromJson left the page without an error state.
+        when(
+          () => todosProvider.getTodos(),
+        ).thenThrow(const FormatException('bad'));
+
+        await store.loadTodos();
+
+        expect(store.error, isNotNull);
+        expect(store.isLoading, isFalse);
+      },
+    );
+
     test('should report a failed load as handled, not as a notice', () async {
       final error = _dioError('boom');
       when(() => todosProvider.getTodos()).thenThrow(error);

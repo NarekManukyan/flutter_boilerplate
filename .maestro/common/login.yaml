@@ -1,6 +1,6 @@
 # Signs in and waits for Home. Runs after `launch.yaml`.
 #
-# The dev flavor accepts any well-formed email — LoginUseCase is mocked. Pass a
+# The dev flavor accepts any well-formed email (AuthStore.login is a stub). Pass a
 # different address with `env: { EMAIL: "..." }` when a flow needs one.
 #
 # Preconditions: on Login, straight after launch.yaml. Needs env EMAIL.

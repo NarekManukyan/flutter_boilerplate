@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:mobx/mobx.dart';
 
 class Debounce {
-  final int delay;
+  final Duration delay;
   Timer? _timer;
 
   Debounce(this.delay);
 
   void call(void Function() action) {
     _timer?.cancel();
-    _timer = Timer(Duration(milliseconds: delay), action);
+    _timer = Timer(delay, action);
   }
 
   void dispose() {
@@ -23,7 +23,7 @@ ReactionDisposer debounceReaction<T>(
   T Function(Reaction) fn,
   void Function(T) effect, {
   String? name,
-  required int delay,
+  required Duration delay,
   bool? fireImmediately,
   EqualityComparer<T>? equals,
   ReactiveContext? context,

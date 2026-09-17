@@ -3,7 +3,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart' hide Router;
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:get_it/get_it.dart';
 import 'package:overlay_support/overlay_support.dart';
 
 import 'core/navigation/app_navigator.dart';
@@ -16,6 +15,11 @@ class MyApp extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A logout resets DI. Rebuilding under a new key mounts the new router
+    // and recreates everything below it (the connection wrapper's state holds
+    // the old ConnectivityStore otherwise).
+    final generation = useValueListenable(dependencyGeneration);
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarBrightness: context.theme.brightness,
@@ -26,10 +30,11 @@ class MyApp extends HookWidget {
             leadingDistribution: TextLeadingDistribution.even,
           ),
           child: MaterialApp.router(
+            key: ValueKey(generation),
             supportedLocales: context.supportedLocales,
             locale: context.locale,
             localizationsDelegates: context.localizationDelegates,
-            debugShowCheckedModeBanner: GetIt.I<FlavorService>().isDev,
+            debugShowCheckedModeBanner: getIt<FlavorService>().isDev,
             theme: lightTheme,
             darkTheme: darkTheme,
             routerConfig: getIt<AppNavigator>().config,

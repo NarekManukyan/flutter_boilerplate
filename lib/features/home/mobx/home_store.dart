@@ -35,14 +35,16 @@ abstract class _HomeStoreBase with Store {
     try {
       final result = await _dioService.todosProvider.getTodos();
       _todos = ObservableList.of(result);
-    } on DioException catch (e, stackTrace) {
-      // The page renders [error] as its error state, so this is handled.
+    } catch (e, stackTrace) {
+      // Everything, not only DioException: the generated Retrofit client
+      // rethrows a response that fails fromJson unchanged, and that must
+      // still reach the error state. The page renders [error], so handled.
       _issueTrackingService.trackHandledError(
         e,
         stackTrace: stackTrace,
         handlingContext: 'load_todos',
       );
-      _error = e.message;
+      _error = e is DioException ? e.message : e.toString();
     } finally {
       _isLoading = false;
     }
@@ -51,6 +53,16 @@ abstract class _HomeStoreBase with Store {
   @action
   Future<void> addTodo(TodoDto todo) async {
     _todos.add(todo);
+  }
+
+  /// Replaces the todo with the same id, if the list holds it. Screens that
+  /// change a todo call this so the Home list does not keep a stale copy.
+  @action
+  void replaceTodo(TodoDto todo) {
+    final index = _todos.indexWhere((t) => t.id == todo.id);
+    if (index != -1) {
+      _todos[index] = todo;
+    }
   }
 
   @action

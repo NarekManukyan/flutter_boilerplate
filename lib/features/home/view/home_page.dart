@@ -13,10 +13,9 @@ import '../../../core/ui/geist_motion.dart';
 import '../../../core/ui/test_id.dart';
 import '../../../gen/locale_keys.g.dart';
 import '../../../injectable.dart';
+import '../models/todo_filter.dart';
 import 'home_keys.dart';
 import 'home_page_state.dart';
-
-enum _TodoFilter { all, active, done }
 
 @RoutePage()
 class HomePage extends StatelessWidget {
@@ -39,7 +38,6 @@ class _HomePageContent extends HookWidget {
   Widget build(BuildContext context) {
     final g = context.geist;
     final state = context.read<HomePageState>();
-    final filter = useState(_TodoFilter.all);
     final scrollController = useScrollController();
     // useValueNotifier, not useState: only the FAB reads this, and it is set
     // from a scroll listener, so a useState rebuilt the whole page (app bar,
@@ -71,34 +69,25 @@ class _HomePageContent extends HookWidget {
       ),
       body: Observer(
         builder: (_) {
-          final store = state.store;
+          final todos = state.todos;
 
-          if (store.isLoading && store.todos.isEmpty) {
+          if (state.isLoading && todos.isEmpty) {
             return const _TodoSkeletonList().withTestId(HomeKeys.skeletonList);
           }
-          if (store.error != null) {
+          if (state.error != null) {
             return _ErrorState(
               onRetry: state.init,
             ).withTestId(HomeKeys.errorState);
           }
 
-          final total = store.todos.length;
-          final done = store.todos.where((t) => t.completed).length;
+          final total = todos.length;
+          final done = state.doneCount;
 
           if (total == 0) {
             return const _EmptyState().withTestId(HomeKeys.emptyState);
           }
 
-          final filtered = store.todos.where((t) {
-            switch (filter.value) {
-              case _TodoFilter.all:
-                return true;
-              case _TodoFilter.active:
-                return !t.completed;
-              case _TodoFilter.done:
-                return t.completed;
-            }
-          }).toList();
+          final filtered = state.visibleTodos;
 
           return RefreshIndicator(
             color: g.ink,
@@ -116,11 +105,11 @@ class _HomePageContent extends HookWidget {
                   delegate: _FilterHeaderDelegate(
                     background: g.surface,
                     child: _FilterBar(
-                      current: filter.value,
+                      current: state.filter,
                       total: total,
                       active: total - done,
                       done: done,
-                      onChanged: (v) => filter.value = v,
+                      onChanged: state.onFilterChanged,
                     ),
                   ),
                 ),
@@ -128,7 +117,7 @@ class _HomePageContent extends HookWidget {
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: _FilterEmptyState(
-                      filter: filter.value,
+                      filter: state.filter,
                     ).withTestId(HomeKeys.filterEmptyState),
                   )
                 else
@@ -425,11 +414,11 @@ class _FilterBar extends StatelessWidget {
     required this.onChanged,
   });
 
-  final _TodoFilter current;
+  final TodoFilter current;
   final int total;
   final int active;
   final int done;
-  final ValueChanged<_TodoFilter> onChanged;
+  final ValueChanged<TodoFilter> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -441,22 +430,22 @@ class _FilterBar extends StatelessWidget {
           _FilterChip(
             label: LocaleKeys.homePage_filterAll.tr(),
             count: total,
-            selected: current == _TodoFilter.all,
-            onTap: () => onChanged(_TodoFilter.all),
+            selected: current == TodoFilter.all,
+            onTap: () => onChanged(TodoFilter.all),
           ).withTestId(HomeKeys.filterAll),
           const Gap(kSpacing6px),
           _FilterChip(
             label: LocaleKeys.homePage_filterActive.tr(),
             count: active,
-            selected: current == _TodoFilter.active,
-            onTap: () => onChanged(_TodoFilter.active),
+            selected: current == TodoFilter.active,
+            onTap: () => onChanged(TodoFilter.active),
           ).withTestId(HomeKeys.filterActive),
           const Gap(kSpacing6px),
           _FilterChip(
             label: LocaleKeys.homePage_filterDone.tr(),
             count: done,
-            selected: current == _TodoFilter.done,
-            onTap: () => onChanged(_TodoFilter.done),
+            selected: current == TodoFilter.done,
+            onTap: () => onChanged(TodoFilter.done),
           ).withTestId(HomeKeys.filterDone),
         ],
       ),
@@ -735,15 +724,15 @@ class _EmptyState extends StatelessWidget {
 class _FilterEmptyState extends StatelessWidget {
   const _FilterEmptyState({required this.filter});
 
-  final _TodoFilter filter;
+  final TodoFilter filter;
 
   @override
   Widget build(BuildContext context) {
     final g = context.geist;
     final msg = switch (filter) {
-      _TodoFilter.active => LocaleKeys.homePage_filterEmptyActive.tr(),
-      _TodoFilter.done => LocaleKeys.homePage_filterEmptyDone.tr(),
-      _TodoFilter.all => LocaleKeys.homePage_filterEmptyAll.tr(),
+      TodoFilter.active => LocaleKeys.homePage_filterEmptyActive.tr(),
+      TodoFilter.done => LocaleKeys.homePage_filterEmptyDone.tr(),
+      TodoFilter.all => LocaleKeys.homePage_filterEmptyAll.tr(),
     };
     return FadeSlideIn(
       child: Padding(

@@ -33,10 +33,21 @@ class _ConnectionWrapperContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<ConnectionWrapperState>();
-    return Observer(
-      builder: (_) {
-        return state.hasConnection ? child : const _NoConnectionWidget();
-      },
+    // The offline page covers the app instead of replacing it. Swapping the
+    // router child out unmounted every route on a dropped connection, so the
+    // user lost their place and every page state re-initialised on reconnect.
+    return Stack(
+      children: [
+        child,
+        Positioned.fill(
+          child: Observer(
+            // An empty SizedBox takes no hits, so taps reach the app below.
+            builder: (_) => state.hasConnection
+                ? const SizedBox.shrink()
+                : const _NoConnectionWidget(),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -54,17 +65,17 @@ class _NoConnectionWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.wifi_off, size: 48),
-            const Gap(16),
+            const Gap(kSpacing16px),
             Text(
               LocaleKeys.connectionPage_title.tr(),
               style: context.labelXLMedium,
             ),
-            const Gap(8),
+            const Gap(kSpacing8px),
             Text(
               LocaleKeys.connectionPage_subtitle.tr(),
               style: context.labelXLMedium,
             ),
-            const Gap(24),
+            const Gap(kSpacing24px),
             ElevatedButton(
               onPressed: state.onSettingsTap,
               child: Text(LocaleKeys.connectionPage_goToSettings.tr()),

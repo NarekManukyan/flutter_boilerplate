@@ -1,7 +1,7 @@
 import 'package:api/api.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_boilerplate/core/navigation/app_navigator.dart';
-import 'package:flutter_boilerplate/features/home/mobx/home_store.dart';
+import 'package:flutter_boilerplate/features/home/models/todo_filter.dart';
 import 'package:flutter_boilerplate/features/home/view/home_keys.dart';
 import 'package:flutter_boilerplate/features/home/view/home_page.dart';
 import 'package:flutter_boilerplate/features/home/view/home_page_state.dart';
@@ -13,8 +13,6 @@ import 'package:mocktail/mocktail.dart';
 
 import '../../../helpers/pump_app.dart';
 
-class _MockHomeStore extends Mock implements HomeStore {}
-
 class _MockHomePageState extends Mock implements HomePageState {}
 
 class _MockAppNavigator extends Mock implements AppNavigator {}
@@ -22,28 +20,30 @@ class _MockAppNavigator extends Mock implements AppNavigator {}
 TodoDto _todo(String id, {bool completed = false}) =>
     TodoDto(id: id, title: 'todo $id', completed: completed);
 
-/// Stubs one snapshot of the store's observable surface.
-void _stubStore(
-  _MockHomeStore store, {
+/// Stubs one snapshot of what the page reads from its state.
+void _stubState(
+  _MockHomePageState state, {
   List<TodoDto> todos = const [],
   bool isLoading = false,
   String? error,
 }) {
-  when(() => store.todos).thenReturn(ObservableList.of(todos));
-  when(() => store.isLoading).thenReturn(isLoading);
-  when(() => store.error).thenReturn(error);
+  when(() => state.todos).thenReturn(ObservableList.of(todos));
+  when(() => state.isLoading).thenReturn(isLoading);
+  when(() => state.error).thenReturn(error);
+  when(() => state.filter).thenReturn(TodoFilter.all);
+  when(() => state.visibleTodos).thenReturn(todos);
+  when(
+    () => state.doneCount,
+  ).thenReturn(todos.where((t) => t.completed).length);
 }
 
 void main() {
   setUpAll(initLocalizationForTests);
 
-  late _MockHomeStore store;
   late _MockHomePageState state;
 
   setUp(() {
-    store = _MockHomeStore();
     state = _MockHomePageState();
-    when(() => state.store).thenReturn(store);
     when(state.init).thenAnswer((_) async {});
     when(state.dispose).thenReturn(null);
     when(state.onAddTodoPressed).thenAnswer((_) async {});
@@ -62,7 +62,7 @@ void main() {
     testWidgets('should show the skeleton list while the first load runs', (
       tester,
     ) async {
-      _stubStore(store, isLoading: true);
+      _stubState(state, isLoading: true);
 
       await tester.pumpApp(const HomePage());
 
@@ -74,7 +74,7 @@ void main() {
     testWidgets('should show the error state with a retry affordance', (
       tester,
     ) async {
-      _stubStore(store, error: 'boom');
+      _stubState(state, error: 'boom');
 
       await tester.pumpApp(const HomePage());
 
@@ -86,7 +86,7 @@ void main() {
     testWidgets('should retry the load when the retry button is tapped', (
       tester,
     ) async {
-      _stubStore(store, error: 'boom');
+      _stubState(state, error: 'boom');
 
       await tester.pumpApp(const HomePage());
       await tester.tap(find.byKey(const Key(HomeKeys.errorRetry)));
@@ -99,7 +99,7 @@ void main() {
     testWidgets('should show the empty state when there are no todos', (
       tester,
     ) async {
-      _stubStore(store);
+      _stubState(state);
 
       await tester.pumpApp(const HomePage());
 
@@ -111,7 +111,7 @@ void main() {
     });
 
     testWidgets('should show the list when todos are loaded', (tester) async {
-      _stubStore(store, todos: [_todo('1'), _todo('2', completed: true)]);
+      _stubState(state, todos: [_todo('1'), _todo('2', completed: true)]);
 
       await tester.pumpApp(const HomePage());
 
@@ -121,7 +121,7 @@ void main() {
     });
 
     testWidgets('should open the add-todo modal from the FAB', (tester) async {
-      _stubStore(store, todos: [_todo('1')]);
+      _stubState(state, todos: [_todo('1')]);
 
       await tester.pumpApp(const HomePage());
       await tester.tap(find.byKey(const Key(HomeKeys.addTodoFab)));
@@ -135,7 +135,7 @@ void main() {
     ) async {
       // Guards the ADR-0019 refactor: visibility now flows through a
       // ValueNotifier + ValueListenableBuilder instead of a useState.
-      _stubStore(store, todos: [for (var i = 0; i < 40; i++) _todo('$i')]);
+      _stubState(state, todos: [for (var i = 0; i < 40; i++) _todo('$i')]);
       await tester.pumpApp(const HomePage());
 
       double fabOpacity() => tester
@@ -165,7 +165,7 @@ void main() {
     });
 
     testWidgets('should render the list in dark mode too', (tester) async {
-      _stubStore(store, todos: [_todo('1')]);
+      _stubState(state, todos: [_todo('1')]);
 
       await tester.pumpApp(const HomePage(), dark: true);
 

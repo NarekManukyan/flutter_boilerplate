@@ -17,7 +17,8 @@ class AppRouter extends RootStackRouter {
       initial: true,
       path: '/',
       page: SplashRoute.page,
-      guards: [_authGuard],
+      // No guard: SplashPageState decides between home and login. Behind
+      // AuthGuard a signed-in user reached the splash page and stayed there.
     ),
     AutoRoute(path: '/login', page: LoginRoute.page),
     AutoRoute(path: '/home', page: HomeRoute.page, guards: [_authGuard]),

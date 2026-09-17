@@ -29,8 +29,15 @@ abstract class _AppUpdateModalStateBase with Store {
     _appStoreLink = appStoreLink;
   }
 
-  void onOpenStoreLink() {
-    launchUrl(Uri.parse(_appStoreLink), mode: LaunchMode.externalApplication);
+  /// Opens the store listing. The link comes from a store lookup over the
+  /// network, so anything that is not an https URL is refused rather than
+  /// handed to the OS.
+  Future<void> onOpenStoreLink() async {
+    final uri = Uri.tryParse(_appStoreLink);
+    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
+      return;
+    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> onNotNow() => _appNavigator.pop();

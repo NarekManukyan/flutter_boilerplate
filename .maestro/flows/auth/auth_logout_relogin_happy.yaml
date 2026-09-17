@@ -1,0 +1,34 @@
+# AC: a user who logs out can log straight back in.
+#
+# Regression: logout resets DI, which builds a new AppNavigator and router.
+# The app root did not remount that router, so after logging out, "Continue" on
+# the login page went nowhere. Found on device; see lib/injectable.dart
+# (dependencyGeneration) and lib/app.dart.
+#
+# Preconditions: common/start_home.yaml (clean state, signed in, mock `normal`).
+# Test ids: home_logout_button, login_email_field, login_continue_button,
+#   home_todo_list
+appId: ${APP_ID}
+name: "Auth — log out, then log back in (happy)"
+tags:
+  - happy
+  - auth
+---
+- runFlow: ../../common/start_home.yaml
+
+- tapOn:
+    id: "home_logout_button"
+- extendedWaitUntil:
+    visible:
+      id: "login_email_field"
+    timeout: 15000
+
+- runFlow:
+    file: ../../common/login.yaml
+    env:
+      EMAIL: "qa@example.com"
+
+# login.yaml already waits for the list; assert it once more so the intent of
+# this flow is readable here.
+- assertVisible:
+    id: "home_todo_list"

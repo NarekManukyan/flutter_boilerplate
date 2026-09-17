@@ -1,5 +1,4 @@
 import 'package:api/api.dart';
-import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../../../../core/services/dio_service.dart';
@@ -19,7 +18,9 @@ class CreateTodoUseCase {
       return await _dioService.todosProvider.createTodo(
         todoCreateDto: TodoCreateRequestDto(title: title),
       );
-    } on DioException catch (e, stackTrace) {
+    } catch (e, stackTrace) {
+      // Not only DioException: a response that fails fromJson throws from the
+      // generated client too, and the caller still needs its null.
       _issueTrackingService.trackHandledError(
         e,
         stackTrace: stackTrace,

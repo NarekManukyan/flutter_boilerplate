@@ -35,9 +35,12 @@ Future<void> run({FlavorType env = FlavorType.DEVELOPMENT}) async {
     options
       ..environment = env.toString()
       ..dsn = getIt<FlavorService>().config.sentryDsn
-      ..tracesSampleRate = 1.0
-      ..addIntegration(LoggingIntegration())
-      ..attachScreenshot = true;
+      // Every transaction in development; a sample in production, where 100%
+      // costs quota and battery for no extra signal.
+      ..tracesSampleRate = env == FlavorType.PROD ? 0.2 : 1.0
+      // No attachScreenshot: it did nothing without a SentryWidget, and a
+      // screenshot of an error screen can carry user data.
+      ..addIntegration(LoggingIntegration());
   }, appRunner: _runApp);
 }
 

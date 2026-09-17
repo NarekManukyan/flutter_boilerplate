@@ -31,6 +31,11 @@ abstract class _AddTodoModalStateBase with Store {
 
   @action
   Future<void> onSubmit() async {
+    // Both the button and the keyboard's submit action call this. Without the
+    // guard a quick double submit created the todo twice.
+    if (loadingState.isLoading) {
+      return;
+    }
     loadingState.startLoading();
     _hasError = false;
     try {

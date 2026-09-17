@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../features/auth/mobx/auth_store.dart';
-import '../navigation/app_navigator.dart';
+import '../constants/timing_constants.dart';
 import 'flavor_service.dart';
 import 'interceptors/api_interceptor.dart';
 import 'interceptors/auth_interceptor.dart';
@@ -16,7 +16,6 @@ import 'interceptors/mock_todos_interceptor.dart';
 class DioService {
   final FlavorService _flavorService;
   final AuthStore _authStore;
-  final AppNavigator _appNavigator;
   late final AuthProvider authProvider = AuthProvider(dio);
   late final TodosApiProvider todosProvider = TodosApiProvider(dio);
 
@@ -24,7 +23,7 @@ class DioService {
   late final Dio dio;
   late final Dio uploadImageDio;
 
-  DioService(this._flavorService, this._authStore, this._appNavigator) {
+  DioService(this._flavorService, this._authStore) {
     initDio();
   }
 
@@ -32,11 +31,15 @@ class DioService {
     final options = BaseOptions(
       baseUrl: _flavorService.config.apiUrl,
       receiveDataWhenStatusError: true,
-      connectTimeout: const Duration(seconds: 32),
-      receiveTimeout: const Duration(seconds: 32),
+      connectTimeout: TimingConstants.apiConnectTimeout,
+      sendTimeout: TimingConstants.apiSendTimeout,
+      receiveTimeout: TimingConstants.apiReceiveTimeout,
     );
-    final uploadDioOptions = BaseOptions()
-      ..headers[HttpHeaders.contentTypeHeader] = 'audio/mpeg';
+    final uploadDioOptions = BaseOptions(
+      connectTimeout: TimingConstants.apiConnectTimeout,
+      sendTimeout: TimingConstants.uploadSendTimeout,
+      receiveTimeout: TimingConstants.apiReceiveTimeout,
+    )..headers[HttpHeaders.contentTypeHeader] = 'audio/mpeg';
 
     dio = Dio(options)
       ..interceptors.addAll(<Interceptor>[
@@ -44,7 +47,7 @@ class DioService {
         // Must come first so it can short-circuit before auth/logging.
         if (_flavorService.isDev) MockTodosInterceptor(),
         ApiInterceptor(_flavorService),
-        AuthInterceptor(_authStore, _appNavigator),
+        AuthInterceptor(_authStore, apiBaseUrl: _flavorService.config.apiUrl),
         // CacheInterceptor(),
         // Never in production: bodies carry user data, and the default
         // header logging would print the bearer token and any cookies.

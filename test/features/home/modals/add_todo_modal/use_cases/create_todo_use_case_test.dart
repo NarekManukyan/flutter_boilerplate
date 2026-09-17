@@ -47,6 +47,26 @@ void main() {
       verifyZeroInteractions(issueTracking);
     });
 
+    test('should return null and report a response it cannot parse', () async {
+      // The generated client rethrows fromJson failures unchanged; catching
+      // only DioException let them escape the use case.
+      final error = TypeError();
+      when(
+        () => todosProvider.createTodo(
+          todoCreateDto: any(named: 'todoCreateDto'),
+        ),
+      ).thenThrow(error);
+
+      expect(await createTodo('Milk'), isNull);
+      verify(
+        () => issueTracking.trackHandledError(
+          error,
+          stackTrace: any(named: 'stackTrace'),
+          handlingContext: 'create_todo',
+        ),
+      ).called(1);
+    });
+
     test('should return null and report the failure as handled', () async {
       final error = DioException(
         requestOptions: RequestOptions(path: '/todos'),

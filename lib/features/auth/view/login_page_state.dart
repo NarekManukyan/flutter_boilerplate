@@ -33,8 +33,11 @@ abstract class _LoginPageStateBase with Store {
     }
     _emailError = null;
     loadingState.startLoading();
-    await _authStore.login(email);
-    loadingState.stopLoading();
+    try {
+      await _authStore.login(email);
+    } finally {
+      loadingState.stopLoading();
+    }
     await _appNavigator.pushAndPopAll(const HomeRoute());
   }
 

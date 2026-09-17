@@ -1,10 +1,13 @@
+import 'package:api/api.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_boilerplate/core/navigation/app_navigator.dart';
 import 'package:flutter_boilerplate/core/use_cases/open_todo_details_use_case.dart';
 import 'package:flutter_boilerplate/features/home/mobx/home_store.dart';
+import 'package:flutter_boilerplate/features/home/models/todo_filter.dart';
 import 'package:flutter_boilerplate/features/home/view/home_page_state.dart';
 import 'package:flutter_boilerplate/features/home/view/use_cases/show_add_todo_modal_use_case.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobx/mobx.dart' show ObservableList;
 import 'package:mocktail/mocktail.dart';
 
 class _MockHomeStore extends Mock implements HomeStore {}
@@ -47,8 +50,23 @@ void main() {
       verify(store.loadTodos).called(1);
     });
 
-    test('should expose the injected store', () {
-      expect(state.store, same(store));
+    test('should filter the visible todos without touching the store', () {
+      when(() => store.todos).thenReturn(
+        ObservableList.of([
+          TodoDto(id: '1', title: 'a', completed: false),
+          TodoDto(id: '2', title: 'b', completed: true),
+        ]),
+      );
+
+      expect(state.visibleTodos.map((t) => t.id), ['1', '2']);
+      expect(state.doneCount, 1);
+
+      state.onFilterChanged(TodoFilter.done);
+      expect(state.filter, TodoFilter.done);
+      expect(state.visibleTodos.map((t) => t.id), ['2']);
+
+      state.onFilterChanged(TodoFilter.active);
+      expect(state.visibleTodos.map((t) => t.id), ['1']);
     });
 
     test('should delegate a todo tap to the open-details use case', () async {
@@ -74,7 +92,10 @@ void main() {
 
       await state.onLogoutPressed();
 
-      verifyInOrder([store.logout, () => navigator.pushAndPopAll(any())]);
+      verify(store.logout).called(1);
+      // The app root remounts the router after the DI reset; pushing on this
+      // (old) navigator would target a router that is going away.
+      verifyNever(() => navigator.pushAndPopAll(any()));
     });
   });
 }

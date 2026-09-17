@@ -2,6 +2,7 @@ import 'package:injectable/injectable.dart';
 import 'package:mobx/mobx.dart';
 import 'package:open_settings_plus/open_settings_plus.dart';
 
+import '../../../core/constants/timing_constants.dart';
 import '../../../core/utils/debounce_reaction.dart';
 import './connectivity_store.dart';
 
@@ -19,7 +20,7 @@ abstract class _ConnectionWrapperStateBase with Store {
     _connectivityReaction = debounceReaction(
       (_) => _connectivityStore.hasConnection,
       _onConnectivityChange,
-      delay: 200,
+      delay: TimingConstants.connectivityDebounce,
       fireImmediately: true,
     );
   }

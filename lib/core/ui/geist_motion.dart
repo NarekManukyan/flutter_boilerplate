@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -85,8 +87,11 @@ class FadeSlideIn extends HookWidget {
         controller.value = 1;
         return null;
       }
-      final f = Future<void>.delayed(delay, controller.forward);
-      return f.ignore;
+      // A Timer, not Future.delayed: a delayed future cannot be cancelled, so
+      // a widget disposed during its delay still called forward() on the
+      // disposed controller.
+      final timer = Timer(delay, controller.forward);
+      return timer.cancel;
     }, const []);
 
     final fade = useMemoized(

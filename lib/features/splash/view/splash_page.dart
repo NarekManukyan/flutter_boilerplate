@@ -3,8 +3,11 @@ import 'package:design_system/design_system.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:provider/provider.dart';
 
 import '../../../gen/locale_keys.g.dart';
+import '../../../injectable.dart';
+import 'splash_page_state.dart';
 
 @RoutePage()
 class SplashPage extends StatelessWidget {
@@ -12,7 +15,13 @@ class SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _SplashPageContent();
+    return Provider<SplashPageState>(
+      create: (_) => getIt<SplashPageState>()..init(),
+      dispose: (_, state) => state.dispose(),
+      // Not lazy: nothing below reads the state, and init() must still run.
+      lazy: false,
+      child: const _SplashPageContent(),
+    );
   }
 }
 
